@@ -2,6 +2,10 @@ spring:
   main:
     banner-mode: "log"
 
+logging:
+  level:
+    org.springframework.web.client: INFO
+
 management:
   endpoints:
     web:
