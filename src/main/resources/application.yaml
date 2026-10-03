@@ -1,0 +1,56 @@
+spring:
+  main:
+    banner-mode: "log"
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: never
+      group:
+        readiness:
+          include: readinessState,firestore,reportVerification
+
+app:
+  firestore:
+    seed: ${RADIOTECH_FIRESTORE_SEED:false}
+    seed-tenant-id: ${RADIOTECH_FIRESTORE_SEED_TENANT_ID:}
+  firebase:
+    enabled: ${RADIOTECH_FIREBASE_ENABLED:true}
+    project-id: ${FIREBASE_PROJECT_ID:gestionale-radio}
+    storage-bucket: ${FIREBASE_STORAGE_BUCKET:}
+    service-account-path: ${FIREBASE_SERVICE_ACCOUNT_PATH:}
+    database-url: ${FIREBASE_DATABASE_URL:https://gestionale-radio-default-rtdb.europe-west1.firebasedatabase.app}
+
+radiotech:
+  reports:
+    verification-secret: ${RADIOTECH_REPORT_VERIFICATION_SECRET:}
+    public-base-url: ${RADIOTECH_PUBLIC_BASE_URL:}
+  capo:
+    email: ${RADIOTECH_CAPO_EMAIL:capo@radiotech.it}
+  firebase:
+    web-api-key: ${RADIOTECH_FIREBASE_WEB_API_KEY:}
+  security:
+    cors-origins: ${RADIOTECH_CORS_ORIGINS:http://localhost:8080}
+    rate-limit-per-minute: ${RADIOTECH_RATE_LIMIT_PER_MINUTE:10}
+  geo:
+    geofence-radius-meters: ${RADIOTECH_GEOFENCE_RADIUS_METERS:250}
+    max-accuracy-meters: ${RADIOTECH_GPS_MAX_ACCURACY_METERS:100}
+  sla:
+    warning-minutes: ${RADIOTECH_SLA_WARNING_MINUTES:60}
+  bootstrap:
+    secret: ${RADIOTECH_BOOTSTRAP_SECRET:}
+    tenant-id: ${RADIOTECH_BOOTSTRAP_TENANT_ID:}
+  tenant:
+    invite-secret: ${RADIOTECH_TENANT_INVITE_SECRET:}
+    migration:
+      enabled: ${RADIOTECH_TENANT_MIGRATION_ENABLED:false}
+      tenant-id: ${RADIOTECH_LEGACY_TENANT_ID:}
+      single-tenant-confirmed: ${RADIOTECH_TENANT_MIGRATION_SINGLE_TENANT_CONFIRMED:false}
+      replace-default: ${RADIOTECH_TENANT_MIGRATION_REPLACE_DEFAULT:false}
+      apply: ${RADIOTECH_TENANT_MIGRATION_APPLY:false}

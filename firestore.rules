@@ -1,0 +1,74 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() { return request.auth != null; }
+    function hasTenant() {
+      return signedIn()
+        && request.auth.token.tenantId is string
+        && request.auth.token.tenantId.size() > 0;
+    }
+    function tenantMatches(data) {
+      return hasTenant() && data.tenantId == request.auth.token.tenantId;
+    }
+    function role() { return signedIn() && request.auth.token.role != null ? request.auth.token.role : ''; }
+    function manager() {
+      return signedIn() && role() in ['SUPER_ADMIN', 'ADMIN', 'CHIEF_EXECUTIVE', 'CAPO', 'NETWORK_MANAGER'];
+    }
+    function viewer() { return signedIn() && role() == 'VIEWER'; }
+    function operator() { return signedIn() && role() in ['OPERATOR', 'OPERATORE']; }
+
+    match /operators/{id} {
+      allow read: if tenantMatches(resource.data)
+        && (manager() || viewer()
+          || (operator() && (resource.data.firebaseUid == request.auth.uid || id == request.auth.uid)));
+      allow create, update, delete: if false;
+    }
+    match /tasks/{id} {
+      allow read: if tenantMatches(resource.data)
+        && (manager() || viewer()
+          || (operator() && (resource.data.operatorFirebaseUid == request.auth.uid || resource.data.operatorId == request.auth.uid)));
+      allow create, update, delete: if false;
+    }
+    match /maintenanceReports/{id} {
+      allow read: if tenantMatches(resource.data)
+        && (manager() || viewer()
+          || (operator() && (resource.data.operatorId == request.auth.uid || resource.data.operatorFirebaseUid == request.auth.uid)));
+      allow create, update, delete: if false;
+    }
+    match /antennas/{id} {
+      allow read: if tenantMatches(resource.data) && (manager() || viewer() || operator());
+      allow create, update, delete: if false;
+    }
+    match /inventory/{id} {
+      allow read: if tenantMatches(resource.data) && (manager() || viewer() || operator());
+      allow create, update, delete: if false;
+    }
+    match /alerts/{id} {
+      allow read: if tenantMatches(resource.data) && (manager() || viewer());
+      allow create, update, delete: if false;
+    }
+    match /notificationHistory/{id} {
+      allow read: if tenantMatches(resource.data)
+        && (manager() || viewer()
+          || (operator() && (resource.data.target == 'BROADCAST'
+            || resource.data.target == request.auth.token.operatorId)));
+      allow write: if false;
+    }
+    match /auditLogs/{id} {
+      allow read: if (manager() || viewer()) && tenantMatches(resource.data);
+      allow write: if false;
+    }
+    match /capo/{id} {
+      allow read: if manager() && tenantMatches(resource.data) && id == request.auth.uid;
+      allow create: if manager() && tenantMatches(request.resource.data) && id == request.auth.uid;
+      allow update: if manager() && tenantMatches(resource.data) && tenantMatches(request.resource.data)
+        && id == request.auth.uid;
+      allow delete: if manager() && tenantMatches(resource.data) && id == request.auth.uid;
+    }
+    match /users/{id} {
+      allow read: if (manager() || viewer()) && tenantMatches(resource.data);
+      allow create, update, delete: if false;
+    }
+    match /{document=**} { allow read, write: if false; }
+  }
+}

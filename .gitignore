@@ -1,0 +1,14 @@
+.gradle/
+build/
+bin/
+node_modules/
+.dist/
+.idea/
+*.iml
+out/
+*.log
+*.zip
+.env
+.env.*
+serviceAccountKey.json
+firebase-service-account.json

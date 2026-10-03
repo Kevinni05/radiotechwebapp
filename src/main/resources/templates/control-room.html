@@ -1,0 +1,3643 @@
+<!DOCTYPE html>
+<html lang="it" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#070b16">
+    <meta name="description" content="RadioTech Executive Control Center">
+    <title>RadioTech · Executive Control Center</title>
+
+    <!-- Leaflet: CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="anonymous">
+
+    <style th:attr="nonce=${cspNonce}">
+        :root {
+            --bg: #060913;
+            --bg-soft: #0a1020;
+            --panel: rgba(13, 20, 38, .78);
+            --panel-solid: #0e1729;
+            --panel-2: rgba(19, 29, 51, .72);
+            --border: rgba(148, 163, 184, .13);
+            --border-strong: rgba(116, 151, 255, .28);
+            --text: #f4f7ff;
+            --muted: #8f9bb0;
+            --muted-2: #64728b;
+            --primary: #5b8cff;
+            --primary-2: #7c5cff;
+            --cyan: #26d9ff;
+            --green: #2bd576;
+            --yellow: #ffb648;
+            --red: #ff5f6d;
+            --shadow: 0 24px 80px rgba(0, 0, 0, .32);
+            --shadow-soft: 0 12px 35px rgba(0, 0, 0, .2);
+            --radius: 20px;
+            --sidebar: 276px;
+            --topbar: 76px;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            color: var(--text);
+            font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            background:
+                radial-gradient(circle at 8% 0%, rgba(91, 140, 255, .14), transparent 25%),
+                radial-gradient(circle at 88% 5%, rgba(38, 217, 255, .08), transparent 22%),
+                radial-gradient(circle at 50% 100%, rgba(124, 92, 255, .08), transparent 30%),
+                var(--bg);
+        }
+
+        body.modal-open {
+            overflow: hidden;
+        }
+
+        button,
+        input,
+        select,
+        textarea {
+            font: inherit;
+        }
+
+        button {
+            cursor: pointer;
+        }
+
+        button:disabled {
+            cursor: not-allowed;
+            opacity: .55;
+        }
+
+        ::selection {
+            background: rgba(91, 140, 255, .35);
+            color: #fff;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        /* ---------- LOGIN ---------- */
+
+        #loginScreen {
+            position: fixed;
+            inset: 0;
+            z-index: 9999;
+            display: grid;
+            place-items: center;
+            padding: 24px;
+            background:
+                radial-gradient(circle at 20% 20%, rgba(91, 140, 255, .18), transparent 30%),
+                radial-gradient(circle at 80% 15%, rgba(38, 217, 255, .11), transparent 25%),
+                linear-gradient(145deg, #050812, #091020 55%, #060913);
+        }
+
+        .login-shell {
+            width: min(1040px, 100%);
+            display: grid;
+            grid-template-columns: 1.08fr .92fr;
+            min-height: 620px;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, .09);
+            border-radius: 30px;
+            background: rgba(9, 15, 29, .74);
+            box-shadow: 0 40px 120px rgba(0, 0, 0, .55);
+            backdrop-filter: blur(28px);
+        }
+
+        .login-visual {
+            position: relative;
+            padding: 54px;
+            overflow: hidden;
+            background:
+                radial-gradient(circle at 20% 30%, rgba(91, 140, 255, .25), transparent 25%),
+                radial-gradient(circle at 80% 70%, rgba(124, 92, 255, .18), transparent 28%),
+                linear-gradient(145deg, rgba(91, 140, 255, .07), rgba(0, 0, 0, .08));
+        }
+
+        .login-visual:after {
+            content: "";
+            position: absolute;
+            width: 420px;
+            height: 420px;
+            border: 1px solid rgba(91, 140, 255, .16);
+            border-radius: 50%;
+            right: -180px;
+            bottom: -170px;
+            box-shadow:
+                0 0 0 70px rgba(91, 140, 255, .035),
+                0 0 0 140px rgba(91, 140, 255, .02);
+        }
+
+        .login-brand {
+            display: flex;
+            align-items: center;
+            gap: 13px;
+        }
+
+        .brand-mark {
+            width: 46px;
+            height: 46px;
+            display: grid;
+            place-items: center;
+            border-radius: 15px;
+            font-weight: 950;
+            background: linear-gradient(135deg, var(--primary), var(--primary-2));
+            box-shadow: 0 14px 35px rgba(91, 140, 255, .28);
+        }
+
+        .login-brand strong {
+            display: block;
+            font-size: 16px;
+        }
+
+        .login-brand span {
+            display: block;
+            margin-top: 3px;
+            color: var(--muted);
+            font-size: 11px;
+        }
+
+        .login-copy {
+            position: relative;
+            z-index: 1;
+            margin-top: 110px;
+        }
+
+        .eyebrow {
+            color: #91adff;
+            font-size: 10px;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: .17em;
+        }
+
+        .login-copy h1 {
+            max-width: 540px;
+            margin: 14px 0;
+            font-size: clamp(36px, 5vw, 64px);
+            line-height: .98;
+            letter-spacing: -.055em;
+        }
+
+        .login-copy p {
+            max-width: 520px;
+            margin: 0;
+            color: var(--muted);
+            line-height: 1.7;
+            font-size: 14px;
+        }
+
+        .login-highlights {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 30px;
+        }
+
+        .login-chip {
+            padding: 8px 11px;
+            border: 1px solid rgba(255, 255, 255, .08);
+            border-radius: 999px;
+            background: rgba(255, 255, 255, .035);
+            color: #c7d2e6;
+            font-size: 10px;
+        }
+
+        .login-panel {
+            padding: 48px;
+            display: flex;
+            align-items: center;
+            background: rgba(7, 12, 24, .68);
+            border-left: 1px solid var(--border);
+        }
+
+        .login-form {
+            width: 100%;
+        }
+
+        .login-form h2 {
+            margin: 0;
+            font-size: 26px;
+            letter-spacing: -.03em;
+        }
+
+        .login-form>p {
+            margin: 8px 0 28px;
+            color: var(--muted);
+            font-size: 12px;
+            line-height: 1.6;
+        }
+
+        .field {
+            display: grid;
+            gap: 7px;
+            margin-bottom: 15px;
+        }
+
+        .field label {
+            color: #9ba8bd;
+            font-size: 10px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: .07em;
+        }
+
+        input,
+        select,
+        textarea {
+            width: 100%;
+            border: 1px solid var(--border);
+            outline: 0;
+            color: var(--text);
+            background: rgba(255, 255, 255, .035);
+            border-radius: 12px;
+            padding: 12px 13px;
+        }
+
+        input::placeholder,
+        textarea::placeholder {
+            color: #56647b;
+        }
+
+        input:focus,
+        select:focus,
+        textarea:focus {
+            border-color: rgba(91, 140, 255, .62);
+            box-shadow: 0 0 0 4px rgba(91, 140, 255, .09);
+        }
+
+        .password-wrap {
+            position: relative;
+        }
+
+        .password-wrap input {
+            padding-right: 46px;
+        }
+
+        .password-toggle {
+            position: absolute;
+            right: 8px;
+            top: 7px;
+            width: 34px;
+            height: 34px;
+            border: 0;
+            border-radius: 9px;
+            color: #94a3ba;
+            background: transparent;
+        }
+
+        .login-options {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            margin: 5px 0 20px;
+        }
+
+        .remember {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--muted);
+            font-size: 11px;
+        }
+
+        .remember input {
+            width: 15px;
+            height: 15px;
+            accent-color: var(--primary);
+        }
+
+        .login-button {
+            width: 100%;
+            min-height: 48px;
+            border: 0;
+            border-radius: 13px;
+            color: white;
+            font-weight: 800;
+            background: linear-gradient(135deg, var(--primary), var(--primary-2));
+            box-shadow: 0 15px 35px rgba(91, 140, 255, .2);
+        }
+
+        .login-status {
+            min-height: 18px;
+            margin-top: 14px;
+            color: var(--muted);
+            font-size: 11px;
+            text-align: center;
+        }
+
+        /* ---------- APP ---------- */
+
+        #app {
+            display: none;
+            min-height: 100vh;
+        }
+
+        #app.ready {
+            display: grid;
+            grid-template-columns: var(--sidebar) minmax(0, 1fr);
+        }
+
+        .sidebar {
+            position: sticky;
+            top: 0;
+            height: 100vh;
+            padding: 20px 15px;
+            background: rgba(5, 10, 20, .88);
+            border-right: 1px solid var(--border);
+            backdrop-filter: blur(22px);
+            z-index: 80;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 4px 10px 22px;
+        }
+
+        .brand strong {
+            display: block;
+            font-size: 15px;
+        }
+
+        .brand span {
+            display: block;
+            margin-top: 3px;
+            color: var(--muted);
+            font-size: 10px;
+        }
+
+        .nav-title {
+            padding: 13px 11px 8px;
+            color: #56637a;
+            text-transform: uppercase;
+            font-size: 9px;
+            font-weight: 900;
+            letter-spacing: .15em;
+        }
+
+        .nav {
+            display: grid;
+            gap: 4px;
+        }
+
+        .nav button {
+            width: 100%;
+            border: 1px solid transparent;
+            border-radius: 12px;
+            padding: 11px 12px;
+            display: flex;
+            align-items: center;
+            gap: 11px;
+            color: #8f9bb0;
+            background: transparent;
+            text-align: left;
+            transition: .18s ease;
+        }
+
+        .nav button:hover {
+            color: white;
+            background: rgba(255, 255, 255, .035);
+        }
+
+        .nav button.active {
+            color: white;
+            border-color: rgba(91, 140, 255, .17);
+            background: linear-gradient(90deg, rgba(91, 140, 255, .18), rgba(124, 92, 255, .06));
+            box-shadow: inset 3px 0 0 var(--primary);
+        }
+
+        .nav-icon {
+            width: 23px;
+            text-align: center;
+            font-size: 14px;
+        }
+
+        .sidebar-bottom {
+            position: absolute;
+            left: 15px;
+            right: 15px;
+            bottom: 17px;
+        }
+
+        .user-mini {
+            padding: 12px;
+            border: 1px solid var(--border);
+            border-radius: 15px;
+            background: rgba(255, 255, 255, .025);
+        }
+
+        .user-mini-row {
+            display: flex;
+            align-items: center;
+            gap: 9px;
+        }
+
+        .avatar {
+            width: 36px;
+            height: 36px;
+            flex: 0 0 auto;
+            display: grid;
+            place-items: center;
+            border-radius: 12px;
+            font-weight: 900;
+            color: white;
+            background: linear-gradient(135deg, #5b8cff, #7c5cff);
+        }
+
+        .user-mini strong {
+            display: block;
+            overflow: hidden;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+            font-size: 11px;
+        }
+
+        .user-mini span {
+            display: block;
+            margin-top: 2px;
+            color: var(--muted);
+            font-size: 9px;
+        }
+
+        .main {
+            min-width: 0;
+        }
+
+        .topbar {
+            position: sticky;
+            top: 0;
+            z-index: 60;
+            height: var(--topbar);
+            padding: 0 30px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 18px;
+            background: rgba(6, 9, 19, .72);
+            border-bottom: 1px solid var(--border);
+            backdrop-filter: blur(20px);
+        }
+
+        .topbar h1 {
+            margin: 0;
+            font-size: 19px;
+            letter-spacing: -.02em;
+        }
+
+        .topbar p {
+            margin: 4px 0 0;
+            color: var(--muted);
+            font-size: 11px;
+        }
+
+        .top-actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .icon-btn,
+        .btn {
+            min-height: 40px;
+            border: 1px solid var(--border);
+            border-radius: 11px;
+            color: var(--text);
+            background: rgba(255, 255, 255, .035);
+            transition: .18s ease;
+        }
+
+        .icon-btn {
+            width: 40px;
+            padding: 0;
+            display: grid;
+            place-items: center;
+        }
+
+        .icon-btn:hover,
+        .btn:hover {
+            border-color: rgba(91, 140, 255, .45);
+            background: rgba(91, 140, 255, .08);
+        }
+
+        .btn {
+            padding: 9px 13px;
+        }
+
+        .btn.primary {
+            border-color: transparent;
+            color: #fff;
+            background: linear-gradient(135deg, var(--primary), var(--primary-2));
+        }
+
+        .btn.danger {
+            color: #ff9ba3;
+            background: rgba(255, 95, 109, .08);
+            border-color: rgba(255, 95, 109, .22);
+        }
+
+        .notification-btn {
+            position: relative;
+        }
+
+        .notification-count {
+            position: absolute;
+            right: -3px;
+            top: -4px;
+            min-width: 17px;
+            height: 17px;
+            padding: 0 4px;
+            display: grid;
+            place-items: center;
+            border-radius: 999px;
+            color: white;
+            background: var(--red);
+            border: 2px solid #070b14;
+            font-size: 8px;
+            font-weight: 900;
+        }
+
+        .content {
+            width: min(1800px, 100%);
+            margin: 0 auto;
+            padding: 28px 30px 50px;
+        }
+
+        .view {
+            display: none;
+            animation: fadeIn .22s ease;
+        }
+
+        .view.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(4px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .section-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            gap: 18px;
+            margin-bottom: 18px;
+        }
+
+        .section-head h2 {
+            margin: 0;
+            font-size: 26px;
+            letter-spacing: -.04em;
+        }
+
+        .section-head p {
+            margin: 6px 0 0;
+            color: var(--muted);
+            font-size: 12px;
+        }
+
+        .subtle {
+            color: var(--muted);
+            font-size: 10px;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(5, minmax(0, 1fr));
+            gap: 13px;
+            margin-bottom: 18px;
+        }
+
+        .stat {
+            position: relative;
+            min-height: 130px;
+            overflow: hidden;
+            padding: 17px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            background: linear-gradient(145deg, rgba(18, 28, 49, .92), rgba(10, 16, 29, .92));
+            box-shadow: var(--shadow-soft);
+        }
+
+        .stat:after {
+            content: "";
+            position: absolute;
+            width: 120px;
+            height: 120px;
+            right: -50px;
+            bottom: -58px;
+            border-radius: 50%;
+            background: rgba(91, 140, 255, .08);
+        }
+
+        .stat-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: var(--muted);
+            font-size: 10px;
+            font-weight: 700;
+        }
+
+        .stat-icon {
+            width: 31px;
+            height: 31px;
+            display: grid;
+            place-items: center;
+            border-radius: 10px;
+            color: #9db7ff;
+            background: rgba(91, 140, 255, .11);
+        }
+
+        .stat-value {
+            margin-top: 12px;
+            font-size: 29px;
+            font-weight: 900;
+            letter-spacing: -.04em;
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1.35fr .65fr;
+            gap: 18px;
+        }
+
+        .grid-equal {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 18px;
+        }
+
+        .panel {
+            min-width: 0;
+            overflow: hidden;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            background: var(--panel);
+            box-shadow: var(--shadow-soft);
+            backdrop-filter: blur(16px);
+        }
+
+        .panel-head {
+            min-height: 64px;
+            padding: 15px 18px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .panel-head h3 {
+            margin: 0;
+            font-size: 13px;
+        }
+
+        .panel-head span {
+            color: var(--muted);
+            font-size: 10px;
+        }
+
+        .panel-body {
+            padding: 18px;
+        }
+
+        /* ---------- MAP ---------- */
+
+        .map-shell {
+            position: relative;
+            height: 455px;
+            background: #08101b;
+        }
+
+        #map {
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        .map-overlay {
+            position: absolute;
+            left: 14px;
+            top: 14px;
+            z-index: 500;
+            padding: 10px 12px;
+            border: 1px solid rgba(255, 255, 255, .1);
+            border-radius: 12px;
+            background: rgba(5, 10, 20, .82);
+            backdrop-filter: blur(12px);
+            pointer-events: none;
+        }
+
+        .map-overlay strong {
+            display: block;
+            font-size: 11px;
+        }
+
+        .map-overlay span {
+            display: block;
+            margin-top: 3px;
+            color: #93a1b8;
+            font-size: 9px;
+        }
+
+        .map-legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            padding: 11px 18px;
+            color: var(--muted);
+            font-size: 10px;
+            border-top: 1px solid var(--border);
+        }
+
+        .legend-item {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .legend-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+
+        /* ---------- CARDS / PROGRESS ---------- */
+
+        .health-card {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 15px;
+            align-items: center;
+            padding: 15px;
+            margin-bottom: 11px;
+            border: 1px solid var(--border);
+            border-radius: 15px;
+            background: rgba(255, 255, 255, .02);
+        }
+
+        .health-value {
+            margin-top: 3px;
+            font-size: 28px;
+            font-weight: 900;
+            letter-spacing: -.04em;
+        }
+
+        .progress-wrap {
+            margin-bottom: 17px;
+        }
+
+        .progress-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 7px;
+            font-size: 10px;
+        }
+
+        .progress-row span:last-child {
+            color: var(--muted);
+        }
+
+        .progress {
+            height: 7px;
+            overflow: hidden;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, .06);
+        }
+
+        .progress>div {
+            height: 100%;
+            border-radius: inherit;
+            background: linear-gradient(90deg, var(--primary), var(--cyan));
+            transition: width .45s ease;
+        }
+
+        .task-list {
+            display: grid;
+            gap: 8px;
+        }
+
+        .task-row {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 12px;
+            align-items: center;
+            padding: 11px;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            background: rgba(255, 255, 255, .018);
+        }
+
+        .task-title {
+            font-size: 11px;
+            font-weight: 800;
+        }
+
+        .task-meta {
+            margin-top: 3px;
+            color: var(--muted);
+            font-size: 9px;
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 24px;
+            padding: 5px 8px;
+            border-radius: 999px;
+            font-size: 8px;
+            font-weight: 900;
+            letter-spacing: .04em;
+        }
+
+        .badge.green {
+            color: #65e896;
+            background: rgba(43, 213, 118, .11);
+        }
+
+        .badge.yellow {
+            color: #ffd17c;
+            background: rgba(255, 182, 72, .11);
+        }
+
+        .badge.red {
+            color: #ff929b;
+            background: rgba(255, 95, 109, .11);
+        }
+
+        .badge.blue {
+            color: #a5c0ff;
+            background: rgba(91, 140, 255, .11);
+        }
+
+        .badge.gray {
+            color: #b4bfd0;
+            background: rgba(148, 163, 184, .09);
+        }
+
+        /* ---------- TOOLBAR / TABLE ---------- */
+
+        .toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .search {
+            min-width: 220px;
+        }
+
+        .table-wrap {
+            overflow: auto;
+        }
+
+        table {
+            width: 100%;
+            min-width: 850px;
+            border-collapse: collapse;
+        }
+
+        th,
+        td {
+            padding: 12px 14px;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+            font-size: 11px;
+        }
+
+        th {
+            color: #68758c;
+            font-size: 8px;
+            text-transform: uppercase;
+            letter-spacing: .1em;
+        }
+
+        tbody tr:hover {
+            background: rgba(91, 140, 255, .035);
+        }
+
+        .antenna-name {
+            font-weight: 800;
+        }
+
+        .coordinates {
+            margin-top: 3px;
+            color: var(--muted);
+            font-size: 9px;
+        }
+
+        .actions {
+            display: flex;
+            gap: 5px;
+        }
+
+        .mini-btn {
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 6px 8px;
+            color: #cbd6e8;
+            background: rgba(255, 255, 255, .025);
+            font-size: 9px;
+        }
+
+        .mini-btn:hover {
+            border-color: rgba(91, 140, 255, .4);
+            color: #fff;
+        }
+
+        .empty {
+            padding: 35px 20px;
+            color: var(--muted);
+            text-align: center;
+            font-size: 11px;
+        }
+
+        /* ---------- PROFILE ---------- */
+
+        .profile-hero {
+            display: grid;
+            grid-template-columns: auto 1fr auto;
+            align-items: center;
+            gap: 18px;
+            padding: 22px;
+        }
+
+        .avatar.xl {
+            width: 76px;
+            height: 76px;
+            border-radius: 23px;
+            font-size: 22px;
+        }
+
+        .profile-name {
+            margin: 0;
+            font-size: 24px;
+            letter-spacing: -.035em;
+        }
+
+        .profile-role {
+            margin-top: 5px;
+            color: #91adff;
+            font-size: 10px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: .08em;
+        }
+
+        .profile-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 13px;
+            padding: 18px;
+        }
+
+        .profile-field {
+            padding: 13px;
+            border: 1px solid var(--border);
+            border-radius: 13px;
+            background: rgba(255, 255, 255, .02);
+        }
+
+        .profile-field label {
+            display: block;
+            color: var(--muted);
+            font-size: 9px;
+            text-transform: uppercase;
+            letter-spacing: .08em;
+        }
+
+        .profile-field strong {
+            display: block;
+            margin-top: 6px;
+            font-size: 12px;
+        }
+
+        /* ---------- NOTIFICATIONS ---------- */
+
+        .notification-grid {
+            display: grid;
+            grid-template-columns: 1.15fr .85fr;
+            gap: 18px;
+        }
+
+        .recipient-list {
+            max-height: 390px;
+            overflow: auto;
+            display: grid;
+            gap: 7px;
+        }
+
+        .recipient {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            background: rgba(255, 255, 255, .018);
+        }
+
+        .recipient input {
+            width: 15px;
+            height: 15px;
+            accent-color: var(--primary);
+        }
+
+        .recipient .avatar {
+            width: 31px;
+            height: 31px;
+            border-radius: 10px;
+            font-size: 10px;
+        }
+
+        .recipient-info {
+            min-width: 0;
+        }
+
+        .recipient-info strong {
+            display: block;
+            font-size: 10px;
+            overflow: hidden;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+        }
+
+        .recipient-info span {
+            display: block;
+            margin-top: 2px;
+            color: var(--muted);
+            font-size: 8px;
+        }
+
+        .notification-item {
+            display: grid;
+            grid-template-columns: auto 1fr auto;
+            gap: 10px;
+            align-items: start;
+            padding: 13px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .notification-item:last-child {
+            border-bottom: 0;
+        }
+
+        .notification-icon {
+            width: 33px;
+            height: 33px;
+            display: grid;
+            place-items: center;
+            border-radius: 10px;
+            background: rgba(91, 140, 255, .11);
+        }
+
+        .notification-item strong {
+            font-size: 11px;
+        }
+
+        .notification-item p {
+            margin: 4px 0 0;
+            color: var(--muted);
+            font-size: 9px;
+            line-height: 1.5;
+        }
+
+        /* ---------- INVENTORY ---------- */
+
+        .inventory-grid {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 12px;
+        }
+
+        .inventory-card {
+            padding: 15px;
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            background: rgba(255, 255, 255, .02);
+        }
+
+        .inventory-card.low {
+            border-color: rgba(255, 182, 72, .3);
+            background: rgba(255, 182, 72, .035);
+        }
+
+        .inventory-card strong {
+            font-size: 11px;
+        }
+
+        .inventory-card .sku {
+            margin-top: 3px;
+            color: var(--muted);
+            font-size: 8px;
+        }
+
+        .inventory-value {
+            display: flex;
+            justify-content: space-between;
+            align-items: end;
+            margin-top: 16px;
+        }
+
+        .quantity {
+            font-size: 24px;
+            font-weight: 900;
+        }
+
+        /* ---------- MODALS ---------- */
+
+        .modal-backdrop {
+            position: fixed;
+            inset: 0;
+            z-index: 1000;
+            display: none;
+            place-items: center;
+            padding: 18px;
+            background: rgba(0, 0, 0, .68);
+            backdrop-filter: blur(10px);
+        }
+
+        .modal-backdrop.open {
+            display: grid;
+        }
+
+        .modal {
+            width: min(720px, 100%);
+            max-height: 90vh;
+            overflow: auto;
+            border: 1px solid var(--border);
+            border-radius: 22px;
+            background: #0d1628;
+            box-shadow: 0 35px 110px rgba(0, 0, 0, .58);
+        }
+
+        .modal-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 17px 20px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .modal-head h3 {
+            margin: 0;
+            font-size: 15px;
+        }
+
+        .modal-body {
+            padding: 20px;
+        }
+
+        .modal-foot {
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+            padding: 14px 20px;
+            border-top: 1px solid var(--border);
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 13px;
+        }
+
+        .field.full {
+            grid-column: 1/-1;
+        }
+
+        /* ---------- TOAST / LOADING ---------- */
+
+        .toast-stack {
+            position: fixed;
+            right: 20px;
+            bottom: 20px;
+            z-index: 2000;
+            width: min(380px, calc(100vw - 40px));
+            display: grid;
+            gap: 8px;
+        }
+
+        .toast {
+            padding: 13px 15px;
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            background: #101a2d;
+            box-shadow: var(--shadow);
+            font-size: 10px;
+            animation: slideIn .2s ease;
+        }
+
+        .toast.success {
+            border-color: rgba(43, 213, 118, .28);
+        }
+
+        .toast.error {
+            border-color: rgba(255, 95, 109, .3);
+        }
+
+        .toast strong {
+            display: block;
+            margin-bottom: 3px;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(8px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .spinner {
+            width: 14px;
+            height: 14px;
+            display: inline-block;
+            border: 2px solid rgba(255, 255, 255, .14);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin .7s linear infinite;
+            vertical-align: -2px;
+            margin-right: 6px;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .footer {
+            padding: 24px 0 0;
+            color: #4e5b70;
+            text-align: center;
+            font-size: 9px;
+        }
+
+        /* ---------- RESPONSIVE ---------- */
+
+        .mobile-menu {
+            display: none;
+        }
+
+        @media (max-width:1250px) {
+            .stats {
+                grid-template-columns: repeat(3, minmax(0, 1fr));
+            }
+
+            .grid-2,
+            .notification-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .inventory-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+        }
+
+        @media (max-width:900px) {
+            #app.ready {
+                grid-template-columns: 1fr;
+            }
+
+            .sidebar {
+                position: fixed;
+                left: -290px;
+                width: 276px;
+                transition: left .2s ease;
+                box-shadow: 25px 0 70px rgba(0, 0, 0, .4);
+            }
+
+            .sidebar.open {
+                left: 0;
+            }
+
+            .mobile-menu {
+                display: grid;
+            }
+
+            .topbar {
+                padding: 0 18px;
+            }
+
+            .content {
+                padding: 20px 18px 35px;
+            }
+
+            .login-shell {
+                grid-template-columns: 1fr;
+                min-height: 0;
+            }
+
+            .login-visual {
+                display: none;
+            }
+
+            .login-panel {
+                min-height: 590px;
+                border-left: 0;
+            }
+
+            .profile-hero {
+                grid-template-columns: auto 1fr;
+            }
+
+            .profile-hero>.btn {
+                grid-column: 1/-1;
+            }
+        }
+
+        @media (max-width:600px) {
+
+            .stats,
+            .inventory-grid,
+            .grid-equal,
+            .profile-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .section-head {
+                align-items: flex-start;
+                flex-direction: column;
+            }
+
+            .topbar p {
+                display: none;
+            }
+
+            .top-actions .quick {
+                display: none;
+            }
+
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .field.full {
+                grid-column: auto;
+            }
+
+            .search {
+                min-width: 100%;
+            }
+
+            .profile-hero {
+                grid-template-columns: auto 1fr;
+            }
+
+            .profile-name {
+                font-size: 18px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- =========================================================
+     LOGIN
+========================================================= -->
+    <section id="loginScreen">
+        <div class="login-shell">
+            <div class="login-visual">
+                <div class="login-brand">
+                    <div class="brand-mark">RT</div>
+                    <div>
+                        <strong>RadioTech</strong>
+                        <span>Executive Control Center</span>
+                    </div>
+                </div>
+
+                <div class="login-copy">
+                    <div class="eyebrow">Command · Operations · Network</div>
+                    <h1>Il centro di comando della tua rete.</h1>
+                    <p>
+                        Una console unica per antenne, operatori, task, inventario,
+                        notifiche e controllo operativo.
+                    </p>
+                    <div class="login-highlights">
+                        <span class="login-chip">Live Network</span>
+                        <span class="login-chip">Firestore</span>
+                        <span class="login-chip">Task Management</span>
+                        <span class="login-chip">Executive Profile</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="login-panel">
+                <form class="login-form" id="loginForm">
+                    <div class="eyebrow">Accesso riservato</div>
+                    <h2>Bentornato, Capo.</h2>
+                    <p>Accedi al Control Center. L'accesso persistente viene salvato sul PC se selezioni "Mantieni
+                        l'accesso".</p>
+
+                    <div class="field">
+                        <label for="loginEmail">Email</label>
+                        <input id="loginEmail" type="email" autocomplete="username" placeholder="capo@radiotech.it"
+                            required>
+                    </div>
+
+                    <div class="field">
+                        <label for="loginPassword">Password</label>
+                        <div class="password-wrap">
+                            <input id="loginPassword" type="password" autocomplete="current-password"
+                                placeholder="••••••••" required>
+                            <button class="password-toggle" type="button" id="togglePassword">◉</button>
+                        </div>
+                    </div>
+
+                    <div class="login-options">
+                        <label class="remember">
+                            <input id="rememberLogin" type="checkbox" checked>
+                            Mantieni l'accesso su questo PC
+                        </label>
+                    </div>
+
+                    <button class="login-button" id="loginButton" type="submit">Accedi al Control Center</button>
+                    <div class="login-status" id="loginStatus"></div>
+                </form>
+            </div>
+        </div>
+    </section>
+
+    <!-- =========================================================
+     APP
+========================================================= -->
+    <div id="app">
+
+        <aside class="sidebar" id="sidebar">
+            <div class="brand">
+                <div class="brand-mark">RT</div>
+                <div>
+                    <strong>RadioTech</strong>
+                    <span>Executive Control Center</span>
+                </div>
+            </div>
+
+            <div class="nav-title">Command Center</div>
+            <nav class="nav">
+                <button class="active" data-view="dashboard"><span class="nav-icon">⌂</span> Dashboard</button>
+                <button data-view="antennas"><span class="nav-icon">◉</span> Antenne</button>
+                <button data-view="operations"><span class="nav-icon">✓</span> Operatività</button>
+                <button data-view="tools"><span class="nav-icon">∿</span> Telecom Tools</button>
+                <button data-view="notifications"><span class="nav-icon">✦</span> Notifiche</button>
+                <button data-view="inventory"><span class="nav-icon">▦</span> Inventario</button>
+            </nav>
+
+            <div class="nav-title">Executive</div>
+            <nav class="nav">
+                <button data-view="profile"><span class="nav-icon">♙</span> Profilo del Capo</button>
+                <button data-view="system"><span class="nav-icon">⚙</span> Stato sistema</button>
+            </nav>
+
+            <div class="sidebar-bottom">
+                <div class="user-mini">
+                    <div class="user-mini-row">
+                        <div class="avatar" id="miniAvatar">C</div>
+                        <div style="min-width:0">
+                            <strong id="miniName">Capo RadioTech</strong>
+                            <span id="miniEmail">—</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <main class="main">
+            <header class="topbar">
+                <div style="display:flex;align-items:center;gap:9px;min-width:0">
+                    <button class="icon-btn mobile-menu" id="mobileMenu">☰</button>
+                    <div>
+                        <h1 id="pageTitle">Dashboard</h1>
+                        <p id="pageSubtitle">Monitoraggio infrastruttura radio e operazioni tecniche</p>
+                    </div>
+                </div>
+
+                <div class="top-actions">
+                    <button class="icon-btn notification-btn" id="notificationBell" title="Notifiche">
+                        ✦
+                        <span class="notification-count hidden" id="notificationCount">0</span>
+                    </button>
+                    <button class="icon-btn" id="refreshBtn" title="Aggiorna">↻</button>
+                    <button class="btn quick" id="quickNotificationBtn">+ Invia notifica</button>
+                    <button class="btn primary quick" id="quickAntennaBtn">+ Nuova antenna</button>
+                </div>
+            </header>
+
+            <div class="content">
+
+                <!-- DASHBOARD -->
+                <section class="view active" id="view-dashboard">
+                    <div class="section-head">
+                        <div>
+                            <h2>Panoramica</h2>
+                            <p>La situazione della rete, in un colpo d'occhio.</p>
+                        </div>
+                        <div class="subtle">Ultimo aggiornamento: <span id="lastUpdate">—</span></div>
+                    </div>
+
+                    <div class="stats">
+                        <div class="stat">
+                            <div class="stat-top"><span>Antenne</span><span class="stat-icon">◉</span></div>
+                            <div class="stat-value" id="statAntennas">—</div>
+                            <div class="subtle">totali registrate</div>
+                        </div>
+                        <div class="stat">
+                            <div class="stat-top"><span>Operatori</span><span class="stat-icon">♙</span></div>
+                            <div class="stat-value" id="statOperators">—</div>
+                            <div class="subtle">operatori registrati</div>
+                        </div>
+                        <div class="stat">
+                            <div class="stat-top"><span>Interventi</span><span class="stat-icon">⚒</span></div>
+                            <div class="stat-value" id="statInterventions">—</div>
+                            <div class="subtle">interventi registrati</div>
+                        </div>
+                        <div class="stat">
+                            <div class="stat-top"><span>Task</span><span class="stat-icon">✓</span></div>
+                            <div class="stat-value" id="statTasks">—</div>
+                            <div class="subtle">attività complessive</div>
+                        </div>
+                        <div class="stat">
+                            <div class="stat-top"><span>Scorte basse</span><span class="stat-icon">!</span></div>
+                            <div class="stat-value" id="statLowStock">—</div>
+                            <div class="subtle">articoli sotto soglia</div>
+                        </div>
+                        <div class="stat">
+                            <div class="stat-top"><span>Task scaduti</span><span class="stat-icon">!</span></div>
+                            <div class="stat-value" id="statOverdueTasks">—</div>
+                            <div class="subtle">da verificare</div>
+                        </div>
+                    </div>
+
+                    <div class="grid-2">
+                        <div class="panel">
+                            <div class="panel-head">
+                                <div>
+                                    <h3>Network Intelligence Map</h3>
+                                    <span>Posizione e stato operativo delle antenne</span>
+                                </div>
+                                <button class="mini-btn" id="centerMapBtn">Centra</button>
+                            </div>
+                            <div class="map-shell">
+                                <div id="map"></div>
+                                <div class="map-overlay">
+                                    <strong id="mapStatus">Network map</strong>
+                                    <span id="mapSubstatus">Caricamento infrastruttura...</span>
+                                </div>
+                            </div>
+                            <div class="map-legend">
+                                <span class="legend-item"><i class="legend-dot" style="background:#2bd576"></i>
+                                    Attiva</span>
+                                <span class="legend-item"><i class="legend-dot" style="background:#ffb648"></i>
+                                    Manutenzione</span>
+                                <span class="legend-item"><i class="legend-dot" style="background:#ff5f6d"></i>
+                                    Offline</span>
+                            </div>
+                        </div>
+
+                        <div class="panel">
+                            <div class="panel-head">
+                                <div>
+                                    <h3>Network Health</h3>
+                                    <span>Antenne operative sul totale</span>
+                                </div>
+                                <span id="availabilityLabel">—</span>
+                            </div>
+
+                            <div class="panel-body">
+                                <div class="health-card">
+                                    <div>
+                                        <div class="subtle">Disponibilità</div>
+                                        <div class="health-value" id="availabilityValue">—</div>
+                                    </div>
+                                    <span class="badge green" id="availabilityBadge">—</span>
+                                </div>
+
+                                <div class="progress-wrap">
+                                    <div class="progress-row">
+                                        <span>Antenne attive</span>
+                                        <span id="activeCount">—</span>
+                                    </div>
+                                    <div class="progress">
+                                        <div id="activeProgress" style="width:0%"></div>
+                                    </div>
+                                </div>
+
+                                <div class="progress-wrap">
+                                    <div class="progress-row">
+                                        <span>Antenne non attive</span>
+                                        <span id="inactiveCount">—</span>
+                                    </div>
+                                    <div class="progress">
+                                        <div id="inactiveProgress" style="width:0%"></div>
+                                    </div>
+                                </div>
+
+                                <div class="subtle" style="margin:24px 0 9px">Distribuzione task</div>
+                                <div class="task-list">
+                                    <div class="task-row">
+                                        <div>
+                                            <div class="task-title">Assegnati</div>
+                                        </div><span class="badge blue" id="taskAssigned">0</span>
+                                    </div>
+                                    <div class="task-row">
+                                        <div>
+                                            <div class="task-title">In lavorazione</div>
+                                        </div><span class="badge yellow" id="taskProgress">0</span>
+                                    </div>
+                                    <div class="task-row">
+                                        <div>
+                                            <div class="task-title">Completati</div>
+                                        </div><span class="badge green" id="taskCompleted">0</span>
+                                    </div>
+                                    <div class="task-row">
+                                        <div>
+                                            <div class="task-title">Annullati</div>
+                                        </div><span class="badge red" id="taskCancelled">0</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ANTENNE -->
+                <section class="view" id="view-antennas">
+                    <div class="section-head">
+                        <div>
+                            <h2>Gestione antenne</h2>
+                            <p>Controlla e modifica l'infrastruttura direttamente dal Control Center.</p>
+                        </div>
+                        <div class="toolbar">
+                            <input class="search" id="antennaSearch" type="search" placeholder="Cerca antenna...">
+                            <select id="antennaStatusFilter">
+                                <option value="">Tutti gli stati</option>
+                                <option value="ATTIVA">Attiva</option>
+                                <option value="MANUTENZIONE">Manutenzione</option>
+                                <option value="OFFLINE">Offline</option>
+                                <option value="CRITICA">Critica</option>
+                            </select>
+                            <button class="btn primary" id="newAntennaBtn">+ Nuova antenna</button>
+                        </div>
+                    </div>
+
+                    <div class="panel">
+                        <div class="panel-head">
+                            <div>
+                                <h3>Elenco antenne</h3><span id="antennaCountLabel">—</span>
+                            </div>
+                            <button class="mini-btn" id="reloadAntennasBtn">Aggiorna</button>
+                        </div>
+                        <div class="table-wrap">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Antenna</th>
+                                        <th>Posizione</th>
+                                        <th>Stato</th>
+                                        <th>Frequenza</th>
+                                        <th>Potenza</th>
+                                        <th>ROS</th>
+                                        <th>Temperatura</th>
+                                        <th>Azioni</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="antennasTableBody">
+                                    <tr>
+                                        <td colspan="8">
+                                            <div class="empty"><span class="spinner"></span> Caricamento...</div>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- OPERATIONS -->
+                <section class="view" id="view-operations">
+                    <div class="section-head">
+                        <div>
+                            <h2>Operatività</h2>
+                            <p>Task e indicatori chiave della squadra tecnica.</p>
+                        </div>
+                    </div>
+                    <div class="panel" style="margin-bottom:18px">
+                        <div class="panel-head">
+                            <div>
+                                <h3>Operatori e badge</h3><span>Credenziali Firebase e accesso QR personale</span>
+                            </div>
+                            <div class="toolbar"><button class="mini-btn"
+                                    id="operatorsRefreshBtn">Aggiorna</button><button class="btn primary"
+                                    id="newOperatorBtn">+ Nuovo operatore</button></div>
+                        </div>
+                        <div class="table-wrap">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Operatore</th>
+                                        <th>Livello</th>
+                                        <th>Turno</th>
+                                        <th>Stato</th>
+                                        <th>Ultima presenza</th>
+                                        <th>Azioni</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="operatorsTableBody">
+                                    <tr>
+                                        <td colspan="6">
+                                            <div class="empty">Caricamento operatori...</div>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="panel" style="margin-bottom:18px">
+                        <div class="panel-head">
+                            <div>
+                                <h3>Report manutenzione</h3><span>Report inviati dagli operatori tramite app
+                                    mobile</span>
+                            </div><button class="mini-btn" id="reportsRefreshBtn">Aggiorna</button>
+                        </div>
+                        <div class="panel-body" id="reportsList">
+                            <div class="empty">Caricamento report...</div>
+                        </div>
+                    </div>
+                    <div class="panel" style="margin-bottom:18px">
+                        <div class="panel-head">
+                            <div>
+                                <h3>Assegna task</h3><span>Invio operativo diretto all'app mobile dell'operatore</span>
+                            </div>
+                        </div>
+                        <div class="panel-body">
+                            <div class="form-grid">
+                                <div class="field"><label>Titolo</label><input id="taskTitle" maxlength="160"></div>
+                                <div class="field"><label>Priorità</label><select id="taskPriority">
+                                        <option value="LOW">Bassa</option>
+                                        <option value="MEDIUM" selected>Media</option>
+                                        <option value="HIGH">Alta</option>
+                                        <option value="CRITICAL">Critica</option>
+                                    </select></div>
+                                <div class="field"><label>Operatore</label><select id="taskOperator">
+                                        <option value="">Seleziona operatore</option>
+                                    </select></div>
+                                <div class="field"><label>Antenna</label><select id="taskAntenna">
+                                        <option value="">Nessuna antenna</option>
+                                    </select></div>
+                                <div class="field"><label>Scadenza</label><input id="taskDueAt" type="datetime-local">
+                                </div>
+                                <div class="field" style="grid-column:1/-1"><label>Descrizione</label><textarea
+                                        id="taskDescription" maxlength="2000"></textarea></div>
+                            </div><button class="btn primary" id="createTaskBtn">Assegna task</button>
+                        </div>
+                    </div>
+                    <div class="panel">
+                        <div class="panel-head">
+                            <div>
+                                <h3>Task operativi</h3><span>Stato sincronizzato con gli operatori</span>
+                            </div><input class="search" id="taskSearch" type="search" placeholder="Cerca task...">
+                        </div>
+                        <div class="panel-body" id="tasksList">
+                            <div class="empty">Caricamento task...</div>
+                        </div>
+                    </div>
+
+                    <div class="grid-equal">
+                        <div class="panel">
+                            <div class="panel-head">
+                                <div>
+                                    <h3>Task</h3><span>Distribuzione degli stati</span>
+                                </div>
+                            </div>
+                            <div class="panel-body">
+                                <div class="task-list">
+                                    <div class="task-row">
+                                        <div>
+                                            <div class="task-title">Assegnati</div>
+                                            <div class="task-meta">In attesa di esecuzione</div>
+                                        </div><span class="badge blue" id="opsAssigned">0</span>
+                                    </div>
+                                    <div class="task-row">
+                                        <div>
+                                            <div class="task-title">In lavorazione</div>
+                                            <div class="task-meta">Attività in corso</div>
+                                        </div><span class="badge yellow" id="opsProgress">0</span>
+                                    </div>
+                                    <div class="task-row">
+                                        <div>
+                                            <div class="task-title">Completati</div>
+                                            <div class="task-meta">Attività concluse</div>
+                                        </div><span class="badge green" id="opsCompleted">0</span>
+                                    </div>
+                                    <div class="task-row">
+                                        <div>
+                                            <div class="task-title">Annullati</div>
+                                            <div class="task-meta">Attività annullate</div>
+                                        </div><span class="badge red" id="opsCancelled">0</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="panel">
+                            <div class="panel-head">
+                                <div>
+                                    <h3>Network KPI</h3><span>Indicatori operativi</span>
+                                </div>
+                            </div>
+                            <div class="panel-body">
+                                <div class="progress-wrap">
+                                    <div class="progress-row"><span>Disponibilità antenne</span><span
+                                            id="opsAvailability">—</span></div>
+                                    <div class="progress">
+                                        <div id="opsAvailabilityProgress" style="width:0%"></div>
+                                    </div>
+                                </div>
+                                <div class="health-card">
+                                    <div>
+                                        <div class="subtle">Antenne attive</div>
+                                        <div class="health-value" id="opsActive">—</div>
+                                    </div>
+                                    <span class="badge green">OPERATIVE</span>
+                                </div>
+                                <div class="health-card">
+                                    <div>
+                                        <div class="subtle">Non disponibili</div>
+                                        <div class="health-value" id="opsInactive">—</div>
+                                    </div>
+                                    <span class="badge red">ATTENZIONE</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- NOTIFICATIONS -->
+                <section class="view" id="view-notifications">
+                    <div class="section-head">
+                        <div>
+                            <h2>Centro notifiche</h2>
+                            <p>Invia comunicazioni operative a tutti i dipendenti oppure a una persona specifica.</p>
+                        </div>
+                        <button class="btn primary" id="newNotificationBtn">+ Nuova notifica</button>
+                    </div>
+
+                    <div class="notification-grid">
+                        <div class="panel">
+                            <div class="panel-head">
+                                <div>
+                                    <h3>Invia comunicazione</h3><span>Distribuzione immediata via backend</span>
+                                </div>
+                            </div>
+                            <div class="panel-body">
+                                <div class="field">
+                                    <label>Destinatari</label>
+                                    <select id="notificationTarget">
+                                        <option value="ALL">Tutti i dipendenti</option>
+                                        <option value="SELECTED">Dipendenti selezionati</option>
+                                    </select>
+                                </div>
+
+                                <div class="toolbar">
+                                    <input id="syncOperatorEmail" type="email" placeholder="Email account Firebase">
+                                    <input id="syncOperatorName" placeholder="Nome operatore">
+                                    <button class="btn" id="syncOperatorBtn" type="button">Sincronizza
+                                        operatore</button>
+                                </div>
+
+                                <div id="recipientBox" class="recipient-list hidden"></div>
+
+                                <div class="field">
+                                    <label>Titolo</label>
+                                    <input id="notificationTitle" maxlength="120" placeholder="Nuovo task operativo">
+                                </div>
+
+                                <div class="field">
+                                    <label>Messaggio</label>
+                                    <textarea id="notificationMessage" maxlength="1000"
+                                        placeholder="Scrivi qui la comunicazione..."></textarea>
+                                </div>
+
+                                <div class="toolbar">
+                                    <select id="notificationPriority">
+                                        <option value="NORMAL">Priorità normale</option>
+                                        <option value="HIGH">Alta priorità</option>
+                                        <option value="URGENT">Urgente</option>
+                                    </select>
+                                    <button class="btn primary" id="sendNotificationBtn">Invia notifica</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="panel">
+                            <div class="panel-head">
+                                <div>
+                                    <h3>Attività recenti</h3><span>Ultime comunicazioni inviate</span>
+                                </div>
+                                <button class="mini-btn" id="reloadNotificationsBtn">Aggiorna</button>
+                            </div>
+                            <div id="notificationHistory">
+                                <div class="empty">Caricamento notifiche...</div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- TELECOM TOOLS -->
+                <section class="view" id="view-tools">
+                    <div class="section-head">
+                        <div>
+                            <h2>Telecom Tools</h2>
+                            <p>Calcolatori RF e radio con unità e formule esplicite.</p>
+                        </div>
+                    </div>
+                    <div class="notification-grid">
+                        <div class="panel">
+                            <div class="panel-head">
+                                <div>
+                                    <h3>Link Budget</h3><span>FSPL, EIRP e potenza ricevuta</span>
+                                </div>
+                            </div>
+                            <div class="panel-body">
+                                <div class="form-grid">
+                                    <div class="field"><label>Frequenza MHz</label><input id="tbFreq" type="number"
+                                            min="0" step="any"></div>
+                                    <div class="field"><label>Distanza km</label><input id="tbDist" type="number"
+                                            min="0" step="any"></div>
+                                    <div class="field"><label>TX dBm</label><input id="tbTx" type="number" step="any">
+                                    </div>
+                                    <div class="field"><label>TX Gain dBi</label><input id="tbGt" type="number"
+                                            step="any"></div>
+                                    <div class="field"><label>RX Gain dBi</label><input id="tbGr" type="number"
+                                            step="any"></div>
+                                    <div class="field"><label>TX loss dB</label><input id="tbLt" type="number" min="0"
+                                            step="any" value="0"></div>
+                                    <div class="field"><label>RX loss dB</label><input id="tbLr" type="number" min="0"
+                                            step="any" value="0"></div>
+                                    <div class="field"><label>Altre perdite dB</label><input id="tbLo" type="number"
+                                            min="0" step="any" value="0"></div>
+                                    <div class="field"><label>Sensibilità RX dBm</label><input id="tbSens" type="number"
+                                            step="any"></div>
+                                </div><button class="btn primary" id="tbLinkBtn">Calcola</button>
+                                <div class="panel" style="margin-top:16px">
+                                    <div class="panel-body" id="tbResult">Inserisci i parametri e calcola.</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="panel">
+                            <div class="panel-head">
+                                <div>
+                                    <h3>Conversioni RF</h3><span>Potenza, wavelength, VSWR, SNR, Fresnel</span>
+                                </div>
+                            </div>
+                            <div class="panel-body">
+                                <div class="form-grid">
+                                    <div class="field"><label>dBm</label><input id="tbDbm" type="number" step="any">
+                                    </div>
+                                    <div class="field"><label>W</label><input id="tbW" type="number" step="any"></div>
+                                </div>
+                                <button class="btn" id="tbPowerBtn">Converti potenza</button>
+                                <div id="tbPowerResult" class="subtle" style="margin-top:12px"></div>
+                                <hr style="border:0;border-top:1px solid var(--border);margin:22px 0">
+                                <div class="form-grid">
+                                    <div class="field"><label>VSWR</label><input id="tbVswr" type="number" min="1"
+                                            step="any"></div>
+                                </div><button class="btn" id="tbVswrBtn">Calcola VSWR</button>
+                                <div id="tbVswrResult" class="subtle" style="margin-top:12px"></div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- INVENTORY -->
+                <section class="view" id="view-inventory">
+                    <div class="section-head">
+                        <div>
+                            <h2>Inventario</h2>
+                            <p>Materiali, componenti e soglie operative.</p>
+                        </div>
+                        <button class="btn" id="inventoryRefreshBtn">Aggiorna</button>
+                    </div>
+
+                    <div class="panel">
+                        <div class="panel-head">
+                            <div>
+                                <h3>Materiali disponibili</h3><span id="inventoryStatus">Sincronizzazione...</span>
+                            </div>
+                        </div>
+                        <div class="panel-body">
+                            <div class="inventory-grid" id="inventoryGrid">
+                                <div class="empty" style="grid-column:1/-1"><span class="spinner"></span> Caricamento
+                                    inventario...</div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- PROFILE -->
+                <section class="view" id="view-profile">
+                    <div class="section-head">
+                        <div>
+                            <h2>Profilo del Capo</h2>
+                            <p>Identità, contatti, ruolo e impostazioni del responsabile.</p>
+                        </div>
+                        <button class="btn primary" id="editProfileBtn">Modifica profilo</button>
+                    </div>
+
+                    <div class="panel">
+                        <div class="profile-hero">
+                            <div class="avatar xl" id="profileAvatar">C</div>
+                            <div>
+                                <h3 class="profile-name" id="profileName">Capo RadioTech</h3>
+                                <div class="profile-role" id="profileRole">Chief Executive · RadioTech</div>
+                                <div class="subtle" style="margin-top:8px">Account autenticato e autorizzato</div>
+                            </div>
+                            <span class="badge green">ACCOUNT ATTIVO</span>
+                        </div>
+
+                        <div class="profile-grid">
+                            <div class="profile-field"><label>Nome completo</label><strong
+                                    id="profileFullName">—</strong></div>
+                            <div class="profile-field"><label>Email</label><strong id="profileEmail">—</strong></div>
+                            <div class="profile-field"><label>Telefono</label><strong id="profilePhone">—</strong></div>
+                            <div class="profile-field"><label>Ruolo</label><strong id="profileRoleField">—</strong>
+                            </div>
+                            <div class="profile-field"><label>UID Firebase</label><strong id="profileUid">—</strong>
+                            </div>
+                            <div class="profile-field"><label>Ultimo accesso</label><strong
+                                    id="profileLastLogin">—</strong></div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- SYSTEM -->
+                <section class="view" id="view-system">
+                    <div class="section-head">
+                        <div>
+                            <h2>Stato sistema</h2>
+                            <p>Controllo del collegamento tra dashboard, backend e Firestore.</p>
+                        </div>
+                        <button class="btn" id="systemRefreshBtn">Verifica ora</button>
+                    </div>
+
+                    <div class="grid-equal">
+                        <div class="panel">
+                            <div class="panel-head">
+                                <div>
+                                    <h3>Servizi</h3><span>Health monitor</span>
+                                </div>
+                            </div>
+                            <div class="panel-body">
+                                <div class="health-card">
+                                    <div>
+                                        <div class="subtle">Frontend</div>
+                                        <div class="health-value">OK</div>
+                                    </div>
+                                    <span class="badge green">ONLINE</span>
+                                </div>
+                                <div class="health-card">
+                                    <div>
+                                        <div class="subtle">Backend API</div>
+                                        <div class="health-value" id="backendStatus">CHECK</div>
+                                    </div>
+                                    <span class="badge blue" id="backendBadge">VERIFICA</span>
+                                </div>
+                                <div class="health-card">
+                                    <div>
+                                        <div class="subtle">Firestore</div>
+                                        <div class="health-value" id="firestoreStatus">CHECK</div>
+                                    </div>
+                                    <span class="badge blue" id="firestoreBadge">VERIFICA</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="panel">
+                            <div class="panel-head">
+                                <div>
+                                    <h3>Sessione</h3><span>Autenticazione del Capo</span>
+                                </div>
+                            </div>
+                            <div class="panel-body">
+                                <div class="task-list">
+                                    <div class="task-row">
+                                        <div>
+                                            <div class="task-title">Persistenza accesso</div>
+                                            <div class="task-meta">Token salvato localmente quando richiesto</div>
+                                        </div><span class="badge green" id="sessionPersistence">ATTIVA</span>
+                                    </div>
+                                    <div class="task-row">
+                                        <div>
+                                            <div class="task-title">Utente autenticato</div>
+                                            <div class="task-meta" id="sessionUser">—</div>
+                                        </div><span class="badge blue">AUTH</span>
+                                    </div>
+                                    <div class="task-row">
+                                        <div>
+                                            <div class="task-title">Sessione</div>
+                                            <div class="task-meta" id="sessionTokenStatus">—</div>
+                                        </div><span class="badge green">VALIDA</span>
+                                    </div>
+                                </div>
+                                <button class="btn danger" style="margin-top:15px;width:100%" id="logoutBtn">Esci da
+                                    questo PC</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="panel" style="margin-top:18px">
+                        <div class="panel-head">
+                            <div>
+                                <h3>Audit operativo</h3><span>Ultime modifiche e transizioni registrate</span>
+                            </div><button class="mini-btn" id="auditRefreshBtn">Aggiorna</button>
+                        </div>
+                        <div class="panel-body" id="auditList">
+                            <div class="empty">Caricamento audit...</div>
+                        </div>
+                    </div>
+
+                    <div class="panel" style="margin-top:18px">
+                        <div class="panel-head">
+                            <div>
+                                <h3>API Control Center</h3><span>Endpoint attesi dalla dashboard</span>
+                            </div>
+                        </div>
+                        <div class="panel-body">
+                            <div class="task-list">
+                                <div class="task-row">
+                                    <div>
+                                        <div class="task-title">Statistiche</div>
+                                        <div class="task-meta">GET /api/dashboard/stats</div>
+                                    </div><span class="badge blue">GET</span>
+                                </div>
+                                <div class="task-row">
+                                    <div>
+                                        <div class="task-title">Antenne</div>
+                                        <div class="task-meta">GET /api/dashboard/antenne</div>
+                                    </div><span class="badge blue">GET</span>
+                                </div>
+                                <div class="task-row">
+                                    <div>
+                                        <div class="task-title">Notifica</div>
+                                        <div class="task-meta">POST /api/dashboard/notifications</div>
+                                    </div><span class="badge yellow">POST</span>
+                                </div>
+                                <div class="task-row">
+                                    <div>
+                                        <div class="task-title">Dipendenti</div>
+                                        <div class="task-meta">GET /api/dashboard/operators</div>
+                                    </div><span class="badge blue">GET</span>
+                                </div>
+                                <div class="task-row">
+                                    <div>
+                                        <div class="task-title">Profilo</div>
+                                        <div class="task-meta">GET /api/dashboard/profile</div>
+                                    </div><span class="badge blue">GET</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="footer">RadioTech Executive Control Center · Secure Operations Console</div>
+                </section>
+            </div>
+        </main>
+    </div>
+
+    <!-- ANTENNA MODAL -->
+    <div class="modal-backdrop" id="antennaModal">
+        <div class="modal">
+            <div class="modal-head">
+                <h3 id="antennaModalTitle">Nuova antenna</h3>
+                <button class="icon-btn" id="closeAntennaModal">×</button>
+            </div>
+            <form id="antennaForm">
+                <div class="modal-body">
+                    <input type="hidden" id="antennaId">
+                    <div class="form-grid">
+                        <div class="field"><label>Nome</label><input id="antennaName" required
+                                placeholder="ANT-ROMA-001"></div>
+                        <div class="field"><label>Stato</label>
+                            <select id="antennaStatus">
+                                <option value="ATTIVA">ATTIVA</option>
+                                <option value="MANUTENZIONE">MANUTENZIONE</option>
+                                <option value="OFFLINE">OFFLINE</option>
+                            </select>
+                        </div>
+                        <div class="field"><label>Latitudine</label><input id="antennaLat" type="number" step="any"
+                                required></div>
+                        <div class="field"><label>Longitudine</label><input id="antennaLng" type="number" step="any"
+                                required></div>
+                        <div class="field"><label>Frequenza</label><input id="antennaFreq" type="number" step="any">
+                        </div>
+                        <div class="field"><label>Potenza</label><input id="antennaPower" type="number" step="any">
+                        </div>
+                        <div class="field"><label>ROS</label><input id="antennaRos" type="number" step="any"></div>
+                        <div class="field"><label>Temperatura</label><input id="antennaTemp" type="number" step="any">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-foot">
+                    <button type="button" class="btn" id="cancelAntenna">Annulla</button>
+                    <button type="submit" class="btn primary" id="saveAntenna">Salva antenna</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- OPERATOR MODAL -->
+    <div class="modal-backdrop" id="operatorModal">
+        <div class="modal">
+            <div class="modal-head">
+                <h3>Nuovo operatore e credenziali</h3><button class="icon-btn" id="closeOperatorModal">×</button>
+            </div>
+            <form id="operatorForm">
+                <div class="modal-body">
+                    <div class="form-grid">
+                        <div class="field"><label>Nome e cognome</label><input id="operatorFullName" required
+                                maxlength="120"></div>
+                        <div class="field"><label>Email</label><input id="operatorEmail" type="email"
+                                placeholder="Generata automaticamente"></div>
+                        <div class="field"><label>Telefono</label><input id="operatorPhone" type="tel"></div>
+                        <div class="field"><label>Livello</label><select id="operatorLevel">
+                                <option>JUNIOR</option>
+                                <option selected>TECNICO</option>
+                                <option>SENIOR</option>
+                            </select></div>
+                        <div class="field"><label>Turno</label><input id="operatorShift" value="GIORNALIERO"></div>
+                        <div class="field"><label>Password temporanea</label><input id="operatorPassword" type="text"
+                                minlength="6" placeholder="Generata dal server"></div>
+                    </div>
+                    <div class="subtle" id="operatorCredentialsResult"></div>
+                </div>
+                <div class="modal-foot"><button type="button" class="btn" id="cancelOperator">Annulla</button><button
+                        type="submit" class="btn primary" id="saveOperator">Genera credenziali</button></div>
+            </form>
+        </div>
+    </div>
+
+    <!-- BADGE MODAL -->
+    <div class="modal-backdrop" id="badgeModal">
+        <div class="modal" id="badgePrintArea">
+            <div class="modal-head">
+                <h3>Badge RadioTech</h3><button class="icon-btn" id="closeBadgeModal">×</button>
+            </div>
+            <div class="modal-body" style="text-align:center"><img id="badgeQr" alt="QR login operatore"
+                    style="width:220px;height:220px;background:#fff;padding:10px">
+                <h3 id="badgeName"></h3>
+                <p class="subtle" id="badgeDetails"></p><code id="badgeToken"></code>
+            </div>
+            <div class="modal-foot"><button class="btn" id="printBadge">Stampa badge</button><button class="btn primary"
+                    id="closeBadge">Chiudi</button></div>
+        </div>
+    </div>
+
+    <!-- PROFILE MODAL -->
+    <div class="modal-backdrop" id="profileModal">
+        <div class="modal">
+            <div class="modal-head">
+                <h3>Modifica profilo del Capo</h3>
+                <button class="icon-btn" id="closeProfileModal">×</button>
+            </div>
+            <form id="profileForm">
+                <div class="modal-body">
+                    <div class="form-grid">
+                        <div class="field"><label>Nome completo</label><input id="editProfileName"></div>
+                        <div class="field"><label>Telefono</label><input id="editProfilePhone" type="tel"></div>
+                        <div class="field full"><label>Ruolo</label><input id="editProfileRole"></div>
+                    </div>
+                </div>
+                <div class="modal-foot">
+                    <button type="button" class="btn" id="cancelProfile">Annulla</button>
+                    <button type="submit" class="btn primary">Salva profilo</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="toast-stack" id="toastStack"></div>
+
+    <!-- Leaflet: JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin="anonymous"></script>
+
+    <script th:attr="nonce=${cspNonce}">
+        (() => {
+            "use strict";
+
+            /*
+             * ============================================================
+             * RADIO TECH CONTROL CENTER
+             *
+             * Il frontend è progettato per lavorare con il backend Spring.
+             *
+             * API principali:
+             *   GET    /api/dashboard/stats
+             *   GET    /api/dashboard/antenne
+             *   PUT    /api/dashboard/antenne/{id}
+             *   DELETE /api/dashboard/antenne/{id}
+             *   GET    /api/dashboard/operators
+             *   GET    /api/dashboard/notifications
+             *   POST   /api/dashboard/notifications
+             *   GET    /api/dashboard/profile
+             *   PUT    /api/dashboard/profile
+             *   GET    /api/dashboard/inventory
+             *
+             * IMPORTANTE:
+             * L'autenticazione Firebase deve essere effettuata dal tuo
+             * endpoint /api/auth/login, che deve restituire almeno:
+             * {
+             *   "token": "FIREBASE_ID_TOKEN",
+             *   "user": { ... }
+             * }
+             *
+             * Se il tuo login ha un formato diverso, modifica SOLO login().
+             * ============================================================
+             */
+
+            const CONFIG = Object.freeze({
+                API: "/api/dashboard",
+                AUTH_LOGIN: "/api/auth/login",
+                AUTH_REFRESH: "/api/auth/refresh",
+                AUTH_VERIFY: "/api/auth/verify",
+                REQUEST_TIMEOUT: 12000,
+                REFRESH_INTERVAL: 60000,
+                STORAGE_TOKEN: "radiotech_control_token",
+                STORAGE_REFRESH: "radiotech_control_refresh",
+                STORAGE_USER: "radiotech_control_user",
+                STORAGE_REMEMBER: "radiotech_control_remember"
+            });
+
+            const state = {
+                token: null,
+                user: null,
+                stats: null,
+                antennas: [],
+                operators: [],
+                notifications: [],
+                tasks: [],
+                inventory: [],
+                map: null,
+                markers: [],
+                markerByAntennaId: new Map(),
+                mapReady: false,
+                editingAntennaId: null,
+                refreshTimer: null,
+                requestController: null
+            };
+
+            const $ = id => document.getElementById(id);
+
+            function escapeHtml(value) {
+                return String(value ?? "")
+                    .replaceAll("&", "&amp;")
+                    .replaceAll("<", "&lt;")
+                    .replaceAll(">", "&gt;")
+                    .replaceAll('"', "&quot;")
+                    .replaceAll("'", "&#039;");
+            }
+
+            function number(value, digits = 1) {
+                const n = Number(value);
+                if (!Number.isFinite(n)) return "—";
+                return n.toLocaleString("it-IT", {
+                    minimumFractionDigits: digits,
+                    maximumFractionDigits: digits
+                });
+            }
+
+            function initials(name) {
+                const parts = String(name || "Capo RadioTech").trim().split(/\s+/).filter(Boolean);
+                return parts.slice(0, 2).map(x => x[0].toUpperCase()).join("") || "C";
+            }
+
+            function toast(title, message = "", type = "success") {
+                const el = document.createElement("div");
+                el.className = `toast ${type}`;
+                el.innerHTML = `<strong>${escapeHtml(title)}</strong><span>${escapeHtml(message)}</span>`;
+                $("toastStack").appendChild(el);
+                setTimeout(() => el.remove(), 4500);
+            }
+
+            function setText(id, value) {
+                const el = $(id);
+                if (el) el.textContent = value ?? "—";
+            }
+
+            function badgeClass(status) {
+                const s = String(status || "").toUpperCase();
+                if (["ATTIVA", "COMPLETED", "ATTIVO", "ONLINE"].includes(s)) return "green";
+                if (["MANUTENZIONE", "IN_PROGRESS", "PENDING"].includes(s)) return "yellow";
+                if (["OFFLINE", "CANCELLED", "INATTIVO"].includes(s)) return "red";
+                return "gray";
+            }
+
+            function formatStatus(status) {
+                return String(status || "N/D").replaceAll("_", " ");
+            }
+
+            function numberOrNull(value) {
+                if (value === "" || value == null) return null;
+                const n = Number(value);
+                return Number.isFinite(n) ? n : null;
+            }
+
+            function getStoredSession() {
+                const remember = localStorage.getItem(CONFIG.STORAGE_REMEMBER) === "true";
+                const token = remember ? localStorage.getItem(CONFIG.STORAGE_TOKEN) : sessionStorage.getItem(CONFIG.STORAGE_TOKEN);
+                const refreshToken = remember ? localStorage.getItem(CONFIG.STORAGE_REFRESH) : sessionStorage.getItem(CONFIG.STORAGE_REFRESH);
+                const user = remember ? localStorage.getItem(CONFIG.STORAGE_USER) : sessionStorage.getItem(CONFIG.STORAGE_USER);
+                if (!token) return false;
+                state.token = token;
+                state.refreshToken = refreshToken;
+                try { state.user = user ? JSON.parse(user) : null; } catch (_) { state.user = null; }
+                return true;
+            }
+
+            function saveSession(token, user, remember, refreshToken = state.refreshToken) {
+                state.token = token;
+                state.refreshToken = refreshToken || null;
+                state.user = user || null;
+
+                if (remember) {
+                    localStorage.setItem(CONFIG.STORAGE_TOKEN, token);
+                    if (refreshToken) localStorage.setItem(CONFIG.STORAGE_REFRESH, refreshToken);
+                    localStorage.setItem(CONFIG.STORAGE_USER, JSON.stringify(user || {}));
+                    localStorage.setItem(CONFIG.STORAGE_REMEMBER, "true");
+                } else {
+                    sessionStorage.setItem(CONFIG.STORAGE_TOKEN, token);
+                    if (refreshToken) sessionStorage.setItem(CONFIG.STORAGE_REFRESH, refreshToken);
+                    sessionStorage.setItem(CONFIG.STORAGE_USER, JSON.stringify(user || {}));
+                    localStorage.removeItem(CONFIG.STORAGE_TOKEN);
+                    localStorage.removeItem(CONFIG.STORAGE_REFRESH);
+                    localStorage.removeItem(CONFIG.STORAGE_USER);
+                    localStorage.setItem(CONFIG.STORAGE_REMEMBER, "false");
+                }
+            }
+
+            function clearSession() {
+                state.token = null;
+                state.user = null;
+                localStorage.removeItem(CONFIG.STORAGE_TOKEN);
+                localStorage.removeItem(CONFIG.STORAGE_REFRESH);
+                localStorage.removeItem(CONFIG.STORAGE_USER);
+                localStorage.removeItem(CONFIG.STORAGE_REMEMBER);
+                sessionStorage.removeItem(CONFIG.STORAGE_TOKEN);
+                sessionStorage.removeItem(CONFIG.STORAGE_REFRESH);
+                sessionStorage.removeItem(CONFIG.STORAGE_USER);
+            }
+
+            function getSessionToken() {
+                return state.token ||
+                    localStorage.getItem(CONFIG.STORAGE_TOKEN) ||
+                    sessionStorage.getItem(CONFIG.STORAGE_TOKEN);
+            }
+
+            async function refreshSession() {
+                const remember = localStorage.getItem(CONFIG.STORAGE_REMEMBER) === "true";
+                const refreshToken = state.refreshToken || (remember ? localStorage.getItem(CONFIG.STORAGE_REFRESH) : sessionStorage.getItem(CONFIG.STORAGE_REFRESH));
+                if (!refreshToken) return false;
+                const response = await fetch(CONFIG.AUTH_REFRESH, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json", "Accept": "application/json" },
+                    body: JSON.stringify({ refreshToken }),
+                    cache: "no-store"
+                });
+                const body = await response.json().catch(() => null);
+                if (!response.ok) return false;
+                const data = body?.data || body;
+                const token = data?.token || data?.idToken;
+                if (!token) return false;
+                saveSession(token, data.user || state.user, remember, data.refreshToken || refreshToken);
+                return true;
+            }
+
+            async function apiFetch(url, options = {}) {
+                const { _retried = false, ...requestOptions } = options;
+                const controller = new AbortController();
+                const timeout = setTimeout(() => controller.abort(), CONFIG.REQUEST_TIMEOUT);
+
+                const token = getSessionToken();
+
+                const headers = {
+                    "Accept": "application/json",
+                    ...(options.body ? { "Content-Type": "application/json" } : {}),
+                    ...(options.headers || {})
+                };
+
+                if (token) headers.Authorization = `Bearer ${token}`;
+
+                try {
+                    const response = await fetch(url, {
+                        ...requestOptions,
+                        headers,
+                        signal: controller.signal,
+                        cache: "no-store"
+                    });
+
+                    let body = null;
+                    const text = await response.text();
+                    if (text) {
+                        try { body = JSON.parse(text); } catch (_) { body = text; }
+                    }
+
+                    if (response.status === 401) {
+                        if (!_retried && await refreshSession()) return apiFetch(url, { ...options, _retried: true });
+                        clearSession();
+                        showLogin("Sessione scaduta. Effettua nuovamente l'accesso.");
+                        throw new Error("Sessione non autorizzata o scaduta.");
+                    }
+
+                    if (!response.ok) {
+                        const message = body?.message || `HTTP ${response.status}`;
+                        throw new Error(message);
+                    }
+
+                    return body;
+                } catch (error) {
+                    if (error.name === "AbortError") {
+                        throw new Error("Timeout: il backend non ha risposto in tempo.");
+                    }
+                    throw error;
+                } finally {
+                    clearTimeout(timeout);
+                }
+            }
+
+            async function api(path, options = {}) {
+                return apiFetch(`${CONFIG.API}${path}`, options);
+            }
+
+            /* ---------- LOGIN ---------- */
+
+            async function login(event) {
+                event.preventDefault();
+
+                const email = $("loginEmail").value.trim();
+                const password = $("loginPassword").value;
+                const remember = $("rememberLogin").checked;
+                const button = $("loginButton");
+                const status = $("loginStatus");
+
+                if (!email || !password) return;
+
+                button.disabled = true;
+                button.textContent = "Accesso in corso...";
+                status.textContent = "Verifica delle credenziali...";
+
+                try {
+                    /*
+                     * Se il tuo /api/auth/login usa un payload differente,
+                     * modifica questa sola sezione.
+                     */
+                    const result = await fetch(CONFIG.AUTH_LOGIN, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json", "Accept": "application/json" },
+                        body: JSON.stringify({ email, password })
+                    });
+
+                    const body = await result.json().catch(() => null);
+
+                    if (!result.ok) {
+                        throw new Error(body?.message || "Credenziali non valide.");
+                    }
+
+                    const token =
+                        body?.token ||
+                        body?.idToken ||
+                        body?.firebaseToken ||
+                        body?.data?.token;
+
+                    if (!token) {
+                        throw new Error("Il backend non ha restituito un Firebase ID token.");
+                    }
+
+                    const user = body?.user || body?.data?.user || { email };
+
+                    saveSession(token, user, remember, body?.refreshToken || body?.data?.refreshToken);
+                    await startApplication();
+
+                } catch (error) {
+                    console.error(error);
+                    status.textContent = error.message;
+                    toast("Accesso negato", error.message, "error");
+                } finally {
+                    button.disabled = false;
+                    button.textContent = "Accedi al Control Center";
+                }
+            }
+
+            function showLogin(message = "") {
+                $("app").classList.remove("ready");
+                $("loginScreen").style.display = "grid";
+                if (state.refreshTimer) clearInterval(state.refreshTimer);
+                state.refreshTimer = null;
+                if (message) $("loginStatus").textContent = message;
+            }
+
+            async function startApplication() {
+                $("loginScreen").style.display = "none";
+                $("app").classList.add("ready");
+
+                hydrateUser();
+                await refreshAll();
+
+                if (state.refreshTimer) clearInterval(state.refreshTimer);
+                state.refreshTimer = setInterval(() => {
+                    if (state.token) refreshAll(true);
+                }, CONFIG.REFRESH_INTERVAL);
+            }
+
+            /* ---------- USER / PROFILE ---------- */
+
+            function hydrateUser() {
+                const u = state.user || {};
+                const name = u.name || u.displayName || u.fullName || "Capo RadioTech";
+                const email = u.email || "—";
+                const role = u.role || u.ruolo || "Chief Executive · RadioTech";
+
+                const avatar = initials(name);
+
+                setText("miniAvatar", avatar);
+                setText("miniName", name);
+                setText("miniEmail", email);
+
+                setText("profileAvatar", avatar);
+                setText("profileName", name);
+                setText("profileFullName", name);
+                setText("profileEmail", email);
+                setText("profilePhone", u.phone || u.telefono || "—");
+                setText("profileRole", role);
+                setText("profileRoleField", role);
+                setText("profileUid", u.uid || u.id || "—");
+                setText("profileLastLogin", u.lastLogin ? new Date(u.lastLogin).toLocaleString("it-IT") : "Sessione corrente");
+
+                setText("sessionUser", email);
+                setText("sessionTokenStatus", state.token ? "Token presente" : "Nessun token");
+                setText("sessionPersistence", localStorage.getItem(CONFIG.STORAGE_REMEMBER) === "true" ? "ATTIVA" : "SESSIONE");
+            }
+
+            async function loadProfile() {
+                try {
+                    const profile = await api("/profile");
+                    if (profile) {
+                        state.user = { ...state.user, ...(profile.user || profile) };
+                        localStorage.setItem(CONFIG.STORAGE_USER, JSON.stringify(state.user));
+                        hydrateUser();
+                    }
+                } catch (error) {
+                    console.warn("Profilo non disponibile:", error.message);
+                }
+            }
+
+            async function saveProfile(event) {
+                event.preventDefault();
+
+                const payload = {
+                    name: $("editProfileName").value.trim(),
+                    phone: $("editProfilePhone").value.trim(),
+                    role: $("editProfileRole").value.trim()
+                };
+
+                try {
+                    const result = await api("/profile", {
+                        method: "PUT",
+                        body: JSON.stringify(payload)
+                    });
+
+                    state.user = { ...state.user, ...(result?.user || result || payload) };
+                    localStorage.setItem(CONFIG.STORAGE_USER, JSON.stringify(state.user));
+                    hydrateUser();
+                    closeModal("profileModal");
+                    toast("Profilo aggiornato", "Le informazioni del Capo sono state salvate.");
+                } catch (error) {
+                    toast("Profilo non aggiornato", error.message, "error");
+                }
+            }
+
+            function openProfileModal() {
+                const u = state.user || {};
+                $("editProfileName").value = u.name || u.displayName || u.fullName || "";
+                $("editProfilePhone").value = u.phone || u.telefono || "";
+                $("editProfileRole").value = u.role || u.ruolo || "Chief Executive · RadioTech";
+                openModal("profileModal");
+            }
+
+            /* ---------- MAP ---------- */
+
+            function initMap() {
+                if (state.map) return true;
+                if (!window.L) {
+                    setText("mapStatus", "Leaflet non disponibile");
+                    setText("mapSubstatus", "Controlla la connessione al CDN.");
+                    return false;
+                }
+
+                try {
+                    state.map = L.map("map", {
+                        zoomControl: true,
+                        preferCanvas: true,
+                        attributionControl: true
+                    }).setView([41.9028, 12.4964], 6);
+
+                    /*
+                     * Nessun integrity hash: evita che un hash errato blocchi
+                     * il caricamento delle tile/script su browser aggiornati.
+                     */
+                    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+                        maxZoom: 19,
+                        crossOrigin: true,
+                        attribution: "&copy; OpenStreetMap contributors"
+                    }).addTo(state.map);
+
+                    state.mapReady = true;
+                    setText("mapStatus", "Network online");
+                    setText("mapSubstatus", "Mappa pronta");
+                    return true;
+                } catch (error) {
+                    console.error("Map init error:", error);
+                    setText("mapStatus", "Mappa non disponibile");
+                    setText("mapSubstatus", error.message);
+                    return false;
+                }
+            }
+
+            function updateMap() {
+                if (!state.map && !initMap()) return;
+                state.markerByAntennaId.forEach(marker => marker.remove());
+                state.markerByAntennaId.clear();
+                state.markers = [];
+                const valid = [];
+                state.antennas.forEach(a => {
+                    const lat = Number(a.lat), lng = Number(a.lng);
+                    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
+                    const status = String(a.status || "OFFLINE").toUpperCase();
+                    const color = status === "ATTIVA" ? "#2bd576" : status === "MANUTENZIONE" ? "#ffb648" : status === "CRITICA" ? "#b66cff" : "#ff5f6d";
+                    const icon = L.divIcon({ className: "", html: `<div style="width:18px;height:18px;border-radius:50%;background:${color};border:3px solid rgba(255,255,255,.95);box-shadow:0 0 0 6px ${color}22,0 5px 18px #0009"></div>`, iconSize: [18, 18], iconAnchor: [9, 9] });
+                    const marker = L.marker([lat, lng], { icon }).addTo(state.map);
+                    const specs = a.specs || {};
+                    marker.bindPopup(`<div style="min-width:220px;color:#111827;font-family:system-ui"><strong>${escapeHtml(a.name || a.id)}</strong><br><small>Stato: ${escapeHtml(formatStatus(status))}</small><br><small>Frequenza: ${escapeHtml(specs.Frequenza ?? "—")}</small><br><small>Potenza: ${escapeHtml(specs.Potenza ?? "—")}</small><br><small>ROS: ${escapeHtml(specs.ROS ?? "—")}</small><br><small>Temperatura: ${escapeHtml(specs.Temperatura ?? "—")}</small></div>`);
+                    state.markerByAntennaId.set(a.id, marker); state.markers.push(marker); valid.push([lat, lng]);
+                });
+                setText("mapSubstatus", `${valid.length} antenne geolocalizzate`);
+                if (valid.length) state.map.fitBounds(valid, { padding: [35, 35], maxZoom: 12 });
+                setTimeout(() => state.map?.invalidateSize(), 50);
+            }
+
+            /* ---------- STATS ---------- */
+
+            async function loadStats() {
+                const stats = await api("/stats");
+                state.stats = stats || {};
+
+                setText("statAntennas", stats?.antennas ?? 0);
+                setText("statOperators", stats?.operators ?? 0);
+                setText("statInterventions", stats?.interventions ?? 0);
+                setText("statTasks", stats?.tasks ?? 0);
+                setText("statLowStock", stats?.lowStock ?? 0);
+                setText("statOverdueTasks", stats?.taskStats?.overdue ?? 0);
+
+                const availability = Number(stats?.availability || 0);
+                const active = Number(stats?.activeAntennas || 0);
+                const inactive = Number(stats?.inactiveAntennas || 0);
+                const total = Number(stats?.antennas || 0);
+
+                setText("availabilityValue", `${number(availability, 2)}%`);
+                setText("availabilityLabel", `${number(availability, 2)}%`);
+                setText("activeCount", `${active} / ${total}`);
+                setText("inactiveCount", `${inactive} / ${total}`);
+
+                $("activeProgress").style.width = `${Math.min(100, availability)}%`;
+                $("inactiveProgress").style.width = `${total ? Math.min(100, (inactive / total) * 100) : 0}%`;
+
+                const availabilityBadge = $("availabilityBadge");
+                availabilityBadge.textContent =
+                    availability >= 95 ? "OTTIMA" :
+                        availability >= 80 ? "ATTENZIONE" : "CRITICA";
+                availabilityBadge.className =
+                    `badge ${availability >= 95 ? "green" : availability >= 80 ? "yellow" : "red"}`;
+
+                const tasks = stats?.taskStats || {};
+                setText("taskAssigned", tasks.assigned ?? 0);
+                setText("taskProgress", tasks.inProgress ?? 0);
+                setText("taskCompleted", tasks.completed ?? 0);
+                setText("taskCancelled", tasks.cancelled ?? 0);
+
+                setText("opsAssigned", tasks.assigned ?? 0);
+                setText("opsProgress", tasks.inProgress ?? 0);
+                setText("opsCompleted", tasks.completed ?? 0);
+                setText("opsCancelled", tasks.cancelled ?? 0);
+                setText("opsAvailability", `${number(availability, 2)}%`);
+                $("opsAvailabilityProgress").style.width = `${Math.min(100, availability)}%`;
+                setText("opsActive", active);
+                setText("opsInactive", inactive);
+
+                setText("lastUpdate", new Date().toLocaleString("it-IT"));
+                setBackendState(true);
+                loadSystemHealth().catch(() => { });
+            }
+
+            async function loadSystemHealth() {
+                try {
+                    const r = await apiFetch("/api/health/firebase");
+                    const ok = r?.status === "UP";
+                    setText("firestoreStatus", ok ? "OK" : "DOWN");
+                    $("firestoreBadge").textContent = ok ? "CONNECTED" : "OFFLINE";
+                    $("firestoreBadge").className = `badge ${ok ? "green" : "red"}`;
+                } catch (e) {
+                    setText("firestoreStatus", "DOWN");
+                    $("firestoreBadge").textContent = "OFFLINE";
+                    $("firestoreBadge").className = "badge red";
+                }
+            }
+
+            function setBackendState(ok) {
+                setText("backendStatus", ok ? "OK" : "ERROR");
+                $("backendBadge").textContent = ok ? "ONLINE" : "OFFLINE";
+                $("backendBadge").className = `badge ${ok ? "green" : "red"}`;
+
+                if (!ok) {
+                    setText("firestoreStatus", "UNKNOWN");
+                    $("firestoreBadge").textContent = "UNKNOWN";
+                    $("firestoreBadge").className = "badge gray";
+                }
+            }
+
+            /* ---------- ANTENNAS ---------- */
+
+            async function loadAntennas() {
+                try {
+                    const data = await api("/antenne");
+                    state.antennas = Array.isArray(data) ? data : (data?.antennas || []);
+                    renderAntennas();
+                    updateMap();
+                } catch (error) {
+                    console.error(error);
+                    $("antennasTableBody").innerHTML =
+                        `<tr><td colspan="8"><div class="empty">Impossibile caricare le antenne: ${escapeHtml(error.message)}</div></td></tr>`;
+                    throw error;
+                }
+            }
+
+            function renderAntennas() {
+                const query = $("antennaSearch").value.trim().toLowerCase();
+                const filter = $("antennaStatusFilter").value.toUpperCase();
+
+                const list = state.antennas.filter(a => {
+                    const haystack = [a.id, a.name, a.status, a.lat, a.lng].join(" ").toLowerCase();
+                    return (!query || haystack.includes(query)) &&
+                        (!filter || String(a.status || "").toUpperCase() === filter);
+                });
+
+                setText("antennaCountLabel", `${list.length} di ${state.antennas.length} antenne`);
+
+                if (!list.length) {
+                    $("antennasTableBody").innerHTML =
+                        `<tr><td colspan="8"><div class="empty">Nessuna antenna trovata.</div></td></tr>`;
+                    return;
+                }
+
+                $("antennasTableBody").innerHTML = list.map(a => {
+                    const specs = a.specs || {};
+                    return `
+                <tr>
+                    <td>
+                        <div class="antenna-name">${escapeHtml(a.name || a.id)}</div>
+                        <div class="coordinates">${escapeHtml(a.id || "")}</div>
+                    </td>
+                    <td>${number(a.lat, 5)}, ${number(a.lng, 5)}</td>
+                    <td><span class="badge ${badgeClass(a.status)}">${escapeHtml(formatStatus(a.status))}</span></td>
+                    <td>${escapeHtml(specs.Frequenza ?? "—")}</td>
+                    <td>${escapeHtml(specs.Potenza ?? "—")}</td>
+                    <td>${escapeHtml(specs.ROS ?? "—")}</td>
+                    <td>${escapeHtml(specs.Temperatura ?? "—")}</td>
+                    <td>
+                        <div class="actions">
+                            <button class="mini-btn" data-edit="${escapeHtml(a.id)}">Modifica</button>
+                            <button class="mini-btn" data-focus="${escapeHtml(a.id)}">Mappa</button>
+                            <button class="mini-btn" data-delete="${escapeHtml(a.id)}">Elimina</button>
+                        </div>
+                    </td>
+                </tr>`;
+                }).join("");
+
+                $("antennasTableBody").querySelectorAll("[data-edit]").forEach(b =>
+                    b.addEventListener("click", () => openAntennaModal(b.dataset.edit))
+                );
+                $("antennasTableBody").querySelectorAll("[data-focus]").forEach(b =>
+                    b.addEventListener("click", () => focusAntenna(b.dataset.focus))
+                );
+                $("antennasTableBody").querySelectorAll("[data-delete]").forEach(b =>
+                    b.addEventListener("click", () => deleteAntenna(b.dataset.delete))
+                );
+            }
+
+            function focusAntenna(id) {
+                const a = state.antennas.find(x => x.id === id);
+                if (!a || !initMap()) return;
+
+                const lat = Number(a.lat);
+                const lng = Number(a.lng);
+                if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
+
+                switchView("dashboard");
+                setTimeout(() => {
+                    state.map.invalidateSize();
+                    state.map.setView([lat, lng], 14);
+
+                    state.markerByAntennaId.get(id)?.openPopup();
+                }, 100);
+            }
+
+            function openAntennaModal(id = null) {
+                state.editingAntennaId = id;
+                $("antennaForm").reset();
+                $("antennaId").value = "";
+                $("antennaModalTitle").textContent = id ? "Modifica antenna" : "Nuova antenna";
+
+                if (id) {
+                    const a = state.antennas.find(x => x.id === id);
+                    if (!a) return;
+                    const s = a.specs || {};
+
+                    $("antennaId").value = a.id;
+                    $("antennaName").value = a.name || "";
+                    $("antennaStatus").value = a.status || "ATTIVA";
+                    $("antennaLat").value = a.lat ?? "";
+                    $("antennaLng").value = a.lng ?? "";
+                    $("antennaFreq").value = s.Frequenza ?? "";
+                    $("antennaPower").value = s.Potenza ?? "";
+                    $("antennaRos").value = s.ROS ?? "";
+                    $("antennaTemp").value = s.Temperatura ?? "";
+                } else {
+                    $("antennaStatus").value = "ATTIVA";
+                }
+
+                openModal("antennaModal");
+            }
+
+            async function saveAntenna(event) {
+                event.preventDefault();
+
+                const id = state.editingAntennaId;
+                const payload = {
+                    name: $("antennaName").value.trim(),
+                    lat: Number($("antennaLat").value),
+                    lng: Number($("antennaLng").value),
+                    status: $("antennaStatus").value,
+                    specs: {
+                        Frequenza: numberOrNull($("antennaFreq").value),
+                        Potenza: numberOrNull($("antennaPower").value),
+                        ROS: numberOrNull($("antennaRos").value),
+                        Temperatura: numberOrNull($("antennaTemp").value)
+                    }
+                };
+
+                if (!payload.name || !Number.isFinite(payload.lat) || !Number.isFinite(payload.lng)) {
+                    toast("Dati non validi", "Controlla nome e coordinate.", "error");
+                    return;
+                }
+
+                const button = $("saveAntenna");
+                button.disabled = true;
+                button.textContent = "Salvataggio...";
+
+                try {
+                    if (!id) {
+                        /*
+                         * Il tuo backend originale non aveva POST /antenne.
+                         * Se lo aggiungi, questo frontend lo utilizzerà.
+                         */
+                        await api("/antenne", {
+                            method: "POST",
+                            body: JSON.stringify(payload)
+                        });
+                    } else {
+                        await api(`/antenne/${encodeURIComponent(id)}`, {
+                            method: "PUT",
+                            body: JSON.stringify(payload)
+                        });
+                    }
+
+                    closeModal("antennaModal");
+                    await Promise.all([loadAntennas(), loadStats()]);
+                    toast("Operazione completata", id ? "Antenna aggiornata." : "Antenna creata.");
+                } catch (error) {
+                    toast("Salvataggio fallito", error.message, "error");
+                } finally {
+                    button.disabled = false;
+                    button.textContent = "Salva antenna";
+                }
+            }
+
+            async function deleteAntenna(id) {
+                const a = state.antennas.find(x => x.id === id);
+                const name = a?.name || id;
+                if (!confirm(`Eliminare definitivamente "${name}"?`)) return;
+
+                try {
+                    await api(`/antenne/${encodeURIComponent(id)}`, { method: "DELETE" });
+                    await Promise.all([loadAntennas(), loadStats()]);
+                    toast("Antenna eliminata", `${name} è stata rimossa.`);
+                } catch (error) {
+                    toast("Eliminazione fallita", error.message, "error");
+                }
+            }
+
+            async function loadTasks() {
+                try { const data = await apiFetch("/api/tasks"); state.tasks = Array.isArray(data) ? data : (data?.tasks || []); renderTaskList(); populateTaskSelectors(); }
+                catch (e) { $("tasksList").innerHTML = `<div class="empty">Task non disponibili: ${escapeHtml(e.message)}</div>`; }
+            }
+            function populateTaskSelectors() {
+                const op = $("taskOperator"); if (op) op.innerHTML = '<option value="">Seleziona operatore</option>' + state.operators.map(o => `<option value="${escapeHtml(o.id)}">${escapeHtml(o.fullName || o.email || o.id)}</option>`).join("");
+                const an = $("taskAntenna"); if (an) an.innerHTML = '<option value="">Nessuna antenna</option>' + state.antennas.map(a => `<option value="${escapeHtml(a.id)}">${escapeHtml(a.name || a.id)}</option>`).join("");
+            }
+            function renderTaskList() {
+                if (!$('tasksList')) return;
+                const query = ($('taskSearch')?.value || '').trim().toLowerCase();
+                const list = state.tasks.filter(t => !query || [t.title, t.description, t.operatorName, t.operatorId, t.status, t.antennaId].join(' ').toLowerCase().includes(query));
+                $('tasksList').innerHTML = list.length ? list.slice(0, 50).map(t => `<div class="task-row"><div><div class="task-title">${escapeHtml(t.title || t.id)}</div><div class="task-meta">${escapeHtml(t.operatorName || t.operatorId || t.operator_uid || "Non assegnato")} · ${escapeHtml(t.antennaId || "—")} · ${t.dueAt ? `scade ${escapeHtml(new Date(t.dueAt).toLocaleString('it-IT'))}` : 'senza scadenza'}</div></div><span class="badge ${badgeClass(t.status)}">${escapeHtml(formatStatus(t.status))}</span></div>`).join('') : '<div class="empty">Nessun task.</div>';
+            }
+            async function createTask() {
+                const title = $("taskTitle").value.trim(), operatorId = $("taskOperator").value, antennaId = $("taskAntenna").value;
+                if (!title || !operatorId) { toast("Task incompleto", "Titolo e operatore sono obbligatori.", "error"); return; }
+                const dueAt = $("taskDueAt").value ? new Date($("taskDueAt").value).toISOString() : null;
+                try { await apiFetch("/api/tasks", { method: "POST", body: JSON.stringify({ title, description: $("taskDescription").value.trim(), operatorId, antennaId: antennaId || null, dueAt, status: "ASSIGNED", priority: $("taskPriority").value }) }); $("taskTitle").value = ""; $("taskDescription").value = ""; $("taskDueAt").value = ""; await Promise.all([loadTasks(), loadStats()]); toast("Task assegnato", "L'operatore può ora visualizzarlo nell'app mobile."); } catch (e) { toast("Assegnazione fallita", e.message, "error"); }
+            }
+
+            async function loadReports() {
+                try {
+                    const data = await apiFetch("/api/reports", { method: "GET" });
+                    const reports = Array.isArray(data) ? data : [];
+                    $("reportsList").innerHTML = reports.length ? reports.map(r => `<div class="task-row"><div><div class="task-title">Report ${escapeHtml(r.id || "—")}</div><div class="task-meta">Task ${escapeHtml(r.taskId || "—")} · Operatore ${escapeHtml(r.operatorId || "—")} · ${escapeHtml(r.operatorNotes || r.description || "Nessuna nota")}</div></div><div class="actions"><span class="badge ${badgeClass(r.status)}">${escapeHtml(r.status || "SUBMITTED")}</span>${r.status === "SUBMITTED" ? `<button class="mini-btn" data-report-approve="${escapeHtml(r.id)}">Approva</button><button class="mini-btn" data-report-reject="${escapeHtml(r.id)}">Rifiuta</button>` : ""}</div></div>`).join("") : `<div class="empty">Nessun report ricevuto.</div>`;
+                    $("reportsList").querySelectorAll('[data-report-approve]').forEach(b => b.addEventListener('click', () => reviewReport(b.dataset.reportApprove, true)));
+                    $("reportsList").querySelectorAll('[data-report-reject]').forEach(b => b.addEventListener('click', () => reviewReport(b.dataset.reportReject, false)));
+                } catch (e) { $("reportsList").innerHTML = `<div class="empty">Report non disponibili: ${escapeHtml(e.message)}</div>`; }
+            }
+
+            async function reviewReport(id, approve) {
+                const note = approve ? 'Report approvato dalla centrale.' : (prompt('Motivo del rifiuto:') || '');
+                if (!approve && !note.trim()) return;
+                try { await apiFetch(`/api/reports/${encodeURIComponent(id)}/${approve ? 'approve' : 'reject'}`, { method: 'POST', body: JSON.stringify({ note }) }); await Promise.all([loadReports(), loadStats()]); toast(approve ? 'Report approvato' : 'Report rifiutato', approve ? 'Materiali aggiornati e task completato.' : 'Il report è stato restituito all’operatore.'); } catch (e) { toast('Revisione fallita', e.message, 'error'); }
+            }
+
+            async function telecomPost(path, payload) { return apiFetch(`/api/telecom-tools${path}`, { method: "POST", body: JSON.stringify(payload) }); }
+
+            async function calculateLinkBudget() {
+                try {
+                    const r = await telecomPost("/link-budget", { frequencyMHz: Number($("tbFreq").value), distanceKm: Number($("tbDist").value), txPowerDbm: Number($("tbTx").value), txGainDbi: Number($("tbGt").value), rxGainDbi: Number($("tbGr").value), txCableLossDb: Number($("tbLt").value || 0), rxCableLossDb: Number($("tbLr").value || 0), otherLossDb: Number($("tbLo").value || 0), rxSensitivityDbm: $("tbSens").value === "" ? undefined : Number($("tbSens").value) });
+                    $("tbResult").innerHTML = `<strong>FSPL:</strong> ${number(r.fsplDb, 2)} dB<br><strong>EIRP:</strong> ${number(r.eirpDbm, 2)} dBm<br><strong>Potenza ricevuta:</strong> ${number(r.receivedPowerDbm, 2)} dBm<br><strong>Margine:</strong> ${r.linkMarginDb == null ? "—" : number(r.linkMarginDb, 2) + " dB"}<br><span class="subtle">${escapeHtml(r.formula)}</span>`;
+                } catch (e) { toast("Calcolo non valido", e.message, "error"); }
+            }
+            async function calculatePower() { try { const payload = $("tbDbm").value !== "" ? { dbm: Number($("tbDbm").value) } : { w: Number($("tbW").value) }; const r = await telecomPost("/power", payload); $("tbPowerResult").textContent = `${number(r.dbm, 2)} dBm · ${number(r.mw, 3)} mW · ${number(r.w, 6)} W`; } catch (e) { toast("Conversione non valida", e.message, "error"); } }
+            async function calculateVswr() { try { const r = await telecomPost("/vswr", { vswr: Number($("tbVswr").value) }); $("tbVswrResult").textContent = `Γ ${number(r.reflectionCoefficient, 4)} · Return Loss ${number(r.returnLossDb, 2)} dB`; } catch (e) { toast("VSWR non valido", e.message, "error"); } }
+
+            /* ---------- NOTIFICATIONS ---------- */
+
+            async function loadOperators() {
+                try {
+                    const response = await apiFetch("/api/operators");
+                    const data = response?.data ?? response;
+                    state.operators = Array.isArray(data) ? data : (data?.operators || []);
+                    renderRecipients();
+                    renderOperatorTable();
+                } catch (error) {
+                    console.warn("Operatori non disponibili:", error.message);
+                    state.operators = [];
+                    renderRecipients();
+                    renderOperatorTable();
+                }
+            }
+
+            function operatorOnline(lastSeen) {
+                if (!lastSeen) return false;
+                const timestamp = Date.parse(lastSeen);
+                return Number.isFinite(timestamp) && Date.now() - timestamp < 5 * 60 * 1000;
+            }
+
+            function renderOperatorTable() {
+                const table = $("operatorsTableBody");
+                if (!table) return;
+                if (!state.operators.length) {
+                    table.innerHTML = '<tr><td colspan="6"><div class="empty">Nessun operatore registrato.</div></td></tr>';
+                    return;
+                }
+                table.innerHTML = state.operators.map(operator => {
+                    const id = operator.id || "";
+                    const name = operator.fullName || operator.email || id;
+                    const online = operatorOnline(operator.lastSeen);
+                    return `<tr><td><strong>${escapeHtml(name)}</strong><div class="subtle">${escapeHtml(operator.email || "")}</div></td><td>${escapeHtml(operator.level || "TECNICO")}</td><td>${escapeHtml(operator.shift || "—")}</td><td><span class="badge ${online ? "green" : "blue"}">${online ? "ONLINE" : escapeHtml(operator.status || "OFFLINE")}</span></td><td>${operator.lastSeen ? escapeHtml(new Date(operator.lastSeen).toLocaleString("it-IT")) : "—"}</td><td><button class="mini-btn" data-badge="${escapeHtml(id)}">Badge</button><button class="mini-btn" data-regenerate="${escapeHtml(id)}">Rigenera QR</button></td></tr>`;
+                }).join("");
+                table.querySelectorAll("[data-badge]").forEach(button => button.addEventListener("click", () => showBadge(button.dataset.badge)));
+                table.querySelectorAll("[data-regenerate]").forEach(button => button.addEventListener("click", () => regenerateQr(button.dataset.regenerate)));
+            }
+
+            async function createOperator(event) {
+                event.preventDefault();
+                const button = $("saveOperator");
+                button.disabled = true;
+                try {
+                    const result = await apiFetch("/api/operators/generate-credentials", {
+                        method: "POST", body: JSON.stringify({
+                            fullName: $("operatorFullName").value.trim(), email: $("operatorEmail").value.trim() || null,
+                            phone: $("operatorPhone").value.trim() || null, level: $("operatorLevel").value,
+                            shift: $("operatorShift").value.trim(), password: $("operatorPassword").value.trim() || null
+                        })
+                    });
+                    const data = result?.data ?? result;
+                    $("operatorCredentialsResult").innerHTML = `Email: <strong>${escapeHtml(data.email)}</strong> · Password: <strong>${escapeHtml(data.password)}</strong> · QR: <strong>${escapeHtml(data.qrCodeToken)}</strong>`;
+                    await loadOperators();
+                    toast("Operatore creato", "Credenziali generate. Conserva la password e stampa il badge.");
+                    if (data.operator?.id) showBadge(data.operator.id);
+                } catch (error) {
+                    toast("Creazione operatore fallita", error.message, "error");
+                } finally { button.disabled = false; }
+            }
+
+            async function showBadge(id) {
+                const operator = state.operators.find(item => item.id === id);
+                if (!operator?.qrCodeToken) { toast("Badge non disponibile", "L'operatore non ha un QR attivo.", "error"); return; }
+                $("badgeName").textContent = operator.fullName || operator.email || "Operatore RadioTech";
+                $("badgeDetails").textContent = `${operator.level || "TECNICO"} · ${operator.shift || "GIORNALIERO"}`;
+                $("badgeToken").textContent = operator.qrCodeToken;
+                try {
+                    const result = await apiFetch(`/api/operators/${encodeURIComponent(id)}/qr-image`, { method: "POST", body: JSON.stringify({ qrCodeToken: operator.qrCodeToken }) });
+                    const data = result?.data ?? result;
+                    $("badgeQr").src = data.imageDataUrl;
+                    openModal("badgeModal");
+                } catch (error) { toast("Badge non disponibile", error.message, "error"); }
+            }
+
+            async function regenerateQr(id) {
+                if (!confirm("Rigenerare il QR? Il badge precedente verrà invalidato.")) return;
+                try { await apiFetch(`/api/operators/${encodeURIComponent(id)}/regenerate-qr`, { method: "POST" }); await loadOperators(); toast("QR rigenerato", "Il badge precedente non è più valido."); }
+                catch (error) { toast("Rigenerazione fallita", error.message, "error"); }
+            }
+
+            async function syncOperatorFromFirebase() {
+                const email = $('syncOperatorEmail').value.trim();
+                const fullName = $('syncOperatorName').value.trim();
+                if (!email) {
+                    toast('Email obbligatoria', 'Inserisci l’email dell’utente Firebase.', 'error');
+                    return;
+                }
+                const button = $('syncOperatorBtn');
+                button.disabled = true;
+                try {
+                    await apiFetch('/api/operators/sync-firebase-user', {
+                        method: 'POST',
+                        body: JSON.stringify({ email, fullName })
+                    });
+                    $('syncOperatorEmail').value = '';
+                    $('syncOperatorName').value = '';
+                    await loadOperators();
+                    toast('Operatore sincronizzato', 'Ora è disponibile tra i destinatari delle notifiche.');
+                } catch (error) {
+                    toast('Sincronizzazione fallita', error.message, 'error');
+                } finally {
+                    button.disabled = false;
+                }
+            }
+
+            function renderRecipients() {
+                if (!state.operators.length) {
+                    $("recipientBox").innerHTML =
+                        `<div class="empty">Nessun dipendente disponibile dal backend.</div>`;
+                    return;
+                }
+
+                $("recipientBox").innerHTML = state.operators.map((op, i) => {
+                    const id = op.id || op.uid || op.operatorId;
+                    const name = op.name || op.fullName || op.displayName || op.email || `Operatore ${i + 1}`;
+                    const role = op.role || op.ruolo || "Operatore";
+
+                    return `
+                <label class="recipient">
+                    <input type="checkbox" value="${escapeHtml(id)}">
+                    <span class="avatar">${escapeHtml(initials(name))}</span>
+                    <span class="recipient-info">
+                        <strong>${escapeHtml(name)}</strong>
+                        <span>${escapeHtml(role)}</span>
+                    </span>
+                </label>`;
+                }).join("");
+            }
+
+            async function loadNotifications() {
+                try {
+                    const data = await api("/notifications");
+                    state.notifications = Array.isArray(data) ? data : (data?.notifications || []);
+                    renderNotifications();
+                    updateNotificationCount();
+                } catch (error) {
+                    console.warn("Notifiche non disponibili:", error.message);
+                    $("notificationHistory").innerHTML =
+                        `<div class="empty">Endpoint notifiche non disponibile: ${escapeHtml(error.message)}</div>`;
+                }
+            }
+
+            function renderNotifications() {
+                if (!state.notifications.length) {
+                    $("notificationHistory").innerHTML =
+                        `<div class="empty">Nessuna comunicazione recente.</div>`;
+                    return;
+                }
+
+                $("notificationHistory").innerHTML = state.notifications.slice(0, 20).map(n => {
+                    const title = n.title || n.titolo || "Comunicazione";
+                    const message = n.message || n.messaggio || "";
+                    const date = n.createdAt || n.timestamp || n.date;
+
+                    return `
+                <div class="notification-item">
+                    <div class="notification-icon">✦</div>
+                    <div>
+                        <strong>${escapeHtml(title)}</strong>
+                        <p>${escapeHtml(message)}</p>
+                    </div>
+                    <span class="subtle">${date ? escapeHtml(new Date(date).toLocaleDateString("it-IT")) : "—"}</span>
+                </div>`;
+                }).join("");
+            }
+
+            function updateNotificationCount() {
+                const unread = state.notifications.filter(n => n.read === false || n.letto === false).length;
+                const el = $("notificationCount");
+
+                if (unread > 0) {
+                    el.textContent = unread > 99 ? "99+" : unread;
+                    el.classList.remove("hidden");
+                } else {
+                    el.classList.add("hidden");
+                }
+            }
+
+            async function sendNotification() {
+                const target = $("notificationTarget").value;
+                const title = $("notificationTitle").value.trim();
+                const message = $("notificationMessage").value.trim();
+                const priority = $("notificationPriority").value;
+
+                if (!title || !message) {
+                    toast("Notifica incompleta", "Inserisci titolo e messaggio.", "error");
+                    return;
+                }
+
+                let recipients = [];
+
+                if (target === "SELECTED") {
+                    recipients = [...$("recipientBox").querySelectorAll("input[type=checkbox]:checked")]
+                        .map(x => x.value);
+
+                    if (!recipients.length) {
+                        toast("Nessun destinatario", "Seleziona almeno un dipendente.", "error");
+                        return;
+                    }
+                }
+
+                const payload = {
+                    target,
+                    recipients,
+                    title,
+                    message,
+                    priority,
+                    type: "TASK_NOTIFICATION"
+                };
+
+                const button = $("sendNotificationBtn");
+                button.disabled = true;
+                button.textContent = "Invio...";
+
+                try {
+                    await apiFetch("/api/notifications", {
+                        method: "POST",
+                        body: JSON.stringify(payload)
+                    });
+
+                    $("notificationTitle").value = "";
+                    $("notificationMessage").value = "";
+                    toast("Notifica inviata", "La comunicazione è stata inviata ai destinatari.");
+                    await loadNotifications();
+                } catch (error) {
+                    toast("Invio fallito", error.message, "error");
+                } finally {
+                    button.disabled = false;
+                    button.textContent = "Invia notifica";
+                }
+            }
+
+            /* ---------- INVENTORY ---------- */
+
+            async function loadInventory() {
+                try {
+                    const data = await api("/inventory");
+                    state.inventory = Array.isArray(data) ? data : (data?.inventory || []);
+                    renderInventory();
+                } catch (error) {
+                    $("inventoryGrid").innerHTML =
+                        `<div class="empty" style="grid-column:1/-1">Inventario non disponibile: ${escapeHtml(error.message)}</div>`;
+                    $("inventoryStatus").textContent = "Endpoint inventory non disponibile";
+                }
+            }
+
+            function renderInventory() {
+                $("inventoryStatus").textContent = `${state.inventory.length} articoli sincronizzati`;
+
+                if (!state.inventory.length) {
+                    $("inventoryGrid").innerHTML =
+                        `<div class="empty" style="grid-column:1/-1">Nessun articolo disponibile.</div>`;
+                    return;
+                }
+
+                $("inventoryGrid").innerHTML = state.inventory.map(item => {
+                    const quantity = Number(item.quantity ?? item.quantita ?? item.stock ?? 0);
+                    const threshold = Number(item.threshold ?? item.soglia ?? 0);
+                    const low = threshold > 0 && quantity <= threshold;
+
+                    return `
+                <div class="inventory-card ${low ? "low" : ""}">
+                    <strong>${escapeHtml(item.name || item.nome || "Materiale")}</strong>
+                    <div class="sku">${escapeHtml(item.sku || item.id || "")}</div>
+                    <div class="inventory-value">
+                        <span class="quantity">${number(quantity, 0)}</span>
+                        <span class="badge ${low ? "yellow" : "green"}">${low ? "SCORTA BASSA" : "OK"}</span>
+                    </div>
+                </div>`;
+                }).join("");
+            }
+
+            /* ---------- NAVIGATION ---------- */
+
+            function switchView(view) {
+                document.querySelectorAll(".view").forEach(v => v.classList.remove("active"));
+                document.querySelectorAll(".nav button").forEach(b => b.classList.remove("active"));
+
+                const target = $(`view-${view}`);
+                const nav = document.querySelector(`.nav button[data-view="${view}"]`);
+
+                if (target) target.classList.add("active");
+                if (nav) nav.classList.add("active");
+
+                const titles = {
+                    dashboard: ["Dashboard", "Monitoraggio infrastruttura radio e operazioni tecniche"],
+                    antennas: ["Antenne", "Gestione e controllo dell'infrastruttura"],
+                    operations: ["Operatività", "Task e indicatori della squadra"],
+                    notifications: ["Centro notifiche", "Comunicazioni operative ai dipendenti"],
+                    inventory: ["Inventario", "Materiali e componenti disponibili"],
+                    profile: ["Profilo del Capo", "Identità e impostazioni del responsabile"],
+                    system: ["Stato sistema", "Backend, Firestore e sessione"]
+                };
+
+                setText("pageTitle", titles[view]?.[0] || "Dashboard");
+                setText("pageSubtitle", titles[view]?.[1] || "");
+
+                if (view === "dashboard") {
+                    initMap();
+                    setTimeout(() => {
+                        state.map?.invalidateSize();
+                        updateMap();
+                    }, 80);
+                }
+
+                if (view === "antennas") loadAntennas().catch(() => { });
+                if (view === "operations") loadOperators().catch(() => { });
+                if (view === "notifications") {
+                    loadOperators().catch(() => { });
+                    loadNotifications().catch(() => { });
+                }
+                if (view === "inventory") loadInventory().catch(() => { });
+                if (view === "profile") loadProfile().catch(() => { });
+                if (view === "system") loadAudit().catch(() => { });
+
+                $("sidebar").classList.remove("open");
+                window.scrollTo({ top: 0, behavior: "smooth" });
+            }
+
+            /* ---------- SYSTEM ---------- */
+
+            async function checkSystem() {
+                try {
+                    await api("/stats");
+                    setBackendState(true);
+                    toast("Sistema operativo", "Backend raggiungibile.");
+                } catch (error) {
+                    setBackendState(false);
+                    setText("firestoreStatus", "UNKNOWN");
+                    $("firestoreBadge").textContent = "CHECK";
+                    $("firestoreBadge").className = "badge yellow";
+                    toast("Problema backend", error.message, "error");
+                }
+            }
+
+            async function loadAudit() {
+                try {
+                    const entries = await api('/audit?limit=30');
+                    const list = Array.isArray(entries) ? entries : [];
+                    $('auditList').innerHTML = list.length ? list.map(entry => `<div class="task-row"><div><div class="task-title">${escapeHtml(entry.action || 'EVENTO')}</div><div class="task-meta">${escapeHtml(entry.resource || '')} ${escapeHtml(entry.resourceId || '')} · ${escapeHtml(entry.actor || 'SYSTEM')}</div></div><span class="subtle">${entry.timestamp ? escapeHtml(new Date(entry.timestamp).toLocaleString('it-IT')) : '—'}</span></div>`).join('') : '<div class="empty">Nessun evento registrato.</div>';
+                } catch (error) {
+                    $('auditList').innerHTML = `<div class="empty">Audit non disponibile: ${escapeHtml(error.message)}</div>`;
+                }
+            }
+
+            /* ---------- REFRESH ---------- */
+
+            async function refreshAll(silent = false) {
+                if (!state.token) return;
+
+                const tasks = [
+                    loadStats(),
+                    loadAntennas(),
+                    loadNotifications(),
+                    loadProfile(),
+                    loadReports(),
+                    loadTasks()
+                ];
+
+                const results = await Promise.allSettled(tasks);
+                const failed = results.filter(x => x.status === "rejected");
+
+                if (!silent) {
+                    if (failed.length) {
+                        toast("Sincronizzazione parziale",
+                            `${failed.length} servizio/i non hanno risposto.`,
+                            "error");
+                    } else {
+                        toast("Control Center aggiornato", "Dati sincronizzati con il backend.");
+                    }
+                }
+
+                if (state.map) updateMap();
+            }
+
+            /* ---------- MODALS ---------- */
+
+            function openModal(id) {
+                $(id).classList.add("open");
+                document.body.classList.add("modal-open");
+            }
+
+            function closeModal(id) {
+                $(id).classList.remove("open");
+                if (!document.querySelector(".modal-backdrop.open")) {
+                    document.body.classList.remove("modal-open");
+                }
+            }
+
+            /* ---------- EVENTS ---------- */
+
+            $("loginForm").addEventListener("submit", login);
+
+            $("togglePassword").addEventListener("click", () => {
+                const input = $("loginPassword");
+                input.type = input.type === "password" ? "text" : "password";
+            });
+
+            $("mobileMenu").addEventListener("click", () => $("sidebar").classList.toggle("open"));
+
+            document.querySelectorAll(".nav button[data-view]").forEach(button => {
+                button.addEventListener("click", () => switchView(button.dataset.view));
+            });
+
+            $("refreshBtn").addEventListener("click", () => refreshAll(false));
+            $("systemRefreshBtn").addEventListener("click", checkSystem);
+            $("auditRefreshBtn")?.addEventListener("click", () => loadAudit().catch(() => { }));
+
+            $("quickAntennaBtn").addEventListener("click", () => openAntennaModal());
+            $("newAntennaBtn").addEventListener("click", () => openAntennaModal());
+            $("quickNotificationBtn").addEventListener("click", () => switchView("notifications"));
+            $("newNotificationBtn").addEventListener("click", () => switchView("notifications"));
+
+            $("reloadAntennasBtn").addEventListener("click", () => loadAntennas().catch(() => { }));
+            $("antennaSearch").addEventListener("input", renderAntennas);
+            $("antennaStatusFilter").addEventListener("change", renderAntennas);
+
+            $("antennaForm").addEventListener("submit", saveAntenna);
+            $("closeAntennaModal").addEventListener("click", () => closeModal("antennaModal"));
+            $("cancelAntenna").addEventListener("click", () => closeModal("antennaModal"));
+
+            $("editProfileBtn").addEventListener("click", openProfileModal);
+            $("profileForm").addEventListener("submit", saveProfile);
+            $("closeProfileModal").addEventListener("click", () => closeModal("profileModal"));
+            $("cancelProfile").addEventListener("click", () => closeModal("profileModal"));
+
+            $("reportsRefreshBtn")?.addEventListener("click", loadReports);
+            $("createTaskBtn")?.addEventListener("click", createTask);
+            $("operatorsRefreshBtn")?.addEventListener("click", () => loadOperators().catch(() => { }));
+            $("newOperatorBtn")?.addEventListener("click", () => {
+                $("operatorForm").reset();
+                $("operatorCredentialsResult").textContent = "";
+                openModal("operatorModal");
+            });
+            $("operatorForm")?.addEventListener("submit", createOperator);
+            $("closeOperatorModal")?.addEventListener("click", () => closeModal("operatorModal"));
+            $("cancelOperator")?.addEventListener("click", () => closeModal("operatorModal"));
+            $("closeBadgeModal")?.addEventListener("click", () => closeModal("badgeModal"));
+            $("closeBadge")?.addEventListener("click", () => closeModal("badgeModal"));
+            $("printBadge")?.addEventListener("click", () => {
+                const printWindow = window.open("", "_blank", "width=500,height=650");
+                if (!printWindow) return;
+                printWindow.document.write(`<html><head><title>Badge RadioTech</title><style>body{font-family:Arial;text-align:center;padding:30px}img{width:280px}code{display:block;margin-top:14px}</style></head><body>${$("badgePrintArea").innerHTML}</body></html>`);
+                printWindow.document.close();
+                printWindow.focus();
+                printWindow.print();
+            });
+            $("taskSearch")?.addEventListener("input", renderTaskList);
+            $("tbLinkBtn")?.addEventListener("click", calculateLinkBudget);
+            $("tbPowerBtn")?.addEventListener("click", calculatePower);
+            $("tbVswrBtn")?.addEventListener("click", calculateVswr);
+
+            $("notificationTarget").addEventListener("change", event => {
+                $("recipientBox").classList.toggle("hidden", event.target.value !== "SELECTED");
+                if (event.target.value === "SELECTED") loadOperators().catch(() => { });
+            });
+
+            $("sendNotificationBtn").addEventListener("click", sendNotification);
+            $("syncOperatorBtn")?.addEventListener("click", syncOperatorFromFirebase);
+            $("reloadNotificationsBtn").addEventListener("click", () => loadNotifications().catch(() => { }));
+            $("inventoryRefreshBtn").addEventListener("click", () => loadInventory().catch(() => { }));
+
+            $("notificationBell").addEventListener("click", () => switchView("notifications"));
+
+            $("centerMapBtn").addEventListener("click", () => {
+                if (!state.map) initMap();
+                updateMap();
+            });
+
+            $("logoutBtn").addEventListener("click", () => {
+                clearSession();
+                if (state.refreshTimer) clearInterval(state.refreshTimer);
+                state.refreshTimer = null;
+                showLogin("Sei uscito dal Control Center.");
+                toast("Sessione chiusa", "L'accesso persistente è stato rimosso.");
+            });
+
+            document.querySelectorAll(".modal-backdrop").forEach(backdrop => {
+                backdrop.addEventListener("click", event => {
+                    if (event.target === backdrop) closeModal(backdrop.id);
+                });
+            });
+
+            document.addEventListener("keydown", event => {
+                if (event.key === "Escape") {
+                    document.querySelectorAll(".modal-backdrop.open").forEach(x => closeModal(x.id));
+                }
+            });
+
+            window.addEventListener("resize", () => {
+                if (state.map) setTimeout(() => state.map.invalidateSize(), 100);
+            });
+
+            /* ---------- BOOT ---------- */
+
+            async function boot() {
+                /*
+                 * Per sicurezza, il token persistente viene riutilizzato
+                 * solamente se "Mantieni l'accesso" era stato scelto.
+                 */
+                if (getStoredSession()) {
+                    try {
+                        await startApplication();
+                        return;
+                    } catch (error) {
+                        console.warn("Persistent session failed:", error);
+                        clearSession();
+                    }
+                }
+
+                showLogin();
+            }
+
+            boot();
+
+        })();
+    </script>
+
+</body>
+
+</html>

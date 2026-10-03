@@ -1,0 +1,15 @@
+{
+    "private": true,
+    "type": "module",
+    "scripts": {
+        "test:rules": "firebase emulators:exec --only firestore,storage --project demo-radiotech \"node --test rules-tests/*.test.js\"",
+        "test:firestore": "firebase emulators:exec --only firestore,auth --project demo-radiotech \"node scripts/run-firestore-tests.cjs\""
+    },
+    "devDependencies": {
+        "@firebase/rules-unit-testing": "^5.0.2",
+        "firebase": "^12.19.0"
+    },
+    "overrides": {
+        "@grpc/grpc-js": "^1.13.6"
+    }
+}

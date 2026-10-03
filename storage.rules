@@ -1,0 +1,26 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    function signedIn() { return request.auth != null; }
+    function hasTenant() {
+      return signedIn()
+        && request.auth.token.tenantId is string
+        && request.auth.token.tenantId.size() > 0;
+    }
+    function role() { return signedIn() && request.auth.token.role != null ? request.auth.token.role : ''; }
+    function manager() { return signedIn() && role() in ['SUPER_ADMIN', 'ADMIN', 'CHIEF_EXECUTIVE', 'CAPO', 'NETWORK_MANAGER']; }
+    function operator() { return signedIn() && role() in ['OPERATOR', 'OPERATORE']; }
+
+    match /tenants/{tenantId}/maintenance-reports/{operatorId}/{allPaths=**} {
+      allow read: if hasTenant()
+        && request.auth.token.tenantId == tenantId
+        && (manager() || (operator() && request.auth.uid == operatorId));
+      allow write: if hasTenant()
+        && request.auth.token.tenantId == tenantId
+        && (manager() || (operator() && request.auth.uid == operatorId))
+        && request.resource.size < 10 * 1024 * 1024
+        && request.resource.contentType.matches('(image/.*|application/pdf)');
+    }
+    match /{allPaths=**} { allow read, write: if false; }
+  }
+}
