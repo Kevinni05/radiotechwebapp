@@ -3,7 +3,9 @@ package com.radiotech.radiotech_backend.initializer;
 import com.google.cloud.firestore.DocumentReference;
 import com.google.cloud.firestore.DocumentSnapshot;
 import com.google.cloud.firestore.Firestore;
+import com.google.firebase.auth.AuthErrorCode;
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseAuthException;
 import com.google.firebase.auth.UserRecord;
 import com.google.firebase.cloud.FirestoreClient;
 import org.slf4j.Logger;
@@ -136,7 +138,17 @@ public class TenantMigrationRunner implements CommandLineRunner {
             String targetTenant) throws Exception {
         Map<String, Map<String, Object>> resolved = new HashMap<>();
         for (Map.Entry<String, Map<String, Object>> entry : plannedClaims.entrySet()) {
-            UserRecord user = FirebaseAuth.getInstance().getUser(entry.getKey());
+            UserRecord user;
+            try {
+                user = FirebaseAuth.getInstance().getUser(entry.getKey());
+            } catch (FirebaseAuthException exception) {
+                if (exception.getAuthErrorCode() == AuthErrorCode.USER_NOT_FOUND) {
+                    log.warn("Tenant migration skipped claim update for missing Firebase account: {}",
+                            entry.getKey());
+                    continue;
+                }
+                throw exception;
+            }
             Map<String, Object> claims = new HashMap<>();
             if (user.getCustomClaims() != null) {
                 claims.putAll(user.getCustomClaims());
