@@ -71,6 +71,9 @@ public class SecurityConfig {
                                                 .requestMatchers("/api/capo/**", "/api/v1/capo/**")
                                                 .hasAnyRole(Role.MANAGERS)
 
+                                                .requestMatchers("/api/incidents/**", "/api/v1/incidents/**")
+                                                .hasAnyRole(Role.INCIDENT_API)
+
                                                 .requestMatchers(
                                                                 "/api/dashboard/**",
                                                                 "/api/v1/dashboard/**",
@@ -83,9 +86,7 @@ public class SecurityConfig {
                                                                 "/api/reports/**",
                                                                 "/api/v1/reports/**",
                                                                 "/api/notifications/**",
-                                                                "/api/v1/notifications/**",
-                                                                "/api/incidents/**",
-                                                                "/api/v1/incidents/**")
+                                                                "/api/v1/notifications/**")
                                                 .hasAnyRole(Role.CONTROL_ROOM_API)
 
                                                 // Pagine statiche pubbliche.

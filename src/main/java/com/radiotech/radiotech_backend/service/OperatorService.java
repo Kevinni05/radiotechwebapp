@@ -287,6 +287,7 @@ public class OperatorService {
                 java.util.Map<String, Object> result = new java.util.LinkedHashMap<>();
                 result.put("operator", operator);
                 result.put("email", resolvedEmail);
+                result.put("password", password);
                 result.put("passwordSetupRequired", true);
                 result.put("qrCodeToken", operator.getQrCodeToken());
                 result.put("firebaseUid", firebaseUser.getUid());

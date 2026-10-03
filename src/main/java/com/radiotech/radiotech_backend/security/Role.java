@@ -31,6 +31,11 @@ public enum Role {
     /** Ruoli ammessi sulle API mobile /api/operator/**. */
     public static final String[] OPERATOR_API = { "OPERATOR", "SUPER_ADMIN", "ADMIN" };
 
+    /** Ruoli abilitati alla consultazione e gestione degli incident operativi. */
+    public static final String[] INCIDENT_API = {
+            "SUPER_ADMIN", "ADMIN", "CHIEF_EXECUTIVE", "NETWORK_MANAGER", "OPERATOR"
+    };
+
     public static Role parse(String raw) {
         if (raw == null || raw.isBlank()) {
             return NONE;
