@@ -1,6 +1,20 @@
 {
     "indexes": [
         {
+            "collectionGroup": "tasks",
+            "queryScope": "COLLECTION",
+            "fields": [
+                {
+                    "fieldPath": "operator_uid",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "created_at",
+                    "order": "DESCENDING"
+                }
+            ]
+        },
+        {
             "collectionGroup": "auditLogs",
             "queryScope": "COLLECTION",
             "fields": [
