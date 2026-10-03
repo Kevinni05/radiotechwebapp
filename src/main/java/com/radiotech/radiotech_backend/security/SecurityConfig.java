@@ -78,6 +78,8 @@ public class SecurityConfig {
                                                                 "/api/v1/tasks/**",
                                                                 "/api/operators/**",
                                                                 "/api/v1/operators/**",
+                                                                "/api/inventory/**",
+                                                                "/api/v1/inventory/**",
                                                                 "/api/reports/**",
                                                                 "/api/v1/reports/**",
                                                                 "/api/notifications/**",

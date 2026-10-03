@@ -16,6 +16,7 @@ import java.util.HexFormat;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Locale;
 import java.util.concurrent.ExecutionException;
 
 @Service
@@ -51,6 +52,234 @@ public class RicambioService {
         }
 
         return lista;
+    }
+
+    public Map<String, Object> createItem(Map<String, Object> request) throws Exception {
+        String tenantId = currentTenant();
+        String sku = requiredText(request, "sku", 80);
+        String name = requiredText(request, "name", 160);
+        ensureUniqueSku(sku, null, tenantId);
+        int quantity = nonNegativeInt(request, "quantity", 0);
+        int minimum = nonNegativeInt(request, "minimumThreshold", 0);
+        int reorder = nonNegativeInt(request, "reorderQuantity", minimum > 0 ? minimum : 1);
+        String now = Instant.now().toString();
+        DocumentReference reference = FirestoreClient.getFirestore().collection(COLLECTION).document();
+        Map<String, Object> item = new HashMap<>();
+        item.put("id", reference.getId());
+        item.put("tenantId", tenantId);
+        item.put("sku", sku);
+        item.put("name", name);
+        item.put("category", optionalText(request, "category", 80, "GENERALE"));
+        item.put("description", optionalText(request, "description", 1000, ""));
+        item.put("unit", optionalText(request, "unit", 20, "pz"));
+        item.put("location", optionalText(request, "location", 120, ""));
+        item.put("supplier", optionalText(request, "supplier", 160, ""));
+        item.put("barcode", optionalText(request, "barcode", 100, ""));
+        item.put("unitCost", nonNegativeDecimal(request, "unitCost", 0d));
+        item.put("quantity", quantity);
+        item.put("minimumThreshold", minimum);
+        item.put("reorderQuantity", reorder);
+        item.put("active", true);
+        item.put("createdAt", now);
+        item.put("updatedAt", now);
+
+        Firestore db = FirestoreClient.getFirestore();
+        DocumentReference movement = db.collection("inventoryMovements").document();
+        db.runTransaction(transaction -> {
+            transaction.set(reference, item);
+            if (quantity > 0) {
+                transaction.set(movement, movement(tenantId, item, "RECEIPT", quantity, 0, quantity,
+                        optionalText(request, "note", 500, "Carico iniziale"), null, now));
+            }
+            return null;
+        }).get();
+        auditService.record("INVENTORY_CREATED", tenantId, SecurityContextAccessor.currentUid(), "INVENTORY",
+                reference.getId(), "SUCCESS", null, Map.of("sku", sku, "quantity", quantity));
+        return item;
+    }
+
+    public Map<String, Object> updateItem(String id, Map<String, Object> request) throws Exception {
+        if (id == null || id.isBlank()) throw new IllegalArgumentException("ID articolo obbligatorio.");
+        String tenantId = currentTenant();
+        Firestore db = FirestoreClient.getFirestore();
+        DocumentReference reference = db.collection(COLLECTION).document(id.trim());
+        DocumentSnapshot snapshot = reference.get().get();
+        requireInventoryTenant(snapshot, tenantId);
+        if (request.containsKey("sku")) {
+            String sku = requiredText(request, "sku", 80);
+            ensureUniqueSku(sku, snapshot.getId(), tenantId);
+        }
+        Map<String, Object> updates = new HashMap<>();
+        if (request.containsKey("sku")) updates.put("sku", requiredText(request, "sku", 80));
+        if (request.containsKey("name")) updates.put("name", requiredText(request, "name", 160));
+        if (request.containsKey("category")) updates.put("category", optionalText(request, "category", 80, "GENERALE"));
+        if (request.containsKey("description")) updates.put("description", optionalText(request, "description", 1000, ""));
+        if (request.containsKey("unit")) updates.put("unit", optionalText(request, "unit", 20, "pz"));
+        if (request.containsKey("location")) updates.put("location", optionalText(request, "location", 120, ""));
+        if (request.containsKey("supplier")) updates.put("supplier", optionalText(request, "supplier", 160, ""));
+        if (request.containsKey("barcode")) updates.put("barcode", optionalText(request, "barcode", 100, ""));
+        if (request.containsKey("unitCost")) updates.put("unitCost", nonNegativeDecimal(request, "unitCost", 0d));
+        if (request.containsKey("minimumThreshold")) updates.put("minimumThreshold", nonNegativeInt(request, "minimumThreshold", 0));
+        if (request.containsKey("reorderQuantity")) updates.put("reorderQuantity", nonNegativeInt(request, "reorderQuantity", 1));
+        if (updates.isEmpty()) throw new IllegalArgumentException("Nessun dato da aggiornare.");
+        updates.put("updatedAt", Instant.now().toString());
+        reference.update(updates).get();
+        auditService.record("INVENTORY_ITEM_UPDATED", tenantId, SecurityContextAccessor.currentUid(), "INVENTORY",
+                id.trim(), "SUCCESS", null, updates);
+        Map<String, Object> result = new HashMap<>(snapshot.getData());
+        result.putAll(updates);
+        result.put("id", snapshot.getId());
+        return result;
+    }
+
+    public Map<String, Object> recordMovement(String id, Map<String, Object> request) throws Exception {
+        String type = text(request.get("type")).toUpperCase(Locale.ROOT);
+        if (!List.of("RECEIPT", "ISSUE", "ADJUSTMENT").contains(type)) {
+            throw new IllegalArgumentException("Tipo movimento non valido.");
+        }
+        int quantity = nonNegativeInt(request, "quantity", -1);
+        if (quantity < 0 || ("ADJUSTMENT".equals(type) ? false : quantity == 0)) {
+            throw new IllegalArgumentException("La quantità del movimento deve essere valida e maggiore di zero.");
+        }
+        String tenantId = currentTenant();
+        Firestore db = FirestoreClient.getFirestore();
+        DocumentReference itemReference = db.collection(COLLECTION).document(id.trim());
+        DocumentReference movementReference = db.collection("inventoryMovements").document();
+        String now = Instant.now().toString();
+        Map<String, Object> result = db.runTransaction(transaction -> {
+            DocumentSnapshot snapshot = transaction.get(itemReference).get();
+            requireInventoryTenant(snapshot, tenantId);
+            if (Boolean.FALSE.equals(snapshot.getBoolean("active")))
+                throw new IllegalArgumentException("Articolo archiviato: riattivalo prima di movimentarlo.");
+            Map<String, Object> item = snapshot.getData();
+            int previous = number(snapshot.get("quantity"));
+            int target;
+            if ("RECEIPT".equals(type)) target = Math.addExact(previous, quantity);
+            else if ("ISSUE".equals(type)) {
+                if (previous < quantity) throw new IllegalArgumentException("Scorta insufficiente: disponibili " + previous + ".");
+                target = previous - quantity;
+            } else target = quantity;
+            int delta = target - previous;
+            transaction.update(itemReference, "quantity", target, "updatedAt", now);
+            Map<String, Object> movementData = movement(tenantId, item, type,
+                    "ADJUSTMENT".equals(type) ? delta : quantity, previous, target,
+                    optionalText(request, "note", 500, ""), optionalText(request, "reference", 100, ""), now);
+            movementData.put("actorUid", SecurityContextAccessor.currentUid() == null ? "SYSTEM" : SecurityContextAccessor.currentUid());
+            transaction.set(movementReference, movementData);
+            Map<String, Object> updated = new HashMap<>(item);
+            updated.put("quantity", target);
+            updated.put("updatedAt", now);
+            updated.put("id", snapshot.getId());
+            return updated;
+        }).get();
+        auditService.record("INVENTORY_" + type, tenantId, SecurityContextAccessor.currentUid(), "INVENTORY",
+                id.trim(), "SUCCESS", null, Map.of("movementId", movementReference.getId(), "quantity", quantity));
+        return result;
+    }
+
+    public List<Map<String, Object>> getMovements(int limit) throws Exception {
+        int safeLimit = Math.max(1, Math.min(limit, 500));
+        String tenantId = currentTenant();
+        List<QueryDocumentSnapshot> docs = FirestoreClient.getFirestore().collection("inventoryMovements")
+                .whereEqualTo("tenantId", tenantId).orderBy("createdAt", Query.Direction.DESCENDING)
+                .limit(safeLimit).get().get().getDocuments();
+        List<Map<String, Object>> movements = new ArrayList<>();
+        for (QueryDocumentSnapshot doc : docs) {
+            Map<String, Object> data = new HashMap<>(doc.getData());
+            data.put("id", doc.getId());
+            movements.add(data);
+        }
+        return movements;
+    }
+
+    public Map<String, Object> archive(String id) throws Exception {
+        String tenantId = currentTenant();
+        DocumentReference reference = FirestoreClient.getFirestore().collection(COLLECTION).document(id.trim());
+        DocumentSnapshot snapshot = reference.get().get();
+        requireInventoryTenant(snapshot, tenantId);
+        reference.update(Map.of("active", false, "updatedAt", Instant.now().toString())).get();
+        auditService.record("INVENTORY_ARCHIVED", tenantId, SecurityContextAccessor.currentUid(), "INVENTORY",
+                id.trim(), "SUCCESS", null, Map.of("sku", text(snapshot.get("sku"))));
+        return Map.of("id", id.trim(), "active", false);
+    }
+
+    public Map<String, Object> restore(String id) throws Exception {
+        String tenantId = currentTenant();
+        DocumentReference reference = FirestoreClient.getFirestore().collection(COLLECTION).document(id.trim());
+        DocumentSnapshot snapshot = reference.get().get();
+        requireInventoryTenant(snapshot, tenantId);
+        reference.update(Map.of("active", true, "updatedAt", Instant.now().toString())).get();
+        auditService.record("INVENTORY_RESTORED", tenantId, SecurityContextAccessor.currentUid(), "INVENTORY",
+                id.trim(), "SUCCESS", null, Map.of("sku", text(snapshot.get("sku"))));
+        return Map.of("id", id.trim(), "active", true);
+    }
+
+    private void ensureUniqueSku(String sku, String currentId, String tenantId) throws Exception {
+        for (QueryDocumentSnapshot document : FirestoreClient.getFirestore().collection(COLLECTION)
+                .whereEqualTo("tenantId", tenantId).get().get().getDocuments()) {
+            if (!document.getId().equals(currentId) && sku.equalsIgnoreCase(text(document.get("sku"))))
+                throw new IllegalArgumentException("Esiste già un articolo con questo SKU.");
+        }
+    }
+
+    private void requireInventoryTenant(DocumentSnapshot snapshot, String tenantId) {
+        if (snapshot == null || !snapshot.exists()) throw new IllegalArgumentException("Articolo inventario non trovato.");
+        if (!tenantId.equals(snapshot.getString("tenantId"))) throw new SecurityException("Articolo non appartenente al tenant autenticato.");
+    }
+
+    private Map<String, Object> movement(String tenantId, Map<String, Object> item, String type, int quantity,
+            int previous, int resulting, String note, String reference, String now) {
+        Map<String, Object> movement = new HashMap<>();
+        movement.put("tenantId", tenantId);
+        movement.put("inventoryId", text(item.get("id")));
+        movement.put("sku", text(item.get("sku")));
+        movement.put("name", text(item.get("name")));
+        movement.put("type", type);
+        movement.put("quantity", quantity);
+        movement.put("previousQuantity", previous);
+        movement.put("resultingQuantity", resulting);
+        movement.put("note", note);
+        movement.put("reference", reference);
+        movement.put("actorUid", SecurityContextAccessor.currentUid() == null ? "SYSTEM" : SecurityContextAccessor.currentUid());
+        movement.put("createdAt", now);
+        return movement;
+    }
+
+    private String requiredText(Map<String, Object> request, String field, int max) {
+        String value = request == null ? "" : text(request.get(field));
+        if (value.isBlank() || value.length() > max) throw new IllegalArgumentException(field + " obbligatorio (max " + max + " caratteri).");
+        return value;
+    }
+
+    private String optionalText(Map<String, Object> request, String field, int max, String fallback) {
+        String value = request == null ? "" : text(request.get(field));
+        if (value.isBlank()) return fallback;
+        if (value.length() > max) throw new IllegalArgumentException(field + " supera il limite di " + max + " caratteri.");
+        return value;
+    }
+
+    private int nonNegativeInt(Map<String, Object> request, String field, int fallback) {
+        Object value = request == null ? null : request.get(field);
+        if (value == null) return fallback;
+        try {
+            int parsed = value instanceof Number number ? Math.toIntExact(number.longValue()) : Integer.parseInt(value.toString());
+            if (parsed < 0) throw new IllegalArgumentException(field + " non può essere negativo.");
+            return parsed;
+        } catch (ArithmeticException | NumberFormatException exception) {
+            throw new IllegalArgumentException(field + " deve essere un numero intero valido.");
+        }
+    }
+
+    private double nonNegativeDecimal(Map<String, Object> request, String field, double fallback) {
+        Object value = request == null ? null : request.get(field);
+        if (value == null) return fallback;
+        try {
+            double parsed = Double.parseDouble(value.toString());
+            if (!Double.isFinite(parsed) || parsed < 0) throw new IllegalArgumentException(field + " deve essere positivo.");
+            return parsed;
+        } catch (NumberFormatException exception) {
+            throw new IllegalArgumentException(field + " deve essere un numero valido.");
+        }
     }
 
     public void add(

@@ -55,7 +55,6 @@ public final class TenantAccessPolicy {
             Permission.ALERT_ACK,
             Permission.INCIDENT_READ,
             Permission.INVENTORY_READ,
-            Permission.INVENTORY_WRITE,
             Permission.USER_READ,
             Permission.ANALYTICS_READ);
     private static final Set<Permission> VIEWER_PERMISSIONS = EnumSet.of(

@@ -2061,22 +2061,42 @@
                 <section class="view" id="view-inventory">
                     <div class="section-head">
                         <div>
-                            <h2>Inventario</h2>
-                            <p>Materiali, componenti e soglie operative.</p>
+                            <h2>Magazzino</h2>
+                            <p>Scorte, valorizzazione, movimenti tracciati e riordino.</p>
                         </div>
-                        <button class="btn" id="inventoryRefreshBtn">Aggiorna</button>
+                        <div class="toolbar">
+                            <button class="btn" id="inventoryExportBtn" type="button">Esporta CSV</button>
+                            <button class="btn" id="inventoryMovementsBtn" type="button">Registro movimenti</button>
+                            <button class="btn" id="inventoryRefreshBtn" type="button">Aggiorna</button>
+                            <button class="btn primary" id="newInventoryItemBtn" type="button">+ Nuovo articolo</button>
+                        </div>
                     </div>
-
+                    <div class="stats-grid" id="inventoryStats">
+                        <div class="stat-card"><div class="stat-label">Articoli attivi</div><div class="stat-value">—</div><div class="stat-foot">catalogo magazzino</div></div>
+                        <div class="stat-card"><div class="stat-label">Unità disponibili</div><div class="stat-value">—</div><div class="stat-foot">quantità complessiva</div></div>
+                        <div class="stat-card"><div class="stat-label">Sotto scorta</div><div class="stat-value">—</div><div class="stat-foot">da riordinare</div></div>
+                        <div class="stat-card"><div class="stat-label">Valore stimato</div><div class="stat-value">—</div><div class="stat-foot">costo unitario × quantità</div></div>
+                    </div>
                     <div class="panel">
                         <div class="panel-head">
                             <div>
-                                <h3>Materiali disponibili</h3><span id="inventoryStatus">Sincronizzazione...</span>
+                                <h3>Articoli e disponibilità</h3><span id="inventoryStatus">Sincronizzazione...</span>
                             </div>
                         </div>
                         <div class="panel-body">
-                            <div class="inventory-grid" id="inventoryGrid">
-                                <div class="empty" style="grid-column:1/-1"><span class="spinner"></span> Caricamento
-                                    inventario...</div>
+                            <div class="toolbar" style="margin-bottom:14px">
+                                <input id="inventorySearch" type="search" placeholder="Cerca nome, SKU, barcode, posizione">
+                                <select id="inventoryCategoryFilter" aria-label="Categoria magazzino"><option value="">Tutte le categorie</option></select>
+                                <select id="inventoryStockFilter" aria-label="Stato scorte">
+                                    <option value="ACTIVE">Articoli attivi</option><option value="ALL">Tutti gli articoli</option>
+                                    <option value="LOW">Sotto scorta</option><option value="ARCHIVED">Archiviati</option>
+                                </select>
+                            </div>
+                            <div class="table-wrap">
+                                <table>
+                                    <thead><tr><th>Articolo</th><th>Categoria</th><th>Disponibilità</th><th>Posizione</th><th>Valore</th><th>Stato</th><th>Azioni</th></tr></thead>
+                                    <tbody id="inventoryTableBody"><tr><td colspan="7"><div class="empty"><span class="spinner"></span> Caricamento magazzino...</div></td></tr></tbody>
+                                </table>
                             </div>
                         </div>
                     </div>
@@ -2341,6 +2361,63 @@
         </div>
     </div>
 
+    <!-- INVENTORY ITEM MODAL -->
+    <div class="modal-backdrop" id="inventoryItemModal">
+        <div class="modal">
+            <div class="modal-head"><h3 id="inventoryItemModalTitle">Nuovo articolo</h3><button class="icon-btn" type="button" data-close-modal="inventoryItemModal">×</button></div>
+            <form id="inventoryItemForm">
+                <div class="modal-body">
+                    <input type="hidden" id="inventoryItemId">
+                    <div class="form-grid">
+                        <div class="field"><label for="inventorySku">SKU *</label><input id="inventorySku" required maxlength="80" autocomplete="off"></div>
+                        <div class="field"><label for="inventoryName">Nome articolo *</label><input id="inventoryName" required maxlength="160"></div>
+                        <div class="field"><label for="inventoryCategory">Categoria</label><input id="inventoryCategory" maxlength="80" placeholder="Antenne, cavi, ricambi..."></div>
+                        <div class="field"><label for="inventoryUnit">Unità di misura</label><input id="inventoryUnit" maxlength="20" value="pz" placeholder="pz, m, kg..."></div>
+                        <div class="field"><label for="inventoryBarcode">Barcode / EAN</label><input id="inventoryBarcode" maxlength="100"></div>
+                        <div class="field"><label for="inventoryLocation">Ubicazione</label><input id="inventoryLocation" maxlength="120" placeholder="Scaffale A · Ripiano 2"></div>
+                        <div class="field"><label for="inventorySupplier">Fornitore</label><input id="inventorySupplier" maxlength="160"></div>
+                        <div class="field"><label for="inventoryUnitCost">Costo unitario (€)</label><input id="inventoryUnitCost" type="number" min="0" step="0.01" value="0"></div>
+                        <div class="field"><label for="inventoryMinimum">Soglia minima</label><input id="inventoryMinimum" type="number" min="0" step="1" value="0" required></div>
+                        <div class="field"><label for="inventoryReorder">Quantità suggerita riordino</label><input id="inventoryReorder" type="number" min="0" step="1" value="1"></div>
+                        <div class="field" id="inventoryInitialQuantityField"><label for="inventoryInitialQuantity">Quantità iniziale</label><input id="inventoryInitialQuantity" type="number" min="0" step="1" value="0"></div>
+                        <div class="field full"><label for="inventoryDescription">Descrizione / note</label><textarea id="inventoryDescription" rows="3" maxlength="1000"></textarea></div>
+                    </div>
+                    <div class="subtle" id="inventoryItemFormStatus"></div>
+                </div>
+                <div class="modal-foot"><button class="btn" type="button" data-close-modal="inventoryItemModal">Annulla</button><button class="btn primary" id="saveInventoryItem" type="submit">Salva articolo</button></div>
+            </form>
+        </div>
+    </div>
+
+    <!-- INVENTORY MOVEMENT MODAL -->
+    <div class="modal-backdrop" id="inventoryMovementModal">
+        <div class="modal">
+            <div class="modal-head"><h3 id="inventoryMovementTitle">Movimenta scorta</h3><button class="icon-btn" type="button" data-close-modal="inventoryMovementModal">×</button></div>
+            <form id="inventoryMovementForm">
+                <div class="modal-body">
+                    <input type="hidden" id="inventoryMovementItemId">
+                    <div class="subtle" id="inventoryMovementItemName" style="margin-bottom:14px"></div>
+                    <div class="form-grid">
+                        <div class="field"><label for="inventoryMovementType">Operazione</label><select id="inventoryMovementType"><option value="RECEIPT">Carico da fornitore</option><option value="ISSUE">Scarico / prelievo</option><option value="ADJUSTMENT">Inventario fisico (imposta quantità reale)</option></select></div>
+                        <div class="field"><label for="inventoryMovementQuantity" id="inventoryMovementQuantityLabel">Quantità</label><input id="inventoryMovementQuantity" type="number" min="0" step="1" required></div>
+                        <div class="field full"><label for="inventoryMovementReference">Documento / riferimento</label><input id="inventoryMovementReference" maxlength="100" placeholder="Ordine, DDT, task..." /></div>
+                        <div class="field full"><label for="inventoryMovementNote">Causale / note</label><textarea id="inventoryMovementNote" rows="3" maxlength="500"></textarea></div>
+                    </div>
+                </div>
+                <div class="modal-foot"><button class="btn" type="button" data-close-modal="inventoryMovementModal">Annulla</button><button class="btn primary" type="submit">Registra movimento</button></div>
+            </form>
+        </div>
+    </div>
+
+    <!-- INVENTORY MOVEMENT HISTORY MODAL -->
+    <div class="modal-backdrop" id="inventoryMovementsHistoryModal">
+        <div class="modal">
+            <div class="modal-head"><h3>Registro movimenti magazzino</h3><button class="icon-btn" type="button" data-close-modal="inventoryMovementsHistoryModal">×</button></div>
+            <div class="modal-body"><div class="table-wrap"><table><thead><tr><th>Data</th><th>Articolo</th><th>Operazione</th><th>Quantità</th><th>Esito</th><th>Riferimento / causale</th></tr></thead><tbody id="inventoryMovementsBody"><tr><td colspan="6"><div class="empty">Caricamento movimenti...</div></td></tr></tbody></table></div></div>
+            <div class="modal-foot"><button class="btn" type="button" data-close-modal="inventoryMovementsHistoryModal">Chiudi</button></div>
+        </div>
+    </div>
+
     <!-- PROFILE MODAL -->
     <div class="modal-backdrop" id="profileModal">
         <div class="modal">
@@ -2426,6 +2503,7 @@
                 notifications: [],
                 tasks: [],
                 inventory: [],
+                inventoryMovements: [],
                 map: null,
                 markers: [],
                 markerByAntennaId: new Map(),
@@ -3450,40 +3528,218 @@
 
             async function loadInventory() {
                 try {
-                    const data = await api("/inventario");
+                    const data = await apiFetch("/api/inventory");
                     state.inventory = Array.isArray(data) ? data : (data?.inventory || []);
                     renderInventory();
                 } catch (error) {
-                    $("inventoryGrid").innerHTML =
-                        `<div class="empty" style="grid-column:1/-1">Inventario non disponibile: ${escapeHtml(error.message)}</div>`;
-                    $("inventoryStatus").textContent = "Endpoint inventory non disponibile";
+                    $("inventoryTableBody").innerHTML = `<tr><td colspan="7"><div class="empty">Magazzino non disponibile: ${escapeHtml(error.message)}</div></td></tr>`;
+                    $("inventoryStatus").textContent = "Errore di sincronizzazione";
                 }
             }
 
             function renderInventory() {
-                $("inventoryStatus").textContent = `${state.inventory.length} articoli sincronizzati`;
+                const activeItems = state.inventory.filter(item => item.active !== false);
+                const totalUnits = activeItems.reduce((sum, item) => sum + inventoryQty(item), 0);
+                const lowItems = activeItems.filter(inventoryIsLow);
+                const totalValue = activeItems.reduce((sum, item) => sum + inventoryQty(item) * Number(item.unitCost || 0), 0);
+                const stats = $("inventoryStats");
+                if (stats) stats.innerHTML = `
+                    <div class="stat-card"><div class="stat-label">Articoli attivi</div><div class="stat-value">${activeItems.length}</div><div class="stat-foot">catalogo magazzino</div></div>
+                    <div class="stat-card"><div class="stat-label">Unità disponibili</div><div class="stat-value">${number(totalUnits, 0)}</div><div class="stat-foot">quantità complessiva</div></div>
+                    <div class="stat-card"><div class="stat-label">Sotto scorta</div><div class="stat-value">${lowItems.length}</div><div class="stat-foot">da riordinare</div></div>
+                    <div class="stat-card"><div class="stat-label">Valore stimato</div><div class="stat-value">${new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(totalValue)}</div><div class="stat-foot">costo unitario × quantità</div></div>`;
 
-                if (!state.inventory.length) {
-                    $("inventoryGrid").innerHTML =
-                        `<div class="empty" style="grid-column:1/-1">Nessun articolo disponibile.</div>`;
+                const categories = [...new Set(state.inventory.map(item => item.category).filter(Boolean))].sort((a, b) => a.localeCompare(b, "it"));
+                const categoryFilter = $("inventoryCategoryFilter");
+                if (categoryFilter) {
+                    const selected = categoryFilter.value;
+                    categoryFilter.innerHTML = '<option value="">Tutte le categorie</option>' + categories.map(category => `<option value="${escapeHtml(category)}">${escapeHtml(category)}</option>`).join("");
+                    categoryFilter.value = categories.includes(selected) ? selected : "";
+                }
+                $("inventoryStatus").textContent = `${activeItems.length} articoli attivi · ${lowItems.length} da riordinare`;
+
+                const search = ($("inventorySearch")?.value || "").trim().toLocaleLowerCase("it-IT");
+                const category = categoryFilter?.value || "";
+                const stockFilter = $("inventoryStockFilter")?.value || "ACTIVE";
+                const visible = state.inventory.filter(item => {
+                    const active = item.active !== false;
+                    const haystack = [item.sku, item.name, item.barcode, item.location, item.category, item.supplier].join(" ").toLocaleLowerCase("it-IT");
+                    return (stockFilter === "ALL" || (stockFilter === "ARCHIVED" ? !active : active))
+                        && (stockFilter !== "LOW" || (active && inventoryIsLow(item)))
+                        && (!category || item.category === category)
+                        && (!search || haystack.includes(search));
+                }).sort((a, b) => String(a.name || "").localeCompare(String(b.name || ""), "it"));
+                const table = $("inventoryTableBody");
+                if (!visible.length) {
+                    table.innerHTML = `<tr><td colspan="7"><div class="empty">${state.inventory.length ? "Nessun articolo corrisponde ai filtri." : "Il magazzino è vuoto. Aggiungi il primo articolo."}</div></td></tr>`;
                     return;
                 }
-
-                $("inventoryGrid").innerHTML = state.inventory.map(item => {
-                    const quantity = Number(item.quantity ?? item.quantita ?? item.stock ?? 0);
-                    const threshold = Number(item.threshold ?? item.soglia ?? 0);
-                    const low = threshold > 0 && quantity <= threshold;
-
-                    return `
-                <div class="inventory-card ${low ? "low" : ""}">
-                    <strong>${escapeHtml(item.name || item.nome || "Materiale")}</strong>
-                    <div class="sku">${escapeHtml(item.sku || item.id || "")}</div>
-                    <div class="inventory-value">
-                        <span class="quantity">${number(quantity, 0)}</span>
-                        <span class="badge ${low ? "yellow" : "green"}">${low ? "SCORTA BASSA" : "OK"}</span>
-                    </div>
-                </div>`;
+                table.innerHTML = visible.map(item => {
+                    const low = inventoryIsLow(item);
+                    const active = item.active !== false;
+                    const qty = inventoryQty(item);
+                    const value = qty * Number(item.unitCost || 0);
+                    const stockLabel = low ? "RIORDINO" : "DISPONIBILE";
+                    return `<tr>
+                        <td><strong>${escapeHtml(item.name || "Articolo")}</strong><div class="subtle">${escapeHtml(item.sku || item.id || "—")}${item.barcode ? ` · ${escapeHtml(item.barcode)}` : ""}</div></td>
+                        <td>${escapeHtml(item.category || "Generale")}<div class="subtle">${escapeHtml(item.unit || "pz")}</div></td>
+                        <td><strong>${number(qty, 0)}</strong> ${escapeHtml(item.unit || "pz")}<div class="subtle">Soglia ${number(Number(item.minimumThreshold || item.threshold || item.soglia || 0), 0)} · Riordino ${number(Number(item.reorderQuantity || 0), 0)}</div></td>
+                        <td>${escapeHtml(item.location || "—")}${item.supplier ? `<div class="subtle">${escapeHtml(item.supplier)}</div>` : ""}</td>
+                        <td>${new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR" }).format(value)}<div class="subtle">${new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR" }).format(Number(item.unitCost || 0))} / ${escapeHtml(item.unit || "pz")}</div></td>
+                        <td><span class="badge ${!active ? "red" : low ? "yellow" : "green"}">${!active ? "ARCHIVIATO" : stockLabel}</span></td>
+                        <td><div class="actions">${active ? `<button class="mini-btn" data-inventory-move="${escapeHtml(item.id)}">Movimenta</button><button class="mini-btn" data-inventory-edit="${escapeHtml(item.id)}">Modifica</button><button class="mini-btn" data-inventory-archive="${escapeHtml(item.id)}">Archivia</button>` : `<button class="mini-btn" data-inventory-restore="${escapeHtml(item.id)}">Ripristina</button>`}</div></td>
+                    </tr>`;
                 }).join("");
+                table.querySelectorAll("[data-inventory-move]").forEach(button => button.addEventListener("click", () => openInventoryMovement(button.dataset.inventoryMove)));
+                table.querySelectorAll("[data-inventory-edit]").forEach(button => button.addEventListener("click", () => openInventoryItem(button.dataset.inventoryEdit)));
+                table.querySelectorAll("[data-inventory-archive]").forEach(button => button.addEventListener("click", () => archiveInventoryItem(button.dataset.inventoryArchive)));
+                table.querySelectorAll("[data-inventory-restore]").forEach(button => button.addEventListener("click", () => restoreInventoryItem(button.dataset.inventoryRestore)));
+            }
+
+            function inventoryQty(item) { return Math.max(0, Number(item.quantity ?? item.quantitaDisponibile ?? item.stock ?? 0)); }
+            function inventoryIsLow(item) {
+                const threshold = Number(item.minimumThreshold ?? item.threshold ?? item.soglia ?? item.sogliaMinima ?? 0);
+                return item.active !== false && threshold >= 0 && inventoryQty(item) <= threshold;
+            }
+
+            function openInventoryItem(id = "") {
+                const item = id ? state.inventory.find(row => row.id === id) : null;
+                $("inventoryItemForm").reset();
+                $("inventoryItemId").value = item?.id || "";
+                $("inventorySku").value = item?.sku || "";
+                $("inventoryName").value = item?.name || "";
+                $("inventoryCategory").value = item?.category || "";
+                $("inventoryUnit").value = item?.unit || "pz";
+                $("inventoryBarcode").value = item?.barcode || "";
+                $("inventoryLocation").value = item?.location || "";
+                $("inventorySupplier").value = item?.supplier || "";
+                $("inventoryUnitCost").value = Number(item?.unitCost || 0);
+                $("inventoryMinimum").value = Number(item?.minimumThreshold || item?.threshold || 0);
+                $("inventoryReorder").value = Number(item?.reorderQuantity || item?.minimumThreshold || 1);
+                $("inventoryInitialQuantity").value = 0;
+                $("inventoryDescription").value = item?.description || "";
+                $("inventoryItemModalTitle").textContent = item ? `Modifica ${item.name}` : "Nuovo articolo";
+                $("inventoryInitialQuantityField").classList.toggle("hidden", Boolean(item));
+                $("inventoryItemFormStatus").textContent = item ? `Disponibilità attuale: ${inventoryQty(item)} ${item.unit || "pz"}. Usa “Movimenta” per modificare le scorte.` : "La quantità iniziale sarà registrata come carico nel registro movimenti.";
+                openModal("inventoryItemModal");
+            }
+
+            async function saveInventoryItem(event) {
+                event.preventDefault();
+                const id = $("inventoryItemId").value;
+                const payload = {
+                    sku: $("inventorySku").value.trim(), name: $("inventoryName").value.trim(),
+                    category: $("inventoryCategory").value.trim(), unit: $("inventoryUnit").value.trim() || "pz",
+                    barcode: $("inventoryBarcode").value.trim(), location: $("inventoryLocation").value.trim(),
+                    supplier: $("inventorySupplier").value.trim(), unitCost: Number($("inventoryUnitCost").value || 0),
+                    minimumThreshold: Number($("inventoryMinimum").value || 0), reorderQuantity: Number($("inventoryReorder").value || 0),
+                    description: $("inventoryDescription").value.trim()
+                };
+                if (!id) payload.quantity = Number($("inventoryInitialQuantity").value || 0);
+                const button = $("saveInventoryItem");
+                button.disabled = true;
+                try {
+                    await apiFetch(id ? `/api/inventory/${encodeURIComponent(id)}` : "/api/inventory", {
+                        method: id ? "PUT" : "POST", body: JSON.stringify(payload)
+                    });
+                    closeModal("inventoryItemModal");
+                    await loadInventory();
+                    toast(id ? "Articolo aggiornato" : "Articolo creato", "Magazzino sincronizzato con il backend.");
+                } catch (error) {
+                    toast("Salvataggio non riuscito", error.message, "error");
+                } finally { button.disabled = false; }
+            }
+
+            function openInventoryMovement(id) {
+                const item = state.inventory.find(row => row.id === id);
+                if (!item) return;
+                $("inventoryMovementForm").reset();
+                $("inventoryMovementItemId").value = id;
+                $("inventoryMovementItemName").textContent = `${item.name} · ${item.sku} · giacenza ${inventoryQty(item)} ${item.unit || "pz"}`;
+                $("inventoryMovementQuantity").value = "";
+                updateInventoryMovementHint();
+                openModal("inventoryMovementModal");
+            }
+
+            function updateInventoryMovementHint() {
+                const type = $("inventoryMovementType").value;
+                $("inventoryMovementQuantityLabel").textContent = type === "ADJUSTMENT" ? "Giacenza reale conteggiata" : "Quantità da movimentare";
+                $("inventoryMovementQuantity").min = type === "ADJUSTMENT" ? "0" : "1";
+            }
+
+            async function saveInventoryMovement(event) {
+                event.preventDefault();
+                const id = $("inventoryMovementItemId").value;
+                try {
+                    await apiFetch(`/api/inventory/${encodeURIComponent(id)}/movements`, {
+                        method: "POST", body: JSON.stringify({
+                            type: $("inventoryMovementType").value,
+                            quantity: Number($("inventoryMovementQuantity").value),
+                            reference: $("inventoryMovementReference").value.trim(),
+                            note: $("inventoryMovementNote").value.trim()
+                        })
+                    });
+                    closeModal("inventoryMovementModal");
+                    await loadInventory();
+                    toast("Movimento registrato", "Giacenza e registro sono stati aggiornati.");
+                } catch (error) { toast("Movimento non riuscito", error.message, "error"); }
+            }
+
+            async function loadInventoryMovements() {
+                const body = $("inventoryMovementsBody");
+                body.innerHTML = '<tr><td colspan="6"><div class="empty"><span class="spinner"></span> Caricamento movimenti...</div></td></tr>';
+                try {
+                    const data = await apiFetch("/api/inventory/movements?limit=250");
+                    state.inventoryMovements = Array.isArray(data) ? data : (data?.data || []);
+                    renderInventoryMovements();
+                } catch (error) {
+                    body.innerHTML = `<tr><td colspan="6"><div class="empty">Registro non disponibile: ${escapeHtml(error.message)}</div></td></tr>`;
+                }
+            }
+
+            function renderInventoryMovements() {
+                const body = $("inventoryMovementsBody");
+                if (!state.inventoryMovements.length) {
+                    body.innerHTML = '<tr><td colspan="6"><div class="empty">Nessun movimento registrato.</div></td></tr>';
+                    return;
+                }
+                const labels = { RECEIPT: "CARICO", ISSUE: "SCARICO", ADJUSTMENT: "RETTIFICA", CONSUMPTION: "CONSUMO TASK" };
+                body.innerHTML = state.inventoryMovements.map(movement => {
+                    const quantity = Number(movement.quantity || 0);
+                    const signed = ["ISSUE", "CONSUMPTION"].includes(movement.type) ? -Math.abs(quantity) : quantity;
+                    const when = movement.createdAt ? new Date(movement.createdAt).toLocaleString("it-IT") : "—";
+                    return `<tr><td>${escapeHtml(when)}</td><td><strong>${escapeHtml(movement.name || "Articolo")}</strong><div class="subtle">${escapeHtml(movement.sku || "")}</div></td><td>${escapeHtml(labels[movement.type] || movement.type || "—")}</td><td class="${signed < 0 ? "text-danger" : ""}">${signed > 0 ? "+" : ""}${number(signed, 0)}</td><td>${movement.previousQuantity == null ? "—" : `${number(Number(movement.previousQuantity), 0)} → ${number(Number(movement.resultingQuantity), 0)}`}</td><td>${escapeHtml([movement.reference, movement.note].filter(Boolean).join(" · ") || "—")}</td></tr>`;
+                }).join("");
+            }
+
+            async function archiveInventoryItem(id) {
+                const item = state.inventory.find(row => row.id === id);
+                if (!item || !confirm(`Archiviare “${item.name}”? Lo storico resta consultabile e l'articolo sarà ripristinabile.`)) return;
+                try {
+                    await apiFetch(`/api/inventory/${encodeURIComponent(id)}`, { method: "DELETE" });
+                    await loadInventory();
+                    toast("Articolo archiviato", "L'articolo è stato mantenuto nello storico.");
+                } catch (error) { toast("Archiviazione non riuscita", error.message, "error"); }
+            }
+
+            async function restoreInventoryItem(id) {
+                try {
+                    await apiFetch(`/api/inventory/${encodeURIComponent(id)}/restore`, { method: "POST" });
+                    await loadInventory();
+                    toast("Articolo ripristinato", "L'articolo è di nuovo disponibile.");
+                } catch (error) { toast("Ripristino non riuscito", error.message, "error"); }
+            }
+
+            function exportInventoryCsv() {
+                const columns = ["sku", "name", "category", "quantity", "unit", "minimumThreshold", "reorderQuantity", "location", "supplier", "barcode", "unitCost", "active"];
+                const quote = value => `"${String(value ?? "").replaceAll('"', '""')}"`;
+                const rows = [columns.join(";"), ...state.inventory.map(item => columns.map(column => quote(column === "quantity" ? inventoryQty(item) : column === "minimumThreshold" ? item.minimumThreshold ?? item.threshold ?? 0 : item[column])).join(";"))];
+                const blob = new Blob(["\uFEFF" + rows.join("\r\n")], { type: "text/csv;charset=utf-8" });
+                const link = document.createElement("a");
+                link.href = URL.createObjectURL(blob);
+                link.download = `radiotech-magazzino-${new Date().toISOString().slice(0, 10)}.csv`;
+                link.click();
+                URL.revokeObjectURL(link.href);
             }
 
             /* ---------- NAVIGATION ---------- */
@@ -3675,6 +3931,19 @@
             $("syncOperatorBtn")?.addEventListener("click", syncOperatorFromFirebase);
             $("reloadNotificationsBtn").addEventListener("click", () => loadNotifications().catch(() => { }));
             $("inventoryRefreshBtn").addEventListener("click", () => loadInventory().catch(() => { }));
+            $("newInventoryItemBtn")?.addEventListener("click", () => openInventoryItem());
+            $("inventoryItemForm")?.addEventListener("submit", saveInventoryItem);
+            $("inventoryMovementForm")?.addEventListener("submit", saveInventoryMovement);
+            $("inventoryMovementType")?.addEventListener("change", updateInventoryMovementHint);
+            $("inventoryMovementsBtn")?.addEventListener("click", async () => {
+                openModal("inventoryMovementsHistoryModal");
+                await loadInventoryMovements();
+            });
+            $("inventoryExportBtn")?.addEventListener("click", exportInventoryCsv);
+            $("inventorySearch")?.addEventListener("input", renderInventory);
+            $("inventoryCategoryFilter")?.addEventListener("change", renderInventory);
+            $("inventoryStockFilter")?.addEventListener("change", renderInventory);
+            document.querySelectorAll("[data-close-modal]").forEach(button => button.addEventListener("click", () => closeModal(button.dataset.closeModal)));
 
             $("notificationBell").addEventListener("click", () => switchView("notifications"));
 
