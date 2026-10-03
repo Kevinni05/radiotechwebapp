@@ -1545,6 +1545,7 @@
                         <span class="notification-count hidden" id="notificationCount">0</span>
                     </button>
                     <button class="icon-btn" id="refreshBtn" title="Aggiorna">↻</button>
+                    <button class="btn" id="topbarLogoutBtn" type="button" aria-label="Esci dall'applicazione">Esci</button>
                     <button class="btn quick" id="quickNotificationBtn">+ Invia notifica</button>
                     <button class="btn primary quick" id="quickAntennaBtn">+ Nuova antenna</button>
                 </div>
@@ -1751,17 +1752,29 @@
                     <div class="panel" style="margin-bottom:18px">
                         <div class="panel-head">
                             <div>
-                                <h3>Operatori e badge</h3><span>Credenziali Firebase e accesso QR personale</span>
+                                <h3>Gestione operatori</h3><span>Crea account, consulta la squadra e assegna ruoli applicativi</span>
                             </div>
                             <div class="toolbar"><button class="mini-btn"
                                     id="operatorsRefreshBtn">Aggiorna</button><button class="btn primary"
                                     id="newOperatorBtn">+ Nuovo operatore</button></div>
+                        </div>
+                        <div class="panel-body">
+                            <div class="toolbar" style="margin-bottom:14px">
+                                <input id="operatorSearch" type="search" placeholder="Cerca per nome o email">
+                                <select id="operatorRoleFilter" aria-label="Filtra per ruolo">
+                                    <option value="">Tutti i ruoli</option>
+                                    <option value="OPERATOR">Operatore</option>
+                                    <option value="VIEWER">Sola lettura</option>
+                                </select>
+                                <span class="subtle" id="operatorsSummary">Caricamento…</span>
+                            </div>
                         </div>
                         <div class="table-wrap">
                             <table>
                                 <thead>
                                     <tr>
                                         <th>Operatore</th>
+                                        <th>Ruolo</th>
                                         <th>Livello</th>
                                         <th>Turno</th>
                                         <th>Stato</th>
@@ -1771,12 +1784,27 @@
                                 </thead>
                                 <tbody id="operatorsTableBody">
                                     <tr>
-                                        <td colspan="6">
+                                        <td colspan="7">
                                             <div class="empty">Caricamento operatori...</div>
                                         </td>
                                     </tr>
                                 </tbody>
                             </table>
+                        </div>
+                    </div>
+                    <div class="panel" style="margin-bottom:18px">
+                        <div class="panel-head">
+                            <div>
+                                <h3>Collega account Firebase</h3>
+                                <span>Associa un utente Firebase esistente al tenant e alla squadra</span>
+                            </div>
+                        </div>
+                        <div class="panel-body">
+                            <div class="toolbar">
+                                <input id="syncOperatorEmail" type="email" placeholder="Email account Firebase">
+                                <input id="syncOperatorName" placeholder="Nome operatore (facoltativo)">
+                                <button class="btn" id="syncOperatorBtn" type="button">Sincronizza operatore</button>
+                            </div>
                         </div>
                     </div>
                     <div class="panel" style="margin-bottom:18px">
@@ -1923,13 +1951,6 @@
                                         <option value="ALL">Tutti i dipendenti</option>
                                         <option value="SELECTED">Dipendenti selezionati</option>
                                     </select>
-                                </div>
-
-                                <div class="toolbar">
-                                    <input id="syncOperatorEmail" type="email" placeholder="Email account Firebase">
-                                    <input id="syncOperatorName" placeholder="Nome operatore">
-                                    <button class="btn" id="syncOperatorBtn" type="button">Sincronizza
-                                        operatore</button>
                                 </div>
 
                                 <div id="recipientBox" class="recipient-list hidden"></div>
@@ -2296,6 +2317,7 @@
                                 minlength="6" placeholder="Generata dal server"></div>
                     </div>
                     <div class="subtle" id="operatorCredentialsResult"></div>
+                    <div class="subtle">Il nuovo account viene creato con ruolo Operatore. Puoi assegnare il ruolo Sola lettura dall'elenco dopo la creazione.</div>
                 </div>
                 <div class="modal-foot"><button type="button" class="btn" id="cancelOperator">Annulla</button><button
                         type="submit" class="btn primary" id="saveOperator">Genera credenziali</button></div>
@@ -2400,6 +2422,7 @@
                 stats: null,
                 antennas: [],
                 operators: [],
+                operatorLoadError: "",
                 notifications: [],
                 tasks: [],
                 inventory: [],
@@ -2896,6 +2919,7 @@
                     const data = await api("/antenne");
                     state.antennas = Array.isArray(data) ? data : (data?.antennas || []);
                     renderAntennas();
+                    populateTaskSelectors();
                     updateMap();
                 } catch (error) {
                     console.error(error);
@@ -3074,8 +3098,15 @@
                 try { const data = await apiFetch("/api/tasks"); state.tasks = Array.isArray(data) ? data : (data?.tasks || []); renderTaskList(); populateTaskSelectors(); }
                 catch (e) { $("tasksList").innerHTML = `<div class="empty">Task non disponibili: ${escapeHtml(e.message)}</div>`; }
             }
+            function eligibleOperators() {
+                return state.operators.filter(operator => {
+                    const role = (operator.role || "OPERATOR").toUpperCase();
+                    const status = (operator.status || "").toUpperCase();
+                    return role === "OPERATOR" && !["IN_ATTESA", "INATTIVO", "DISATTIVATO"].includes(status);
+                });
+            }
             function populateTaskSelectors() {
-                const op = $("taskOperator"); if (op) op.innerHTML = '<option value="">Seleziona operatore</option>' + state.operators.map(o => `<option value="${escapeHtml(o.id)}">${escapeHtml(o.fullName || o.email || o.id)}</option>`).join("");
+                const op = $("taskOperator"); if (op) op.innerHTML = '<option value="">Seleziona operatore</option>' + eligibleOperators().map(o => `<option value="${escapeHtml(o.id)}">${escapeHtml(o.fullName || o.email || o.id)}</option>`).join("");
                 const an = $("taskAntenna"); if (an) an.innerHTML = '<option value="">Nessuna antenna</option>' + state.antennas.map(a => `<option value="${escapeHtml(a.id)}">${escapeHtml(a.name || a.id)}</option>`).join("");
             }
             function renderTaskList() {
@@ -3125,12 +3156,13 @@
                     const response = await apiFetch("/api/operators");
                     const data = response?.data ?? response;
                     state.operators = Array.isArray(data) ? data : (data?.operators || []);
+                    state.operatorLoadError = "";
                     renderRecipients();
                     renderOperatorTable();
+                    populateTaskSelectors();
                 } catch (error) {
                     console.warn("Operatori non disponibili:", error.message);
-                    state.operators = [];
-                    renderRecipients();
+                    state.operatorLoadError = error.message || "Errore di caricamento";
                     renderOperatorTable();
                 }
             }
@@ -3144,18 +3176,79 @@
             function renderOperatorTable() {
                 const table = $("operatorsTableBody");
                 if (!table) return;
-                if (!state.operators.length) {
-                    table.innerHTML = '<tr><td colspan="6"><div class="empty">Nessun operatore registrato.</div></td></tr>';
+                const search = ($("operatorSearch")?.value || "").trim().toLocaleLowerCase("it-IT");
+                const roleFilter = $("operatorRoleFilter")?.value || "";
+                const visibleOperators = state.operators.filter(operator => {
+                    const name = `${operator.fullName || ""} ${operator.email || ""}`.toLocaleLowerCase("it-IT");
+                    const role = (operator.role || "OPERATOR").toUpperCase();
+                    return (!search || name.includes(search)) && (!roleFilter || role === roleFilter);
+                });
+                const active = state.operators.filter(operator => (operator.status || "").toUpperCase() === "ATTIVO").length;
+                $("operatorsSummary").textContent = state.operatorLoadError
+                    ? "Elenco non disponibile"
+                    : `${state.operators.length} operatori · ${active} attivi`;
+                if (state.operatorLoadError) {
+                    table.innerHTML = `<tr><td colspan="7"><div class="empty">Impossibile caricare gli operatori: ${escapeHtml(state.operatorLoadError)}</div></td></tr>`;
                     return;
                 }
-                table.innerHTML = state.operators.map(operator => {
+                if (!visibleOperators.length) {
+                    table.innerHTML = `<tr><td colspan="7"><div class="empty">${state.operators.length ? "Nessun operatore corrisponde ai filtri." : "Nessun operatore registrato."}</div></td></tr>`;
+                    return;
+                }
+                table.innerHTML = visibleOperators.map(operator => {
                     const id = operator.id || "";
                     const name = operator.fullName || operator.email || id;
                     const online = operatorOnline(operator.lastSeen);
-                    return `<tr><td><strong>${escapeHtml(name)}</strong><div class="subtle">${escapeHtml(operator.email || "")}</div></td><td>${escapeHtml(operator.level || "TECNICO")}</td><td>${escapeHtml(operator.shift || "—")}</td><td><span class="badge ${online ? "green" : "blue"}">${online ? "ONLINE" : escapeHtml(operator.status || "OFFLINE")}</span></td><td>${operator.lastSeen ? escapeHtml(new Date(operator.lastSeen).toLocaleString("it-IT")) : "—"}</td><td><button class="mini-btn" data-badge="${escapeHtml(id)}">Badge</button><button class="mini-btn" data-regenerate="${escapeHtml(id)}">Rigenera QR</button></td></tr>`;
+                    const role = (operator.role || "OPERATOR").toUpperCase();
+                    const linked = Boolean(operator.firebaseUid);
+                    const pending = (operator.status || "").toUpperCase() === "IN_ATTESA";
+                    return `<tr>
+                        <td><strong>${escapeHtml(name)}</strong><div class="subtle">${escapeHtml(operator.email || "Email non collegata")}</div></td>
+                        <td><div class="actions"><select data-operator-role="${escapeHtml(id)}" aria-label="Ruolo di ${escapeHtml(name)}" ${linked && !pending ? "" : "disabled"}>
+                            <option value="OPERATOR" ${role === "OPERATOR" ? "selected" : ""}>Operatore</option>
+                            <option value="VIEWER" ${role === "VIEWER" ? "selected" : ""}>Sola lettura</option>
+                        </select><button class="mini-btn" data-save-role="${escapeHtml(id)}" ${linked && !pending ? "" : "disabled"}>Salva</button></div></td>
+                        <td>${escapeHtml(operator.level || "TECNICO")}</td>
+                        <td>${escapeHtml(operator.shift || "—")}</td>
+                        <td><span class="badge ${online ? "green" : pending ? "red" : "blue"}">${online ? "ONLINE" : escapeHtml(operator.status || "OFFLINE")}</span></td>
+                        <td>${operator.lastSeen ? escapeHtml(new Date(operator.lastSeen).toLocaleString("it-IT")) : "—"}</td>
+                        <td><div class="actions">${pending ? `<button class="mini-btn" data-approve="${escapeHtml(id)}">Approva</button>` : ""}<button class="mini-btn" data-badge="${escapeHtml(id)}">Badge</button><button class="mini-btn" data-regenerate="${escapeHtml(id)}">Rigenera QR</button></div></td>
+                    </tr>`;
                 }).join("");
+                table.querySelectorAll("[data-save-role]").forEach(button => button.addEventListener("click", () => saveOperatorRole(button.dataset.saveRole)));
+                table.querySelectorAll("[data-approve]").forEach(button => button.addEventListener("click", () => approveOperator(button.dataset.approve)));
                 table.querySelectorAll("[data-badge]").forEach(button => button.addEventListener("click", () => showBadge(button.dataset.badge)));
                 table.querySelectorAll("[data-regenerate]").forEach(button => button.addEventListener("click", () => regenerateQr(button.dataset.regenerate)));
+            }
+
+            async function saveOperatorRole(id) {
+                const select = document.querySelector(`[data-operator-role="${CSS.escape(id)}"]`);
+                if (!select) return;
+                const operator = state.operators.find(item => item.id === id);
+                if (!operator) return;
+                const role = select.value;
+                if (role === "VIEWER" && (operator.role || "OPERATOR").toUpperCase() !== "VIEWER"
+                    && !confirm("Il ruolo Sola lettura disabilita l'accesso alle funzioni operative dell'app mobile. Continuare?")) return;
+                try {
+                    await apiFetch(`/api/operators/${encodeURIComponent(id)}/role`, {
+                        method: "PATCH", body: JSON.stringify({ role })
+                    });
+                    await loadOperators();
+                    toast("Ruolo aggiornato", "Il nuovo ruolo sarà attivo dopo il prossimo accesso dell'operatore.");
+                } catch (error) {
+                    toast("Aggiornamento ruolo non riuscito", error.message, "error");
+                }
+            }
+
+            async function approveOperator(id) {
+                if (!confirm("Approvare l'operatore e abilitarne l'accesso?")) return;
+                try {
+                    await apiFetch(`/api/operators/${encodeURIComponent(id)}/approve`, { method: "POST" });
+                    await loadOperators();
+                    toast("Operatore approvato", "L'accesso sarà attivo al prossimo login.");
+                } catch (error) {
+                    toast("Approvazione non riuscita", error.message, "error");
+                }
             }
 
             async function createOperator(event) {
@@ -3226,13 +3319,14 @@
             }
 
             function renderRecipients() {
-                if (!state.operators.length) {
+                const recipients = eligibleOperators();
+                if (!recipients.length) {
                     $("recipientBox").innerHTML =
                         `<div class="empty">Nessun dipendente disponibile dal backend.</div>`;
                     return;
                 }
 
-                $("recipientBox").innerHTML = state.operators.map((op, i) => {
+                $("recipientBox").innerHTML = recipients.map((op, i) => {
                     const id = op.id || op.uid || op.operatorId;
                     const name = op.name || op.fullName || op.displayName || op.email || `Operatore ${i + 1}`;
                     const role = op.role || op.ruolo || "Operatore";
@@ -3356,7 +3450,7 @@
 
             async function loadInventory() {
                 try {
-                    const data = await api("/inventory");
+                    const data = await api("/inventario");
                     state.inventory = Array.isArray(data) ? data : (data?.inventory || []);
                     renderInventory();
                 } catch (error) {
@@ -3589,13 +3683,17 @@
                 updateMap();
             });
 
-            $("logoutBtn").addEventListener("click", () => {
+            function signOut() {
                 clearSession();
                 if (state.refreshTimer) clearInterval(state.refreshTimer);
                 state.refreshTimer = null;
                 showLogin("Sei uscito dal Control Center.");
-                toast("Sessione chiusa", "L'accesso persistente è stato rimosso.");
-            });
+                toast("Sessione chiusa", "L'accesso è stato rimosso da questo dispositivo.");
+            }
+            $("logoutBtn")?.addEventListener("click", signOut);
+            $("topbarLogoutBtn")?.addEventListener("click", signOut);
+            $("operatorSearch")?.addEventListener("input", renderOperatorTable);
+            $("operatorRoleFilter")?.addEventListener("change", renderOperatorTable);
 
             document.querySelectorAll(".modal-backdrop").forEach(backdrop => {
                 backdrop.addEventListener("click", event => {

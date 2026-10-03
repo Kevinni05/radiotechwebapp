@@ -23,6 +23,8 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 
@@ -480,6 +482,41 @@ public class OperatorService {
                 return getById(id);
         }
 
+        public Operator updateOperatorRole(String id, String requestedRole) throws Exception {
+                String role = requestedRole == null ? "" : requestedRole.trim().toUpperCase(Locale.ROOT);
+                if (!"OPERATOR".equals(role) && !"VIEWER".equals(role)) {
+                        throw new IllegalArgumentException("Ruolo operatore non valido.");
+                }
+
+                Operator operator = getById(id);
+                if (isBlank(operator.getFirebaseUid())) {
+                        throw new IllegalStateException("Collega prima un account Firebase all'operatore.");
+                }
+
+                UserRecord user = FirebaseAuth.getInstance().getUser(operator.getFirebaseUid());
+                Map<String, Object> currentClaims = user.getCustomClaims();
+                if (currentClaims != null && (Boolean.TRUE.equals(currentClaims.get("admin"))
+                                || isPrivilegedRole(currentClaims.get("role")))) {
+                        throw new SecurityException("Non è possibile modificare il ruolo di un account amministrativo.");
+                }
+                assertTenantClaimMatches(user, operator.getTenantId());
+
+                operator.setRole(role);
+                Operator updated = updateOperator(id, operator);
+                setOperatorClaims(user, updated);
+                return updated;
+        }
+
+        private boolean isPrivilegedRole(Object roleClaim) {
+                if (roleClaim == null) {
+                        return false;
+                }
+                String role = String.valueOf(roleClaim).trim().toUpperCase(Locale.ROOT);
+                return "ADMIN".equals(role) || "SUPER_ADMIN".equals(role)
+                                || "CHIEF_EXECUTIVE".equals(role) || "CAPO".equals(role)
+                                || "NETWORK_MANAGER".equals(role);
+        }
+
         private void setOperatorClaims(UserRecord user, Operator operator) throws Exception {
                 if (isBlank(operator.getTenantId())) {
                         throw new IllegalStateException("Tenant operatore obbligatorio per assegnare i claim.");
@@ -489,7 +526,13 @@ public class OperatorService {
                 if (user.getCustomClaims() != null) {
                         claims.putAll(user.getCustomClaims());
                 }
-                claims.put("role", "OPERATOR");
+                String role = operator.getRole() == null || operator.getRole().isBlank()
+                                ? "OPERATOR"
+                                : operator.getRole().trim().toUpperCase(Locale.ROOT);
+                if (!"OPERATOR".equals(role) && !"VIEWER".equals(role)) {
+                        throw new IllegalArgumentException("Ruolo operatore non valido.");
+                }
+                claims.put("role", role);
                 claims.put("tenantId", operator.getTenantId());
                 claims.put("operatorId", operator.getId());
                 FirebaseAuth.getInstance().setCustomUserClaims(user.getUid(), claims);

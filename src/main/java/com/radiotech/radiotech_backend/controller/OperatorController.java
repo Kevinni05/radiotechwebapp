@@ -9,6 +9,8 @@ import com.radiotech.radiotech_backend.security.TenantInvitationService;
 import com.radiotech.radiotech_backend.service.OperatorService;
 import com.radiotech.radiotech_backend.service.QrCodeService;
 import com.radiotech.radiotech_backend.dto.OperatorProfileUpdateDto;
+import com.google.firebase.auth.AuthErrorCode;
+import com.google.firebase.auth.FirebaseAuthException;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -239,6 +241,33 @@ public class OperatorController {
                         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error(e.getMessage()));
                 } catch (Exception e) {
                         return internalError("Errore durante l'approvazione dell'operatore.");
+                }
+        }
+
+        @PatchMapping("/{id}/role")
+        public ResponseEntity<?> updateOperatorRole(@PathVariable String id,
+                        @RequestBody Map<String, String> request,
+                        @RequestHeader(value = "X-Tenant-Id", required = false) String tenantId) {
+                try {
+                        requirePermission(Permission.USER_UPDATE, tenantId);
+                        Operator operator = operatorService.getById(id);
+                        TenantAccessPolicy.requireTenantAccess(SecurityContextAccessor.currentTenantId(),
+                                        operator.getTenantId());
+                        Operator updated = operatorService.updateOperatorRole(
+                                        id, request == null ? null : request.get("role"));
+                        return ResponseEntity.ok(success("Ruolo operatore aggiornato.", updated));
+                } catch (IllegalArgumentException e) {
+                        return ResponseEntity.badRequest().body(error(e.getMessage()));
+                } catch (SecurityException e) {
+                        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error(e.getMessage()));
+                } catch (FirebaseAuthException e) {
+                        if (e.getAuthErrorCode() == AuthErrorCode.USER_NOT_FOUND) {
+                                return ResponseEntity.status(HttpStatus.CONFLICT)
+                                                .body(error("L'account Firebase collegato non esiste. Risincronizza l'utente prima di cambiare ruolo."));
+                        }
+                        return internalError("Errore durante l'aggiornamento del ruolo operatore.");
+                } catch (Exception e) {
+                        return internalError("Errore durante l'aggiornamento del ruolo operatore.");
                 }
         }
 
