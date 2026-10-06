@@ -75,6 +75,8 @@ public class MaintenanceReportService {
 
     @Autowired(required = false)
     private MeterRegistry meterRegistry;
+    @Autowired(required = false)
+    private LocalAttachmentService localFiles;
 
     public MaintenanceReportService(TaskService taskService, AuditService auditService,
             RicambioService ricambioService, OperatorService operatorService) {
@@ -365,6 +367,11 @@ public class MaintenanceReportService {
         if (attachments == null) return;
         if (attachments.size() > 50) throw new IllegalArgumentException("Troppi allegati nel report.");
         for (String attachment : attachments) {
+            if(attachment!=null&&attachment.startsWith("radiotech-file:")){
+                if(localFiles==null)throw new IllegalArgumentException("Storage locale non disponibile.");
+                localFiles.validateOwned(attachment,tenantId,operatorUid);
+                continue;
+            }
             validateAttachmentReference(attachment, tenantId, operatorUid, storageBucket);
         }
     }

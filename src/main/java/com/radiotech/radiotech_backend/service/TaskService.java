@@ -414,81 +414,70 @@ public class TaskService {
 
                 Firestore db = FirestoreClient.getFirestore();
                 DocumentReference document = db.collection(COLLECTION).document(id);
-                DocumentSnapshot existing = document.get().get();
-
-                if (!existing.exists()) {
-                        throw new IllegalArgumentException("Task non trovato: " + id);
-                }
-
-                if (!tenantId.equals(existing.getString("tenantId"))) {
-                        throw new IllegalArgumentException("Task non trovato.");
-                }
-
                 String now = Instant.now().toString();
-                TaskStatus currentStatus = TaskStatus.parse(existing.getString("status"));
                 TaskStatus nextStatus = TaskStatus.parse(normalizedStatus);
-
                 if (nextStatus == TaskStatus.CHECKED_IN) {
                         throw new IllegalArgumentException("Usare il check-in GPS con geofence.");
                 }
-
-                if (currentStatus != null && nextStatus != null && !currentStatus.canTransitionTo(nextStatus)) {
-                        throw new IllegalArgumentException(
-                                        "Transizione di stato non consentita: " + currentStatus + " -> " + nextStatus);
-                }
-
-                if (idempotencyKey == null || idempotencyKey.isBlank()) {
-                        applyStatusTransition(document, normalizedStatus, now, id, tenantId);
-                        return getById(id);
-                }
-
                 String actorUid = resolveActorUid();
-                String requestHash = idempotencyHash(tenantId, actorUid, normalizedStatus);
-                DocumentReference keyReference = db.collection(IDEMPOTENCY_COLLECTION)
-                                .document(idempotencyDocumentId(tenantId, actorUid, idempotencyKey));
-
-                String cachedResourceId = db.runTransaction(transaction -> {
-                        DocumentSnapshot keyDocument = transaction.get(keyReference).get();
-                        if (keyDocument.exists()) {
-                                String keyTenant = keyDocument.getString("tenantId");
-                                String keyActor = keyDocument.getString("actorUid");
-                                String keyRequestHash = keyDocument.getString("requestHash");
-                                String keyResourceId = keyDocument.getString("resourceId");
-
-                                if ((keyTenant != null && !tenantId.equals(keyTenant))
-                                                || (keyActor != null && !actorUid.equals(keyActor))) {
-                                        throw new SecurityException(
-                                                        "Idempotency-Key non valida per l'identita' autenticata.");
-                                }
-
-                                if (keyRequestHash != null && !requestHash.equals(keyRequestHash)) {
-                                        throw new IdempotencyConflictException();
-                                }
-
-                                if (keyResourceId == null || !id.equals(keyResourceId)) {
-                                        throw new IdempotencyConflictException();
-                                }
-
-                                return keyResourceId;
-                        }
-
-                        Map<String, Object> keyEntry = new java.util.LinkedHashMap<>();
-                        keyEntry.put("tenantId", tenantId);
-                        keyEntry.put("actorUid", actorUid);
-                        keyEntry.put("resourceId", id);
-                        keyEntry.put("requestHash", requestHash);
-                        keyEntry.put("createdAt", now);
-                        transaction.set(keyReference, keyEntry);
-                        applyStatusTransition(transaction, document, normalizedStatus, now);
-                        return null;
-                }).get();
-
-                if (cachedResourceId != null && !id.equals(cachedResourceId)) {
-                        throw new IllegalStateException("Idempotency-Key ha prodotto una risorsa incoerente.");
+                boolean hasKey = idempotencyKey != null && !idempotencyKey.isBlank();
+                if (hasKey && idempotencyKey.length() > 200) {
+                        throw new IllegalArgumentException("Idempotency-Key troppo lunga.");
                 }
-
-                auditService.record("TASK_STATUS_CHANGED", tenantId, actorUid, "TASK", id,
-                                normalizedStatus, null, null);
+                String requestHash = idempotencyHash(tenantId, actorUid, normalizedStatus);
+                DocumentReference keyReference = hasKey ? db.collection(IDEMPOTENCY_COLLECTION)
+                                .document(idempotencyDocumentId(tenantId, actorUid, idempotencyKey)) : null;
+                Boolean changed;
+                try {
+                        changed = db.runTransaction(transaction -> {
+                                DocumentSnapshot existing = transaction.get(document).get();
+                                if (!existing.exists() || !tenantId.equals(existing.getString("tenantId"))) {
+                                        throw new IllegalArgumentException("Task non trovato.");
+                                }
+                                if (keyReference != null) {
+                                        DocumentSnapshot keyDocument = transaction.get(keyReference).get();
+                                        if (keyDocument.exists()) {
+                                                if (!tenantId.equals(keyDocument.getString("tenantId"))
+                                                                || !actorUid.equals(keyDocument.getString("actorUid"))) {
+                                                        throw new SecurityException("Idempotency-Key non valida per l'identità autenticata.");
+                                                }
+                                                if (!requestHash.equals(keyDocument.getString("requestHash"))
+                                                                || !id.equals(keyDocument.getString("resourceId"))) {
+                                                        throw new IdempotencyConflictException();
+                                                }
+                                                return false;
+                                        }
+                                }
+                                TaskStatus currentStatus = TaskStatus.parse(existing.getString("status"));
+                                if (currentStatus == null || nextStatus == null || !currentStatus.canTransitionTo(nextStatus)) {
+                                        throw new IllegalArgumentException("Transizione di stato non consentita: " + currentStatus + " -> " + nextStatus);
+                                }
+                                if (keyReference != null) {
+                                        Map<String, Object> keyEntry = new java.util.LinkedHashMap<>();
+                                        keyEntry.put("tenantId", tenantId);
+                                        keyEntry.put("actorUid", actorUid);
+                                        keyEntry.put("resourceId", id);
+                                        keyEntry.put("requestHash", requestHash);
+                                        keyEntry.put("createdAt", now);
+                                        transaction.set(keyReference, keyEntry);
+                                }
+                                applyStatusTransition(transaction, document, normalizedStatus, now);
+                                return true;
+                        }).get();
+                } catch (java.util.concurrent.ExecutionException failure) {
+                        Throwable cause = failure.getCause();
+                        while (cause != null) {
+                                if (cause instanceof IdempotencyConflictException conflict) throw conflict;
+                                if (cause instanceof SecurityException denied) throw denied;
+                                if (cause instanceof IllegalArgumentException invalid) throw invalid;
+                                cause = cause.getCause();
+                        }
+                        throw failure;
+                }
+                if (Boolean.TRUE.equals(changed)) {
+                        auditService.record("TASK_STATUS_CHANGED", tenantId, actorUid, "TASK", id,
+                                        normalizedStatus, null, null);
+                }
                 return getById(id);
         }
 

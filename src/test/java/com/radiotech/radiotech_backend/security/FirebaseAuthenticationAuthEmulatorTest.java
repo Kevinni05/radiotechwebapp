@@ -90,6 +90,17 @@ class FirebaseAuthenticationAuthEmulatorTest {
         assertEquals("OPERATOR", assignedRequest.getAttribute("firebaseRole"));
         assertEquals(uid, assignedRequest.getAttribute("firebaseUid"));
         assertNotNull(SecurityContextHolder.getContext().getAuthentication());
+        String deviceId="a".repeat(64);
+        FirebaseAuth.getInstance(firebaseApp).setCustomUserClaims(uid,Map.of("tenantId","tenant-a","role","OPERATOR","radioDeviceId",deviceId));
+        String deviceToken=authRequest("accounts:signInWithPassword",Map.of("email",email,"password",password,"returnSecureToken",true)).get("idToken").asText();
+        try(var db=com.google.cloud.firestore.FirestoreOptions.newBuilder().setProjectId("demo-radiotech").setHost(System.getenv("FIRESTORE_EMULATOR_HOST")).setCredentials(GoogleCredentials.create(new AccessToken("emulator-only",new Date(Long.MAX_VALUE)))).build().getService();var staticDb=org.mockito.Mockito.mockStatic(com.google.firebase.cloud.FirestoreClient.class)){
+            staticDb.when(com.google.firebase.cloud.FirestoreClient::getFirestore).thenReturn(db);
+            for(String status:java.util.List.of("ACTIVE","REVOKED")){
+                db.collection("pro_devices").document(deviceId).set(Map.of("tenantId","tenant-a","uid",uid,"status",status)).get();
+                var deviceRequest=new MockHttpServletRequest("GET","/api/operator/me");deviceRequest.addHeader("Authorization","Bearer "+deviceToken);var deviceResponse=new MockHttpServletResponse();
+                new FirebaseAuthenticationFilter().doFilter(deviceRequest,deviceResponse,new MockFilterChain());assertEquals(status.equals("ACTIVE")?200:401,deviceResponse.getStatus());
+            }
+        }
     }
 
     private JsonNode authRequest(String endpoint, Map<String, Object> body) throws Exception {

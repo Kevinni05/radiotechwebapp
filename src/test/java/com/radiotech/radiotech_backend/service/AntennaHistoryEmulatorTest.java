@@ -30,6 +30,23 @@ class AntennaHistoryEmulatorTest {
     }
 
     @Test
+    void antennaQrImageDecodesToStableIdAndRejectsForeignTenant() throws Exception {
+        authenticate("qr-tenant");
+        try (Firestore firestore=emulatorFirestore();var client=mockStatic(FirestoreClient.class)) {
+            client.when(FirestoreClient::getFirestore).thenReturn(firestore);
+            String id="qr-asset-"+java.util.UUID.randomUUID();
+            firestore.collection("antennas").document(id).set(Map.of("tenantId","qr-tenant","name","Stazione test","code","CODICE-DUPLICATO")).get();
+            var service=new AntennaService();var result=service.generateQrData(id);
+            byte[] bytes=java.util.Base64.getDecoder().decode(result.get("imageDataUrl").toString().split(",")[1]);
+            var image=javax.imageio.ImageIO.read(new java.io.ByteArrayInputStream(bytes));
+            var bitmap=new com.google.zxing.BinaryBitmap(new com.google.zxing.common.HybridBinarizer(new com.google.zxing.client.j2se.BufferedImageLuminanceSource(image)));
+            String decoded=new com.google.zxing.MultiFormatReader().decode(bitmap).getText();
+            assertEquals(id,decoded);assertEquals(id,service.findByCodeOrId(decoded).getId());
+            authenticate("another-tenant");assertThrows(IllegalArgumentException.class,()->service.generateQrData(id));
+        }
+    }
+
+    @Test
     void historyCombinesTenantScopedTasksAndReports() throws Exception {
         authenticate("tenant-a");
         try (Firestore firestore = emulatorFirestore();

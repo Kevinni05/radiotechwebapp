@@ -248,6 +248,14 @@ public class AuthService {
                                 "firebaseUid",
                                 firebaseUid);
 
+                if (com.radiotech.radiotech_backend.security.Role.fromClaims(decodedToken.getClaims()) == com.radiotech.radiotech_backend.security.Role.CUSTOMER) {
+                        if (!(decodedToken.getClaims().get("customerId") instanceof String customer) || customer.isBlank()
+                                || !(decodedToken.getClaims().get("tenantId") instanceof String tenant) || tenant.isBlank()) throw new SecurityException("Cliente non assegnato.");
+                        response.put("role", "CUSTOMER");
+                        response.put("user", Map.of("uid",firebaseUid,"email",decodedToken.getEmail()==null?"":decodedToken.getEmail(),"role","CUSTOMER"));
+                        return response;
+                }
+
                 /*
                  * ==========================================================
                  * CAPO
@@ -625,7 +633,7 @@ public class AuthService {
                         }
                 }
 
-                Operator operator = operatorService.consumeQrToken(cleanToken);
+                Operator operator = operatorService.validateQrToken(cleanToken);
 
                 String firebaseUid = operator.getFirebaseUid();
                 if (operator.getTenantId() == null || operator.getTenantId().isBlank()) {
@@ -670,6 +678,9 @@ public class AuthService {
 
                 String customToken = FirebaseAuth.getInstance().createCustomToken(firebaseUid, claims);
 
+                // Do not deliver a token if the badge was revoked or consumed while
+                // Firebase was preparing it. Preparation failures do not consume it.
+                operator = operatorService.consumeQrToken(cleanToken);
                 try {
                         operatorService.updateLastSeen(operator.getId(), operator.getTenantId());
                 } catch (Exception ignored) {

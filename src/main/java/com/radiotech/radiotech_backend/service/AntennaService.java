@@ -17,6 +17,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -26,6 +27,16 @@ import java.util.concurrent.ExecutionException;
 public class AntennaService {
 
     private static final String COLLECTION = "antennas";
+
+    private final QrCodeService qrCodeService;
+
+    public AntennaService(QrCodeService qrCodeService) {
+        this.qrCodeService = qrCodeService != null ? qrCodeService : new QrCodeService();
+    }
+
+    public AntennaService() {
+        this(new QrCodeService());
+    }
 
     /**
      * Recupera tutte le antenne da Firestore.
@@ -123,6 +134,29 @@ public class AntennaService {
         history.sort(Comparator.comparing(entry -> String.valueOf(entry.getOrDefault("timestamp", "")),
                 Comparator.reverseOrder()));
         return history;
+    }
+
+    /**
+     * Genera il payload e l'immagine QR code per una specifica antenna.
+     */
+    public Map<String, Object> generateQrData(String antennaId) throws Exception {
+        Antenna antenna = getById(antennaId);
+        // The immutable document ID survives code edits and avoids ambiguous station codes.
+        String qrPayload = antenna.getId();
+        String imageDataUrl = qrCodeService.toDataUri(qrPayload);
+
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("antennaId", antenna.getId());
+        result.put("code", antenna.getCode());
+        result.put("name", antenna.getName());
+        result.put("site", antenna.getSite());
+        result.put("status", antenna.getStatus());
+        result.put("assetType", antenna.getAssetType());
+        result.put("lat", antenna.getLat());
+        result.put("lng", antenna.getLng());
+        result.put("qrPayload", qrPayload);
+        result.put("imageDataUrl", imageDataUrl);
+        return result;
     }
 
     private String firstNonBlank(String... values) {

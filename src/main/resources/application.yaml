@@ -7,10 +7,12 @@ logging:
     org.springframework.web: INFO
 
 management:
+  tracing:
+    enabled: ${RADIOTECH_OTLP_ENABLED:false}
   endpoints:
     web:
       exposure:
-        include: health,info,metrics
+        include: health,info,metrics,prometheus
   endpoint:
     health:
       probes:
@@ -32,6 +34,14 @@ app:
     database-url: ${FIREBASE_DATABASE_URL:https://gestionale-radio-default-rtdb.europe-west1.firebasedatabase.app}
 
 radiotech:
+  pro:
+    scan-delay-ms: ${RADIOTECH_PRO_SCAN_DELAY_MS:300000}
+    webhook-hosts: ${RADIOTECH_WEBHOOK_HOSTS:}
+    webhook-secret: ${RADIOTECH_WEBHOOK_SECRET:}
+  ai:
+    enabled: ${RADIOTECH_AI_ENABLED:false}
+    ollama-url: ${RADIOTECH_OLLAMA_URL:http://127.0.0.1:11434}
+    model: ${RADIOTECH_AI_MODEL:qwen3:4b}
   reports:
     verification-secret: ${RADIOTECH_REPORT_VERIFICATION_SECRET:}
     public-base-url: ${RADIOTECH_PUBLIC_BASE_URL:}
@@ -40,6 +50,8 @@ radiotech:
   firebase:
     web-api-key: ${RADIOTECH_FIREBASE_WEB_API_KEY:}
   security:
+    metrics-token: ${RADIOTECH_METRICS_TOKEN:}
+    federated-login-enabled: ${RADIOTECH_SSO_ENABLED:false}
     cors-origins: ${RADIOTECH_CORS_ORIGINS:http://localhost:8080}
     rate-limit-per-minute: ${RADIOTECH_RATE_LIMIT_PER_MINUTE:10}
   geo:

@@ -9,6 +9,8 @@ import java.net.URI;
 
 @Component("reportVerification")
 public class ReportVerificationHealthIndicator implements HealthIndicator {
+    @org.springframework.beans.factory.annotation.Autowired(required=false)
+    private com.radiotech.radiotech_backend.service.LocalAttachmentService localFiles;
     private final String secret;
     private final String publicBaseUrl;
     private final String storageBucket;
@@ -27,7 +29,7 @@ public class ReportVerificationHealthIndicator implements HealthIndicator {
         if (secret == null || secret.getBytes(java.nio.charset.StandardCharsets.UTF_8).length < 32) {
             return Health.down().withDetail("dependency", "report-verification-key").build();
         }
-        if (storageBucket == null || !storageBucket.matches("[A-Za-z0-9][A-Za-z0-9.-]{1,220}[A-Za-z0-9]")) {
+        if ((localFiles==null||!localFiles.enabled()) && (storageBucket == null || !storageBucket.matches("[A-Za-z0-9][A-Za-z0-9.-]{1,220}[A-Za-z0-9]"))) {
             return Health.down().withDetail("dependency", "firebase-storage-bucket").build();
         }
         try {

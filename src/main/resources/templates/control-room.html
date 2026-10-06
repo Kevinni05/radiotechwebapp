@@ -5,1417 +5,17 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#070b16">
-    <meta name="description" content="RadioTech Executive Control Center">
-    <title>RadioTech · Executive Control Center</title>
+    <meta name="description" content="RadioTech — infrastruttura, operazioni e persone in una console aziendale.">
+    <title>RadioTech · Operations Suite</title>
+    <link rel="icon" href="/assets/brand/radiotech-symbol-v1.png" type="image/png">
 
     <!-- Leaflet: CSS -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="anonymous">
-
-    <style th:attr="nonce=${cspNonce}">
-        :root {
-            --bg: #060913;
-            --bg-soft: #0a1020;
-            --panel: rgba(13, 20, 38, .78);
-            --panel-solid: #0e1729;
-            --panel-2: rgba(19, 29, 51, .72);
-            --border: rgba(148, 163, 184, .13);
-            --border-strong: rgba(116, 151, 255, .28);
-            --text: #f4f7ff;
-            --muted: #8f9bb0;
-            --muted-2: #64728b;
-            --primary: #5b8cff;
-            --primary-2: #7c5cff;
-            --cyan: #26d9ff;
-            --green: #2bd576;
-            --yellow: #ffb648;
-            --red: #ff5f6d;
-            --shadow: 0 24px 80px rgba(0, 0, 0, .32);
-            --shadow-soft: 0 12px 35px rgba(0, 0, 0, .2);
-            --radius: 20px;
-            --sidebar: 276px;
-            --topbar: 76px;
-        }
-
-        * {
-            box-sizing: border-box;
-        }
-
-        html {
-            scroll-behavior: smooth;
-        }
-
-        body {
-            margin: 0;
-            min-height: 100vh;
-            color: var(--text);
-            font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-            background:
-                radial-gradient(circle at 8% 0%, rgba(91, 140, 255, .14), transparent 25%),
-                radial-gradient(circle at 88% 5%, rgba(38, 217, 255, .08), transparent 22%),
-                radial-gradient(circle at 50% 100%, rgba(124, 92, 255, .08), transparent 30%),
-                var(--bg);
-        }
-
-        body.modal-open {
-            overflow: hidden;
-        }
-
-        button,
-        input,
-        select,
-        textarea {
-            font: inherit;
-        }
-
-        button {
-            cursor: pointer;
-        }
-
-        button:disabled {
-            cursor: not-allowed;
-            opacity: .55;
-        }
-
-        ::selection {
-            background: rgba(91, 140, 255, .35);
-            color: #fff;
-        }
-
-        .hidden {
-            display: none !important;
-        }
-
-        /* ---------- LOGIN ---------- */
-
-        #loginScreen {
-            position: fixed;
-            inset: 0;
-            z-index: 9999;
-            display: grid;
-            place-items: center;
-            padding: 24px;
-            background:
-                radial-gradient(circle at 20% 20%, rgba(91, 140, 255, .18), transparent 30%),
-                radial-gradient(circle at 80% 15%, rgba(38, 217, 255, .11), transparent 25%),
-                linear-gradient(145deg, #050812, #091020 55%, #060913);
-        }
-
-        .login-shell {
-            width: min(1040px, 100%);
-            display: grid;
-            grid-template-columns: 1.08fr .92fr;
-            min-height: 620px;
-            overflow: hidden;
-            border: 1px solid rgba(255, 255, 255, .09);
-            border-radius: 30px;
-            background: rgba(9, 15, 29, .74);
-            box-shadow: 0 40px 120px rgba(0, 0, 0, .55);
-            backdrop-filter: blur(28px);
-        }
-
-        .login-visual {
-            position: relative;
-            padding: 54px;
-            overflow: hidden;
-            background:
-                radial-gradient(circle at 20% 30%, rgba(91, 140, 255, .25), transparent 25%),
-                radial-gradient(circle at 80% 70%, rgba(124, 92, 255, .18), transparent 28%),
-                linear-gradient(145deg, rgba(91, 140, 255, .07), rgba(0, 0, 0, .08));
-        }
-
-        .login-visual:after {
-            content: "";
-            position: absolute;
-            width: 420px;
-            height: 420px;
-            border: 1px solid rgba(91, 140, 255, .16);
-            border-radius: 50%;
-            right: -180px;
-            bottom: -170px;
-            box-shadow:
-                0 0 0 70px rgba(91, 140, 255, .035),
-                0 0 0 140px rgba(91, 140, 255, .02);
-        }
-
-        .login-brand {
-            display: flex;
-            align-items: center;
-            gap: 13px;
-        }
-
-        .brand-mark {
-            width: 46px;
-            height: 46px;
-            display: grid;
-            place-items: center;
-            border-radius: 15px;
-            font-weight: 950;
-            background: linear-gradient(135deg, var(--primary), var(--primary-2));
-            box-shadow: 0 14px 35px rgba(91, 140, 255, .28);
-        }
-
-        .login-brand strong {
-            display: block;
-            font-size: 16px;
-        }
-
-        .login-brand span {
-            display: block;
-            margin-top: 3px;
-            color: var(--muted);
-            font-size: 11px;
-        }
-
-        .login-copy {
-            position: relative;
-            z-index: 1;
-            margin-top: 110px;
-        }
-
-        .eyebrow {
-            color: #91adff;
-            font-size: 10px;
-            font-weight: 900;
-            text-transform: uppercase;
-            letter-spacing: .17em;
-        }
-
-        .login-copy h1 {
-            max-width: 540px;
-            margin: 14px 0;
-            font-size: clamp(36px, 5vw, 64px);
-            line-height: .98;
-            letter-spacing: -.055em;
-        }
-
-        .login-copy p {
-            max-width: 520px;
-            margin: 0;
-            color: var(--muted);
-            line-height: 1.7;
-            font-size: 14px;
-        }
-
-        .login-highlights {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-            margin-top: 30px;
-        }
-
-        .login-chip {
-            padding: 8px 11px;
-            border: 1px solid rgba(255, 255, 255, .08);
-            border-radius: 999px;
-            background: rgba(255, 255, 255, .035);
-            color: #c7d2e6;
-            font-size: 10px;
-        }
-
-        .login-panel {
-            padding: 48px;
-            display: flex;
-            align-items: center;
-            background: rgba(7, 12, 24, .68);
-            border-left: 1px solid var(--border);
-        }
-
-        .login-form {
-            width: 100%;
-        }
-
-        .login-form h2 {
-            margin: 0;
-            font-size: 26px;
-            letter-spacing: -.03em;
-        }
-
-        .login-form>p {
-            margin: 8px 0 28px;
-            color: var(--muted);
-            font-size: 12px;
-            line-height: 1.6;
-        }
-
-        .field {
-            display: grid;
-            gap: 7px;
-            margin-bottom: 15px;
-        }
-
-        .field label {
-            color: #9ba8bd;
-            font-size: 10px;
-            font-weight: 800;
-            text-transform: uppercase;
-            letter-spacing: .07em;
-        }
-
-        input,
-        select,
-        textarea {
-            width: 100%;
-            border: 1px solid var(--border);
-            outline: 0;
-            color: var(--text);
-            background: rgba(255, 255, 255, .035);
-            border-radius: 12px;
-            padding: 12px 13px;
-        }
-
-        input::placeholder,
-        textarea::placeholder {
-            color: #56647b;
-        }
-
-        input:focus,
-        select:focus,
-        textarea:focus {
-            border-color: rgba(91, 140, 255, .62);
-            box-shadow: 0 0 0 4px rgba(91, 140, 255, .09);
-        }
-
-        .password-wrap {
-            position: relative;
-        }
-
-        .password-wrap input {
-            padding-right: 46px;
-        }
-
-        .password-toggle {
-            position: absolute;
-            right: 8px;
-            top: 7px;
-            width: 34px;
-            height: 34px;
-            border: 0;
-            border-radius: 9px;
-            color: #94a3ba;
-            background: transparent;
-        }
-
-        .login-options {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 12px;
-            margin: 5px 0 20px;
-        }
-
-        .remember {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            color: var(--muted);
-            font-size: 11px;
-        }
-
-        .remember input {
-            width: 15px;
-            height: 15px;
-            accent-color: var(--primary);
-        }
-
-        .login-button {
-            width: 100%;
-            min-height: 48px;
-            border: 0;
-            border-radius: 13px;
-            color: white;
-            font-weight: 800;
-            background: linear-gradient(135deg, var(--primary), var(--primary-2));
-            box-shadow: 0 15px 35px rgba(91, 140, 255, .2);
-        }
-
-        .login-status {
-            min-height: 18px;
-            margin-top: 14px;
-            color: var(--muted);
-            font-size: 11px;
-            text-align: center;
-        }
-
-        /* ---------- APP ---------- */
-
-        #app {
-            display: none;
-            min-height: 100vh;
-        }
-
-        #app.ready {
-            display: grid;
-            grid-template-columns: var(--sidebar) minmax(0, 1fr);
-        }
-
-        .sidebar {
-            position: sticky;
-            top: 0;
-            height: 100vh;
-            padding: 20px 15px;
-            background: rgba(5, 10, 20, .88);
-            border-right: 1px solid var(--border);
-            backdrop-filter: blur(22px);
-            z-index: 80;
-        }
-
-        .brand {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding: 4px 10px 22px;
-        }
-
-        .brand strong {
-            display: block;
-            font-size: 15px;
-        }
-
-        .brand span {
-            display: block;
-            margin-top: 3px;
-            color: var(--muted);
-            font-size: 10px;
-        }
-
-        .nav-title {
-            padding: 13px 11px 8px;
-            color: #56637a;
-            text-transform: uppercase;
-            font-size: 9px;
-            font-weight: 900;
-            letter-spacing: .15em;
-        }
-
-        .nav {
-            display: grid;
-            gap: 4px;
-        }
-
-        .nav button {
-            width: 100%;
-            border: 1px solid transparent;
-            border-radius: 12px;
-            padding: 11px 12px;
-            display: flex;
-            align-items: center;
-            gap: 11px;
-            color: #8f9bb0;
-            background: transparent;
-            text-align: left;
-            transition: .18s ease;
-        }
-
-        .nav button:hover {
-            color: white;
-            background: rgba(255, 255, 255, .035);
-        }
-
-        .nav button.active {
-            color: white;
-            border-color: rgba(91, 140, 255, .17);
-            background: linear-gradient(90deg, rgba(91, 140, 255, .18), rgba(124, 92, 255, .06));
-            box-shadow: inset 3px 0 0 var(--primary);
-        }
-
-        .nav-icon {
-            width: 23px;
-            text-align: center;
-            font-size: 14px;
-        }
-
-        .sidebar-bottom {
-            position: absolute;
-            left: 15px;
-            right: 15px;
-            bottom: 17px;
-        }
-
-        .user-mini {
-            padding: 12px;
-            border: 1px solid var(--border);
-            border-radius: 15px;
-            background: rgba(255, 255, 255, .025);
-        }
-
-        .user-mini-row {
-            display: flex;
-            align-items: center;
-            gap: 9px;
-        }
-
-        .avatar {
-            width: 36px;
-            height: 36px;
-            flex: 0 0 auto;
-            display: grid;
-            place-items: center;
-            border-radius: 12px;
-            font-weight: 900;
-            color: white;
-            background: linear-gradient(135deg, #5b8cff, #7c5cff);
-        }
-
-        .user-mini strong {
-            display: block;
-            overflow: hidden;
-            white-space: nowrap;
-            text-overflow: ellipsis;
-            font-size: 11px;
-        }
-
-        .user-mini span {
-            display: block;
-            margin-top: 2px;
-            color: var(--muted);
-            font-size: 9px;
-        }
-
-        .main {
-            min-width: 0;
-        }
-
-        .topbar {
-            position: sticky;
-            top: 0;
-            z-index: 60;
-            height: var(--topbar);
-            padding: 0 30px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 18px;
-            background: rgba(6, 9, 19, .72);
-            border-bottom: 1px solid var(--border);
-            backdrop-filter: blur(20px);
-        }
-
-        .topbar h1 {
-            margin: 0;
-            font-size: 19px;
-            letter-spacing: -.02em;
-        }
-
-        .topbar p {
-            margin: 4px 0 0;
-            color: var(--muted);
-            font-size: 11px;
-        }
-
-        .top-actions {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .icon-btn,
-        .btn {
-            min-height: 40px;
-            border: 1px solid var(--border);
-            border-radius: 11px;
-            color: var(--text);
-            background: rgba(255, 255, 255, .035);
-            transition: .18s ease;
-        }
-
-        .icon-btn {
-            width: 40px;
-            padding: 0;
-            display: grid;
-            place-items: center;
-        }
-
-        .icon-btn:hover,
-        .btn:hover {
-            border-color: rgba(91, 140, 255, .45);
-            background: rgba(91, 140, 255, .08);
-        }
-
-        .btn {
-            padding: 9px 13px;
-        }
-
-        .btn.primary {
-            border-color: transparent;
-            color: #fff;
-            background: linear-gradient(135deg, var(--primary), var(--primary-2));
-        }
-
-        .btn.danger {
-            color: #ff9ba3;
-            background: rgba(255, 95, 109, .08);
-            border-color: rgba(255, 95, 109, .22);
-        }
-
-        .notification-btn {
-            position: relative;
-        }
-
-        .notification-count {
-            position: absolute;
-            right: -3px;
-            top: -4px;
-            min-width: 17px;
-            height: 17px;
-            padding: 0 4px;
-            display: grid;
-            place-items: center;
-            border-radius: 999px;
-            color: white;
-            background: var(--red);
-            border: 2px solid #070b14;
-            font-size: 8px;
-            font-weight: 900;
-        }
-
-        .content {
-            width: min(1800px, 100%);
-            margin: 0 auto;
-            padding: 28px 30px 50px;
-        }
-
-        .view {
-            display: none;
-            animation: fadeIn .22s ease;
-        }
-
-        .view.active {
-            display: block;
-        }
-
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-                transform: translateY(4px);
-            }
-
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        .section-head {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-end;
-            gap: 18px;
-            margin-bottom: 18px;
-        }
-
-        .section-head h2 {
-            margin: 0;
-            font-size: 26px;
-            letter-spacing: -.04em;
-        }
-
-        .section-head p {
-            margin: 6px 0 0;
-            color: var(--muted);
-            font-size: 12px;
-        }
-
-        .subtle {
-            color: var(--muted);
-            font-size: 10px;
-        }
-
-        .stats {
-            display: grid;
-            grid-template-columns: repeat(5, minmax(0, 1fr));
-            gap: 13px;
-            margin-bottom: 18px;
-        }
-
-        .stat {
-            position: relative;
-            min-height: 130px;
-            overflow: hidden;
-            padding: 17px;
-            border: 1px solid var(--border);
-            border-radius: var(--radius);
-            background: linear-gradient(145deg, rgba(18, 28, 49, .92), rgba(10, 16, 29, .92));
-            box-shadow: var(--shadow-soft);
-        }
-
-        .stat:after {
-            content: "";
-            position: absolute;
-            width: 120px;
-            height: 120px;
-            right: -50px;
-            bottom: -58px;
-            border-radius: 50%;
-            background: rgba(91, 140, 255, .08);
-        }
-
-        .stat-top {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            color: var(--muted);
-            font-size: 10px;
-            font-weight: 700;
-        }
-
-        .stat-icon {
-            width: 31px;
-            height: 31px;
-            display: grid;
-            place-items: center;
-            border-radius: 10px;
-            color: #9db7ff;
-            background: rgba(91, 140, 255, .11);
-        }
-
-        .stat-value {
-            margin-top: 12px;
-            font-size: 29px;
-            font-weight: 900;
-            letter-spacing: -.04em;
-        }
-
-        .grid-2 {
-            display: grid;
-            grid-template-columns: 1.35fr .65fr;
-            gap: 18px;
-        }
-
-        .grid-equal {
-            display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 18px;
-        }
-
-        .panel {
-            min-width: 0;
-            overflow: hidden;
-            border: 1px solid var(--border);
-            border-radius: var(--radius);
-            background: var(--panel);
-            box-shadow: var(--shadow-soft);
-            backdrop-filter: blur(16px);
-        }
-
-        .panel-head {
-            min-height: 64px;
-            padding: 15px 18px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 12px;
-            border-bottom: 1px solid var(--border);
-        }
-
-        .panel-head h3 {
-            margin: 0;
-            font-size: 13px;
-        }
-
-        .panel-head span {
-            color: var(--muted);
-            font-size: 10px;
-        }
-
-        .panel-body {
-            padding: 18px;
-        }
-
-        /* ---------- MAP ---------- */
-
-        .map-shell {
-            position: relative;
-            height: 455px;
-            background: #08101b;
-        }
-
-        #map {
-            width: 100%;
-            height: 100%;
-            z-index: 1;
-        }
-
-        .map-overlay {
-            position: absolute;
-            left: 14px;
-            top: 14px;
-            z-index: 500;
-            padding: 10px 12px;
-            border: 1px solid rgba(255, 255, 255, .1);
-            border-radius: 12px;
-            background: rgba(5, 10, 20, .82);
-            backdrop-filter: blur(12px);
-            pointer-events: none;
-        }
-
-        .map-overlay strong {
-            display: block;
-            font-size: 11px;
-        }
-
-        .map-overlay span {
-            display: block;
-            margin-top: 3px;
-            color: #93a1b8;
-            font-size: 9px;
-        }
-
-        .map-legend {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 15px;
-            padding: 11px 18px;
-            color: var(--muted);
-            font-size: 10px;
-            border-top: 1px solid var(--border);
-        }
-
-        .legend-item {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-        }
-
-        .legend-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-        }
-
-        /* ---------- CARDS / PROGRESS ---------- */
-
-        .health-card {
-            display: grid;
-            grid-template-columns: 1fr auto;
-            gap: 15px;
-            align-items: center;
-            padding: 15px;
-            margin-bottom: 11px;
-            border: 1px solid var(--border);
-            border-radius: 15px;
-            background: rgba(255, 255, 255, .02);
-        }
-
-        .health-value {
-            margin-top: 3px;
-            font-size: 28px;
-            font-weight: 900;
-            letter-spacing: -.04em;
-        }
-
-        .progress-wrap {
-            margin-bottom: 17px;
-        }
-
-        .progress-row {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 7px;
-            font-size: 10px;
-        }
-
-        .progress-row span:last-child {
-            color: var(--muted);
-        }
-
-        .progress {
-            height: 7px;
-            overflow: hidden;
-            border-radius: 999px;
-            background: rgba(255, 255, 255, .06);
-        }
-
-        .progress>div {
-            height: 100%;
-            border-radius: inherit;
-            background: linear-gradient(90deg, var(--primary), var(--cyan));
-            transition: width .45s ease;
-        }
-
-        .task-list {
-            display: grid;
-            gap: 8px;
-        }
-
-        .task-row {
-            display: grid;
-            grid-template-columns: 1fr auto;
-            gap: 12px;
-            align-items: center;
-            padding: 11px;
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            background: rgba(255, 255, 255, .018);
-        }
-
-        .task-title {
-            font-size: 11px;
-            font-weight: 800;
-        }
-
-        .task-meta {
-            margin-top: 3px;
-            color: var(--muted);
-            font-size: 9px;
-        }
-
-        .badge {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            min-width: 24px;
-            padding: 5px 8px;
-            border-radius: 999px;
-            font-size: 8px;
-            font-weight: 900;
-            letter-spacing: .04em;
-        }
-
-        .badge.green {
-            color: #65e896;
-            background: rgba(43, 213, 118, .11);
-        }
-
-        .badge.yellow {
-            color: #ffd17c;
-            background: rgba(255, 182, 72, .11);
-        }
-
-        .badge.red {
-            color: #ff929b;
-            background: rgba(255, 95, 109, .11);
-        }
-
-        .badge.blue {
-            color: #a5c0ff;
-            background: rgba(91, 140, 255, .11);
-        }
-
-        .badge.gray {
-            color: #b4bfd0;
-            background: rgba(148, 163, 184, .09);
-        }
-
-        /* ---------- TOOLBAR / TABLE ---------- */
-
-        .toolbar {
-            display: flex;
-            flex-wrap: wrap;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .search {
-            min-width: 220px;
-        }
-
-        .table-wrap {
-            overflow: auto;
-        }
-
-        table {
-            width: 100%;
-            min-width: 850px;
-            border-collapse: collapse;
-        }
-
-        th,
-        td {
-            padding: 12px 14px;
-            text-align: left;
-            border-bottom: 1px solid var(--border);
-            font-size: 11px;
-        }
-
-        th {
-            color: #68758c;
-            font-size: 8px;
-            text-transform: uppercase;
-            letter-spacing: .1em;
-        }
-
-        tbody tr:hover {
-            background: rgba(91, 140, 255, .035);
-        }
-
-        .antenna-name {
-            font-weight: 800;
-        }
-
-        .coordinates {
-            margin-top: 3px;
-            color: var(--muted);
-            font-size: 9px;
-        }
-
-        .actions {
-            display: flex;
-            gap: 5px;
-        }
-
-        .mini-btn {
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            padding: 6px 8px;
-            color: #cbd6e8;
-            background: rgba(255, 255, 255, .025);
-            font-size: 9px;
-        }
-
-        .mini-btn:hover {
-            border-color: rgba(91, 140, 255, .4);
-            color: #fff;
-        }
-
-        .empty {
-            padding: 35px 20px;
-            color: var(--muted);
-            text-align: center;
-            font-size: 11px;
-        }
-
-        /* ---------- PROFILE ---------- */
-
-        .profile-hero {
-            display: grid;
-            grid-template-columns: auto 1fr auto;
-            align-items: center;
-            gap: 18px;
-            padding: 22px;
-        }
-
-        .avatar.xl {
-            width: 76px;
-            height: 76px;
-            border-radius: 23px;
-            font-size: 22px;
-        }
-
-        .profile-name {
-            margin: 0;
-            font-size: 24px;
-            letter-spacing: -.035em;
-        }
-
-        .profile-role {
-            margin-top: 5px;
-            color: #91adff;
-            font-size: 10px;
-            font-weight: 800;
-            text-transform: uppercase;
-            letter-spacing: .08em;
-        }
-
-        .profile-grid {
-            display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 13px;
-            padding: 18px;
-        }
-
-        .profile-field {
-            padding: 13px;
-            border: 1px solid var(--border);
-            border-radius: 13px;
-            background: rgba(255, 255, 255, .02);
-        }
-
-        .profile-field label {
-            display: block;
-            color: var(--muted);
-            font-size: 9px;
-            text-transform: uppercase;
-            letter-spacing: .08em;
-        }
-
-        .profile-field strong {
-            display: block;
-            margin-top: 6px;
-            font-size: 12px;
-        }
-
-        /* ---------- NOTIFICATIONS ---------- */
-
-        .notification-grid {
-            display: grid;
-            grid-template-columns: 1.15fr .85fr;
-            gap: 18px;
-        }
-
-        .recipient-list {
-            max-height: 390px;
-            overflow: auto;
-            display: grid;
-            gap: 7px;
-        }
-
-        .recipient {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 10px;
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            background: rgba(255, 255, 255, .018);
-        }
-
-        .recipient input {
-            width: 15px;
-            height: 15px;
-            accent-color: var(--primary);
-        }
-
-        .recipient .avatar {
-            width: 31px;
-            height: 31px;
-            border-radius: 10px;
-            font-size: 10px;
-        }
-
-        .recipient-info {
-            min-width: 0;
-        }
-
-        .recipient-info strong {
-            display: block;
-            font-size: 10px;
-            overflow: hidden;
-            white-space: nowrap;
-            text-overflow: ellipsis;
-        }
-
-        .recipient-info span {
-            display: block;
-            margin-top: 2px;
-            color: var(--muted);
-            font-size: 8px;
-        }
-
-        .notification-item {
-            display: grid;
-            grid-template-columns: auto 1fr auto;
-            gap: 10px;
-            align-items: start;
-            padding: 13px;
-            border-bottom: 1px solid var(--border);
-        }
-
-        .notification-item:last-child {
-            border-bottom: 0;
-        }
-
-        .notification-icon {
-            width: 33px;
-            height: 33px;
-            display: grid;
-            place-items: center;
-            border-radius: 10px;
-            background: rgba(91, 140, 255, .11);
-        }
-
-        .notification-item strong {
-            font-size: 11px;
-        }
-
-        .notification-item p {
-            margin: 4px 0 0;
-            color: var(--muted);
-            font-size: 9px;
-            line-height: 1.5;
-        }
-
-        /* ---------- INVENTORY ---------- */
-
-        .inventory-grid {
-            display: grid;
-            grid-template-columns: repeat(4, minmax(0, 1fr));
-            gap: 12px;
-        }
-
-        .inventory-card {
-            padding: 15px;
-            border: 1px solid var(--border);
-            border-radius: 14px;
-            background: rgba(255, 255, 255, .02);
-        }
-
-        .inventory-card.low {
-            border-color: rgba(255, 182, 72, .3);
-            background: rgba(255, 182, 72, .035);
-        }
-
-        .inventory-card strong {
-            font-size: 11px;
-        }
-
-        .inventory-card .sku {
-            margin-top: 3px;
-            color: var(--muted);
-            font-size: 8px;
-        }
-
-        .inventory-value {
-            display: flex;
-            justify-content: space-between;
-            align-items: end;
-            margin-top: 16px;
-        }
-
-        .quantity {
-            font-size: 24px;
-            font-weight: 900;
-        }
-
-        /* ---------- MODALS ---------- */
-
-        .modal-backdrop {
-            position: fixed;
-            inset: 0;
-            z-index: 1000;
-            display: none;
-            place-items: center;
-            padding: 18px;
-            background: rgba(0, 0, 0, .68);
-            backdrop-filter: blur(10px);
-        }
-
-        .modal-backdrop.open {
-            display: grid;
-        }
-
-        .modal {
-            width: min(720px, 100%);
-            max-height: 90vh;
-            overflow: auto;
-            border: 1px solid var(--border);
-            border-radius: 22px;
-            background: #0d1628;
-            box-shadow: 0 35px 110px rgba(0, 0, 0, .58);
-        }
-
-        .modal-head {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 17px 20px;
-            border-bottom: 1px solid var(--border);
-        }
-
-        .modal-head h3 {
-            margin: 0;
-            font-size: 15px;
-        }
-
-        .modal-body {
-            padding: 20px;
-        }
-
-        .modal-foot {
-            display: flex;
-            justify-content: flex-end;
-            gap: 8px;
-            padding: 14px 20px;
-            border-top: 1px solid var(--border);
-        }
-
-        .form-grid {
-            display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 13px;
-        }
-
-        .field.full {
-            grid-column: 1/-1;
-        }
-
-        /* ---------- TOAST / LOADING ---------- */
-
-        .toast-stack {
-            position: fixed;
-            right: 20px;
-            bottom: 20px;
-            z-index: 2000;
-            width: min(380px, calc(100vw - 40px));
-            display: grid;
-            gap: 8px;
-        }
-
-        .toast {
-            padding: 13px 15px;
-            border: 1px solid var(--border);
-            border-radius: 14px;
-            background: #101a2d;
-            box-shadow: var(--shadow);
-            font-size: 10px;
-            animation: slideIn .2s ease;
-        }
-
-        .toast.success {
-            border-color: rgba(43, 213, 118, .28);
-        }
-
-        .toast.error {
-            border-color: rgba(255, 95, 109, .3);
-        }
-
-        .toast strong {
-            display: block;
-            margin-bottom: 3px;
-        }
-
-        @keyframes slideIn {
-            from {
-                opacity: 0;
-                transform: translateY(8px);
-            }
-
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        .spinner {
-            width: 14px;
-            height: 14px;
-            display: inline-block;
-            border: 2px solid rgba(255, 255, 255, .14);
-            border-top-color: var(--primary);
-            border-radius: 50%;
-            animation: spin .7s linear infinite;
-            vertical-align: -2px;
-            margin-right: 6px;
-        }
-
-        @keyframes spin {
-            to {
-                transform: rotate(360deg);
-            }
-        }
-
-        .footer {
-            padding: 24px 0 0;
-            color: #4e5b70;
-            text-align: center;
-            font-size: 9px;
-        }
-
-        /* ---------- RESPONSIVE ---------- */
-
-        .mobile-menu {
-            display: none;
-        }
-
-        @media (max-width:1250px) {
-            .stats {
-                grid-template-columns: repeat(3, minmax(0, 1fr));
-            }
-
-            .grid-2,
-            .notification-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .inventory-grid {
-                grid-template-columns: repeat(2, minmax(0, 1fr));
-            }
-        }
-
-        @media (max-width:900px) {
-            #app.ready {
-                grid-template-columns: 1fr;
-            }
-
-            .sidebar {
-                position: fixed;
-                left: -290px;
-                width: 276px;
-                transition: left .2s ease;
-                box-shadow: 25px 0 70px rgba(0, 0, 0, .4);
-            }
-
-            .sidebar.open {
-                left: 0;
-            }
-
-            .mobile-menu {
-                display: grid;
-            }
-
-            .topbar {
-                padding: 0 18px;
-            }
-
-            .content {
-                padding: 20px 18px 35px;
-            }
-
-            .login-shell {
-                grid-template-columns: 1fr;
-                min-height: 0;
-            }
-
-            .login-visual {
-                display: none;
-            }
-
-            .login-panel {
-                min-height: 590px;
-                border-left: 0;
-            }
-
-            .profile-hero {
-                grid-template-columns: auto 1fr;
-            }
-
-            .profile-hero>.btn {
-                grid-column: 1/-1;
-            }
-        }
-
-        @media (max-width:600px) {
-
-            .stats,
-            .inventory-grid,
-            .grid-equal,
-            .profile-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .section-head {
-                align-items: flex-start;
-                flex-direction: column;
-            }
-
-            .topbar p {
-                display: none;
-            }
-
-            .top-actions .quick {
-                display: none;
-            }
-
-            .form-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .field.full {
-                grid-column: auto;
-            }
-
-            .search {
-                min-width: 100%;
-            }
-
-            .profile-hero {
-                grid-template-columns: auto 1fr;
-            }
-
-            .profile-name {
-                font-size: 18px;
-            }
-        }
-    </style>
+    <link rel="stylesheet" href="/assets/leaflet/leaflet.css" crossorigin="anonymous">
+
+    <link rel="stylesheet" href="/assets/enterprise.css">
+    <style th:attr="nonce=${cspNonce}">:root { color-scheme: dark; }</style>
+    <link rel="preload" href="/assets/fonts/manrope-variable.ttf" as="font" type="font/ttf" crossorigin>
+    <link rel="stylesheet" href="/assets/design-system.css">
 </head>
 
 <body>
@@ -1427,39 +27,51 @@
         <div class="login-shell">
             <div class="login-visual">
                 <div class="login-brand">
-                    <div class="brand-mark">RT</div>
+                    <div class="brand-mark has-logo"><img src="/assets/brand/radiotech-symbol-v1.png" width="46" height="46" alt="" decoding="async"></div>
                     <div>
                         <strong>RadioTech</strong>
-                        <span>Executive Control Center</span>
+                        <span>Operations Suite</span>
                     </div>
                 </div>
 
+                <div class="signal-art" aria-hidden="true">
+                    <svg viewBox="0 0 500 500" fill="none">
+                        <defs><pattern id="signalGrid" width="32" height="32" patternUnits="userSpaceOnUse"><path d="M32 0H0V32" stroke="#7295bf" stroke-opacity=".12" stroke-width=".6"/></pattern></defs>
+                        <rect width="500" height="500" fill="url(#signalGrid)"/>
+                        <circle cx="250" cy="250" r="184" stroke="#83a9d9" stroke-opacity=".22"/>
+                        <circle cx="250" cy="250" r="132" stroke="#a5c7f2" stroke-opacity=".28"/>
+                        <circle cx="250" cy="250" r="74" stroke="#aad2f8" stroke-opacity=".38"/>
+                        <path d="M250 42V458M42 250H458M102 102L398 398M398 102L102 398" stroke="#89b2e4" stroke-opacity=".16"/>
+                        <g class="signal-orbit"><path d="M250 66A184 184 0 0 1 434 250" stroke="#8bc7e3" stroke-width="1.6"/><circle cx="434" cy="250" r="5" fill="#b9e8f9"/></g>
+                        <g class="signal-orbit reverse"><path d="M118 250A132 132 0 0 1 250 118" stroke="#aec9f1" stroke-width="1.3"/><circle cx="118" cy="250" r="4" fill="#aec9f1"/></g>
+                        <path d="M250 176L324 250L250 324L176 250Z" stroke="#a7c9f2" stroke-opacity=".35"/>
+                        <circle class="signal-node" cx="250" cy="250" r="9" fill="#c9e0fa"/><circle class="signal-node" cx="250" cy="176" r="3" fill="#b4d4f6"/><circle class="signal-node" cx="176" cy="250" r="3" fill="#b4d4f6"/>
+                    </svg>
+                </div>
                 <div class="login-copy">
-                    <div class="eyebrow">Command · Operations · Network</div>
-                    <h1>Il centro di comando della tua rete.</h1>
+                    <div class="eyebrow">Precisione. Connessione. Controllo.</div>
+                    <h1>La tua rete.<br><span>Una visione superiore.</span></h1>
                     <p>
                         Una console unica per antenne, operatori, task, inventario,
                         notifiche e controllo operativo.
                     </p>
                     <div class="login-highlights">
-                        <span class="login-chip">Live Network</span>
-                        <span class="login-chip">Firestore</span>
-                        <span class="login-chip">Task Management</span>
-                        <span class="login-chip">Executive Profile</span>
+                        <span class="login-chip">Infrastruttura</span><span class="login-chip">Operazioni</span><span class="login-chip">Persone &amp; AI</span>
                     </div>
+                    <div class="login-caption"><span>Progettato per chi guarda avanti.</span><span>RadioTech / Operations Suite</span></div>
                 </div>
             </div>
 
             <div class="login-panel">
                 <form class="login-form" id="loginForm">
+                    <div class="login-brand login-mobile-brand" style="display:none"><div class="brand-mark has-logo"><img src="/assets/brand/radiotech-symbol-v1.png" width="46" height="46" alt="" decoding="async"></div><div><strong>RadioTech</strong><span>Operations Suite</span></div></div>
                     <div class="eyebrow">Accesso riservato</div>
-                    <h2>Bentornato, Capo.</h2>
-                    <p>Accedi al Control Center. L'accesso persistente viene salvato sul PC se selezioni "Mantieni
-                        l'accesso".</p>
+                    <h2>Benvenuto in RadioTech.</h2>
+                    <p>Il tuo spazio di lavoro per guidare la rete e la squadra. Accedi con il tuo account aziendale.</p>
 
                     <div class="field">
                         <label for="loginEmail">Email</label>
-                        <input id="loginEmail" type="email" autocomplete="username" placeholder="capo@radiotech.it"
+                        <input id="loginEmail" type="email" autocomplete="username" placeholder="nome@azienda.it"
                             required>
                     </div>
 
@@ -1468,7 +80,7 @@
                         <div class="password-wrap">
                             <input id="loginPassword" type="password" autocomplete="current-password"
                                 placeholder="••••••••" required>
-                            <button class="password-toggle" type="button" id="togglePassword">◉</button>
+                            <button class="password-toggle" type="button" id="togglePassword" aria-label="Mostra o nascondi password" data-icon="eye">◉</button>
                         </div>
                     </div>
 
@@ -1480,7 +92,8 @@
                     </div>
 
                     <button class="login-button" id="loginButton" type="submit">Accedi al Control Center</button>
-                    <div class="login-status" id="loginStatus"></div>
+                    <div class="login-status" id="loginStatus" role="status" aria-live="polite"></div>
+                    <div class="login-help"><span data-icon="shield"></span>Sessione personale · Dati del tuo spazio aziendale</div>
                 </form>
             </div>
         </div>
@@ -1491,16 +104,18 @@
 ========================================================= -->
     <div id="app">
 
-        <aside class="sidebar" id="sidebar">
+        <button type="button" class="nav-scrim" id="navScrim" aria-label="Chiudi navigazione" tabindex="-1" hidden></button>
+        <aside class="sidebar" id="sidebar" aria-label="Navigazione principale">
+            <button type="button" class="icon-btn sidebar-close" id="sidebarClose" aria-label="Chiudi navigazione" data-icon="close">×</button>
             <div class="brand">
-                <div class="brand-mark">RT</div>
+                <div class="brand-mark has-logo"><img src="/assets/brand/radiotech-symbol-v1.png" width="46" height="46" alt="" decoding="async"></div>
                 <div>
                     <strong>RadioTech</strong>
-                    <span>Executive Control Center</span>
+                    <span>Operations Suite</span>
                 </div>
             </div>
 
-            <div class="nav-title">Command Center</div>
+            <div class="sidebar-scroll"><div class="nav-title">Workspace</div>
             <nav class="nav">
                 <button class="active" data-view="dashboard"><span class="nav-icon">⌂</span> Dashboard</button>
                 <button data-view="antennas"><span class="nav-icon">◉</span> Antenne</button>
@@ -1510,13 +125,13 @@
                 <button data-view="inventory"><span class="nav-icon">▦</span> Inventario</button>
             </nav>
 
-            <div class="nav-title">Executive</div>
+            <div class="nav-title">Account e sistema</div>
             <nav class="nav">
                 <button data-view="profile"><span class="nav-icon">♙</span> Profilo del Capo</button>
                 <button data-view="system"><span class="nav-icon">⚙</span> Stato sistema</button>
             </nav>
 
-            <div class="sidebar-bottom">
+            </div><div class="sidebar-bottom">
                 <div class="user-mini">
                     <div class="user-mini-row">
                         <div class="avatar" id="miniAvatar">C</div>
@@ -1529,22 +144,22 @@
             </div>
         </aside>
 
-        <main class="main">
+        <main class="main" id="mainContent" tabindex="-1">
             <header class="topbar">
                 <div style="display:flex;align-items:center;gap:9px;min-width:0">
-                    <button class="icon-btn mobile-menu" id="mobileMenu">☰</button>
+                    <button class="icon-btn mobile-menu" id="mobileMenu" aria-label="Apri navigazione" aria-controls="sidebar" aria-expanded="false" data-icon="menu">☰</button>
                     <div>
-                        <h1 id="pageTitle">Dashboard</h1>
+                        <div class="workspace-label">RadioTech / Workspace</div><h1 id="pageTitle">Dashboard</h1>
                         <p id="pageSubtitle">Monitoraggio infrastruttura radio e operazioni tecniche</p>
                     </div>
                 </div>
 
                 <div class="top-actions">
-                    <button class="icon-btn notification-btn" id="notificationBell" title="Notifiche">
+                    <button class="icon-btn notification-btn" id="notificationBell" title="Notifiche" aria-label="Apri notifiche">
                         ✦
                         <span class="notification-count hidden" id="notificationCount">0</span>
                     </button>
-                    <button class="icon-btn" id="refreshBtn" title="Aggiorna">↻</button>
+                    <button class="icon-btn" id="refreshBtn" title="Aggiorna" aria-label="Aggiorna dati" data-icon="refresh">↻</button>
                     <button class="btn" id="topbarLogoutBtn" type="button" aria-label="Esci dall'applicazione">Esci</button>
                     <button class="btn quick" id="quickNotificationBtn">+ Invia notifica</button>
                     <button class="btn primary quick" id="quickAntennaBtn">+ Nuova antenna</button>
@@ -1555,12 +170,12 @@
 
                 <!-- DASHBOARD -->
                 <section class="view active" id="view-dashboard">
-                    <div class="section-head">
-                        <div>
-                            <h2>Panoramica</h2>
-                            <p>La situazione della rete, in un colpo d'occhio.</p>
+                    <div class="section-head overview-head">
+                        <div><span class="section-kicker">La tua visione operativa</span>
+                            <h2>Ogni dettaglio.<br><span>Sotto controllo.</span></h2>
+                            <p>Rete, risorse e persone. Una prospettiva completa per concentrarti su ciò che conta.</p>
                         </div>
-                        <div class="subtle">Ultimo aggiornamento: <span id="lastUpdate">—</span></div>
+                        <div class="update-stamp">Aggiornamento <span id="lastUpdate">—</span></div>
                     </div>
 
                     <div class="stats">
@@ -1596,11 +211,16 @@
                         </div>
                     </div>
 
+                    <div class="workspace-links" aria-label="Accessi rapidi">
+                        <button class="workspace-link" type="button" data-workspace-link="operations"><span data-icon="briefcase"></span><span><strong>Operazioni e squadra</strong><small>Incarichi, report e risorse</small></span><span class="link-arrow" data-icon="arrow"></span></button>
+                        <button class="workspace-link" type="button" data-workspace-link="enterprise"><span data-icon="shield"></span><span><strong>Rischi e competenze</strong><small>Incidenti e abilitazioni</small></span><span class="link-arrow" data-icon="arrow"></span></button>
+                        <button class="workspace-link" type="button" data-workspace-link="ai"><span data-icon="spark"></span><span><strong>Intelligence aziendale</strong><small>Analisi e assistente AI</small></span><span class="link-arrow" data-icon="arrow"></span></button>
+                    </div>
                     <div class="grid-2">
                         <div class="panel">
                             <div class="panel-head">
                                 <div>
-                                    <h3>Network Intelligence Map</h3>
+                                    <h3>La rete sul territorio</h3>
                                     <span>Posizione e stato operativo delle antenne</span>
                                 </div>
                                 <button class="mini-btn" id="centerMapBtn">Centra</button>
@@ -1625,7 +245,7 @@
                         <div class="panel">
                             <div class="panel-head">
                                 <div>
-                                    <h3>Network Health</h3>
+                                    <h3>Stato operativo della rete</h3>
                                     <span>Antenne operative sul totale</span>
                                 </div>
                                 <span id="availabilityLabel">—</span>
@@ -1837,7 +457,7 @@
                                         <option value="">Seleziona operatore</option>
                                     </select></div>
                                 <div class="field"><label>Antenna</label><select id="taskAntenna">
-                                        <option value="">Nessuna antenna</option>
+                                        <option value="">Seleziona antenna</option>
                                     </select></div>
                                 <div class="field"><label>Scadenza</label><input id="taskDueAt" type="datetime-local">
                                 </div>
@@ -1941,7 +561,7 @@
                         <div class="panel">
                             <div class="panel-head">
                                 <div>
-                                    <h3>Invia comunicazione</h3><span>Distribuzione immediata via backend</span>
+                                    <h3>Invia comunicazione</h3><span>Messaggi alla squadra. Assegna gli incarichi dalla sezione Operazioni.</span>
                                 </div>
                             </div>
                             <div class="panel-body">
@@ -1957,7 +577,7 @@
 
                                 <div class="field">
                                     <label>Titolo</label>
-                                    <input id="notificationTitle" maxlength="120" placeholder="Nuovo task operativo">
+                                    <input id="notificationTitle" maxlength="120" placeholder="Comunicazione alla squadra">
                                 </div>
 
                                 <div class="field">
@@ -2235,39 +855,39 @@
                                 <div class="task-row">
                                     <div>
                                         <div class="task-title">Statistiche</div>
-                                        <div class="task-meta">GET /api/dashboard/stats</div>
+                                        <div class="task-meta">GET /api/v1/dashboard/stats</div>
                                     </div><span class="badge blue">GET</span>
                                 </div>
                                 <div class="task-row">
                                     <div>
                                         <div class="task-title">Antenne</div>
-                                        <div class="task-meta">GET /api/dashboard/antenne</div>
+                                        <div class="task-meta">GET /api/v1/dashboard/antenne</div>
                                     </div><span class="badge blue">GET</span>
                                 </div>
                                 <div class="task-row">
                                     <div>
                                         <div class="task-title">Notifica</div>
-                                        <div class="task-meta">POST /api/dashboard/notifications</div>
+                                        <div class="task-meta">POST /api/v1/dashboard/notifications</div>
                                     </div><span class="badge yellow">POST</span>
                                 </div>
                                 <div class="task-row">
                                     <div>
                                         <div class="task-title">Dipendenti</div>
-                                        <div class="task-meta">GET /api/dashboard/operators</div>
+                                        <div class="task-meta">GET /api/v1/dashboard/operators</div>
                                     </div><span class="badge blue">GET</span>
                                 </div>
                                 <div class="task-row">
                                     <div>
                                         <div class="task-title">Profilo</div>
-                                        <div class="task-meta">GET /api/dashboard/profile</div>
+                                        <div class="task-meta">GET /api/v1/dashboard/profile</div>
                                     </div><span class="badge blue">GET</span>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <div class="footer">RadioTech Executive Control Center · Secure Operations Console</div>
                 </section>
+                <div class="footer"><span>RadioTech / Operations Suite</span><span>Infrastruttura · Operazioni · Persone</span></div>
             </div>
         </main>
     </div>
@@ -2361,6 +981,31 @@
         </div>
     </div>
 
+    <!-- ANTENNA QR MODAL -->
+    <div class="modal-backdrop" id="antennaQrModal">
+        <div class="modal" id="antennaQrPrintArea">
+            <div class="modal-head">
+                <h3>QR Code Antenna / Stazione</h3><button class="icon-btn" id="closeAntennaQrModal">×</button>
+            </div>
+            <div class="modal-body" style="text-align:center">
+                <img id="antennaQrImage" alt="QR code antenna"
+                    style="width:240px;height:240px;background:#fff;padding:10px;border-radius:12px;margin:0 auto;display:block">
+                <h3 id="antennaQrStationName" style="margin-top:14px;margin-bottom:4px"></h3>
+                <p class="subtle" id="antennaQrSite" style="margin-bottom:8px"></p>
+                <div style="display:flex;justify-content:center;gap:12px;margin-bottom:12px">
+                    <span class="badge blue" id="antennaQrCode"></span>
+                    <span class="badge green" id="antennaQrStatus"></span>
+                </div>
+                <p style="font-size:12px;color:var(--text-subtle, #888)">ID: <code id="antennaQrId"></code></p>
+            </div>
+            <div class="modal-foot">
+                <a class="btn" id="antennaQrDownloadLink" download="antenna-qr.png" href="#">Scarica PNG</a>
+                <button class="btn" id="printAntennaQr">Stampa cartellino</button>
+                <button class="btn primary" id="closeAntennaQr">Chiudi</button>
+            </div>
+        </div>
+    </div>
+
     <!-- INVENTORY ITEM MODAL -->
     <div class="modal-backdrop" id="inventoryItemModal">
         <div class="modal">
@@ -2430,7 +1075,7 @@
                     <div class="form-grid">
                         <div class="field"><label>Nome completo</label><input id="editProfileName"></div>
                         <div class="field"><label>Telefono</label><input id="editProfilePhone" type="tel"></div>
-                        <div class="field full"><label>Ruolo</label><input id="editProfileRole"></div>
+                        <div class="field full"><label for="editProfileCompany">Azienda</label><input id="editProfileCompany"></div>
                     </div>
                 </div>
                 <div class="modal-foot">
@@ -2444,8 +1089,15 @@
     <div class="toast-stack" id="toastStack"></div>
 
     <!-- Leaflet: JS -->
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin="anonymous"></script>
+    <script src="/assets/leaflet/leaflet.js" crossorigin="anonymous"></script>
 
+    <script src="/assets/enterprise.js" defer></script>
+    <script src="/assets/company-hub.js" defer></script>
+    <script src="/assets/pro-suite.js" defer></script>
+    <script src="/assets/pro-security.js" defer></script>
+    <script src="/assets/auth-client.js" defer></script>
+    <script src="/assets/management.js" defer></script>
+    <script src="/assets/design-system.js" defer></script>
     <script th:attr="nonce=${cspNonce}">
         (() => {
             "use strict";
@@ -2457,20 +1109,20 @@
              * Il frontend è progettato per lavorare con il backend Spring.
              *
              * API principali:
-             *   GET    /api/dashboard/stats
-             *   GET    /api/dashboard/antenne
-             *   PUT    /api/dashboard/antenne/{id}
-             *   DELETE /api/dashboard/antenne/{id}
-             *   GET    /api/dashboard/operators
-             *   GET    /api/dashboard/notifications
-             *   POST   /api/dashboard/notifications
-             *   GET    /api/dashboard/profile
-             *   PUT    /api/dashboard/profile
-             *   GET    /api/dashboard/inventory
+             *   GET    /api/v1/dashboard/stats
+             *   GET    /api/v1/dashboard/antenne
+             *   PUT    /api/v1/dashboard/antenne/{id}
+             *   DELETE /api/v1/dashboard/antenne/{id}
+             *   GET    /api/v1/dashboard/operators
+             *   GET    /api/v1/dashboard/notifications
+             *   POST   /api/v1/dashboard/notifications
+             *   GET    /api/v1/dashboard/profile
+             *   PUT    /api/v1/dashboard/profile
+             *   GET    /api/v1/dashboard/inventory
              *
              * IMPORTANTE:
              * L'autenticazione Firebase deve essere effettuata dal tuo
-             * endpoint /api/auth/login, che deve restituire almeno:
+             * endpoint /api/v1/auth/login, che deve restituire almeno:
              * {
              *   "token": "FIREBASE_ID_TOKEN",
              *   "user": { ... }
@@ -2481,10 +1133,10 @@
              */
 
             const CONFIG = Object.freeze({
-                API: "/api/dashboard",
-                AUTH_LOGIN: "/api/auth/login",
-                AUTH_REFRESH: "/api/auth/refresh",
-                AUTH_VERIFY: "/api/auth/verify",
+                API: "/api/v1/dashboard",
+                AUTH_LOGIN: "/api/v1/auth/login",
+                AUTH_REFRESH: "/api/v1/auth/refresh",
+                AUTH_VERIFY: "/api/v1/auth/verify",
                 REQUEST_TIMEOUT: 12000,
                 REFRESH_INTERVAL: 60000,
                 STORAGE_TOKEN: "radiotech_control_token",
@@ -2512,6 +1164,11 @@
                 refreshTimer: null,
                 requestController: null
             };
+            let enterprise = null;
+            let companyHub = null;
+            let management = null;
+            let proSuite = null;
+            let proSecurity = null;
 
             const $ = id => document.getElementById(id);
 
@@ -2577,7 +1234,7 @@
                 if (!token) return false;
                 state.token = token;
                 state.refreshToken = refreshToken;
-                try { state.user = user ? JSON.parse(user) : null; } catch (_) { state.user = null; }
+                try { state.user = user ? JSON.parse(user) : null; state.authRole = state.user?.role; } catch (_) { state.user = null; }
                 return true;
             }
 
@@ -2585,6 +1242,7 @@
                 state.token = token;
                 state.refreshToken = refreshToken || null;
                 state.user = user || null;
+                state.authRole = user?.role || null;
 
                 if (remember) {
                     localStorage.setItem(CONFIG.STORAGE_TOKEN, token);
@@ -2605,6 +1263,14 @@
             function clearSession() {
                 state.token = null;
                 state.user = null;
+                state.authRole = null;
+                state.refreshToken = null;
+                state.sessionEpoch = (state.sessionEpoch || 0) + 1;
+                enterprise?.reset();
+                companyHub?.reset();
+                proSuite?.reset();
+                proSecurity?.reset();
+                management?.reset();
                 localStorage.removeItem(CONFIG.STORAGE_TOKEN);
                 localStorage.removeItem(CONFIG.STORAGE_REFRESH);
                 localStorage.removeItem(CONFIG.STORAGE_USER);
@@ -2620,7 +1286,13 @@
                     sessionStorage.getItem(CONFIG.STORAGE_TOKEN);
             }
 
-            async function refreshSession() {
+            let sessionRefresh = null;
+            function refreshSession() {
+                if (!sessionRefresh) sessionRefresh = performSessionRefresh().finally(() => { sessionRefresh = null; });
+                return sessionRefresh;
+            }
+            async function performSessionRefresh() {
+                const epoch = state.sessionEpoch || 0;
                 const remember = localStorage.getItem(CONFIG.STORAGE_REMEMBER) === "true";
                 const refreshToken = state.refreshToken || (remember ? localStorage.getItem(CONFIG.STORAGE_REFRESH) : sessionStorage.getItem(CONFIG.STORAGE_REFRESH));
                 if (!refreshToken) return false;
@@ -2634,17 +1306,18 @@
                 if (!response.ok) return false;
                 const data = body?.data || body;
                 const token = data?.token || data?.idToken;
-                if (!token) return false;
+                if (!token || epoch !== (state.sessionEpoch || 0)) return false;
                 saveSession(token, data.user || state.user, remember, data.refreshToken || refreshToken);
                 return true;
             }
 
             async function apiFetch(url, options = {}) {
-                const { _retried = false, ...requestOptions } = options;
+                const { _retried = false, timeoutMs = CONFIG.REQUEST_TIMEOUT, ...requestOptions } = options;
                 const controller = new AbortController();
-                const timeout = setTimeout(() => controller.abort(), CONFIG.REQUEST_TIMEOUT);
+                const timeout = setTimeout(() => controller.abort(), Math.min(60000, timeoutMs));
 
                 const token = getSessionToken();
+                const epoch = state.sessionEpoch || 0;
 
                 const headers = {
                     "Accept": "application/json",
@@ -2662,6 +1335,7 @@
                         cache: "no-store"
                     });
 
+                    if (epoch !== (state.sessionEpoch || 0)) throw new Error("Sessione cambiata: richiesta annullata.");
                     let body = null;
                     const text = await response.text();
                     if (text) {
@@ -2676,10 +1350,11 @@
                     }
 
                     if (!response.ok) {
-                        const message = body?.message || `HTTP ${response.status}`;
+                        const message = (body?.message || `HTTP ${response.status}`) + (response.headers.get("X-Request-Id") ? ` · Rif. ${response.headers.get("X-Request-Id")}` : "");
                         throw new Error(message);
                     }
 
+                    if (epoch !== (state.sessionEpoch || 0)) throw new Error("Sessione cambiata: richiesta annullata.");
                     return body;
                 } catch (error) {
                     if (error.name === "AbortError") {
@@ -2714,10 +1389,11 @@
 
                 try {
                     /*
-                     * Se il tuo /api/auth/login usa un payload differente,
+                     * Se il tuo /api/v1/auth/login usa un payload differente,
                      * modifica questa sola sezione.
                      */
-                    const result = await fetch(CONFIG.AUTH_LOGIN, {
+                    const federationReady = window.RadioTechFederation && await window.RadioTechFederation.initialize();
+                    const result = federationReady ? new Response(JSON.stringify(await window.RadioTechFederation.login(null,email,password)), {status:200,headers:{"Content-Type":"application/json"}}) : await fetch(CONFIG.AUTH_LOGIN, {
                         method: "POST",
                         headers: { "Content-Type": "application/json", "Accept": "application/json" },
                         body: JSON.stringify({ email, password })
@@ -2739,9 +1415,10 @@
                         throw new Error("Il backend non ha restituito un Firebase ID token.");
                     }
 
-                    const user = body?.user || body?.data?.user || { email };
+                    const user = { ...(body?.user || body?.data?.user || { email }), role: body?.role || body?.data?.role || body?.user?.role };
 
                     saveSession(token, user, remember, body?.refreshToken || body?.data?.refreshToken);
+                    $("loginPassword").value = "";
                     await startApplication();
 
                 } catch (error) {
@@ -2753,6 +1430,13 @@
                     button.textContent = "Accedi al Control Center";
                 }
             }
+
+            window.addEventListener("radiotech:sso", async event => {
+                const body=event.detail;
+                if(body.role==="CUSTOMER") { window.location.assign("/portal"); return; }
+                saveSession(body.token, {...body.user,role:body.role},false,body.refreshToken);
+                await startApplication();
+            });
 
             function showLogin(message = "") {
                 $("app").classList.remove("ready");
@@ -2777,7 +1461,17 @@
 
             /* ---------- USER / PROFILE ---------- */
 
+            function applyPermissions() {
+                const allowed = ["ADMIN", "SUPER_ADMIN", "CHIEF_EXECUTIVE", "CAPO", "NETWORK_MANAGER"].includes(state.authRole || state.user?.role);
+                for (const id of ["quickAntennaBtn", "quickNotificationBtn", "newAntennaBtn", "newOperatorBtn", "syncOperatorBtn", "createTaskBtn", "newNotificationBtn", "sendNotificationBtn", "newInventoryItemBtn", "editProfileBtn"]) {
+                    if ($(id)) $(id).hidden = !allowed;
+                }
+                document.querySelectorAll("[data-edit], [data-delete], [data-save-role], [data-approve], [data-badge], [data-regenerate], [data-report-approve], [data-report-reject], [data-inventory-move], [data-inventory-edit], [data-inventory-archive], [data-inventory-restore]").forEach(element => { element.hidden = !allowed; });
+                document.querySelectorAll("[data-operator-role]").forEach(element => { if (!allowed) element.disabled = true; });
+            }
+
             function hydrateUser() {
+                applyPermissions();
                 const u = state.user || {};
                 const name = u.name || u.displayName || u.fullName || "Capo RadioTech";
                 const email = u.email || "—";
@@ -2804,12 +1498,17 @@
                 setText("sessionPersistence", localStorage.getItem(CONFIG.STORAGE_REMEMBER) === "true" ? "ATTIVA" : "SESSIONE");
             }
 
+            function persistUser() {
+                const storage = localStorage.getItem(CONFIG.STORAGE_REMEMBER) === "true" ? localStorage : sessionStorage;
+                storage.setItem(CONFIG.STORAGE_USER, JSON.stringify(state.user));
+            }
             async function loadProfile() {
                 try {
                     const profile = await api("/profile");
                     if (profile) {
-                        state.user = { ...state.user, ...(profile.user || profile) };
-                        localStorage.setItem(CONFIG.STORAGE_USER, JSON.stringify(state.user));
+                        const data = profile.data || profile.user || profile;
+                        state.user = { ...state.user, ...data, name: data.fullName || data.name || state.user?.name, role: state.authRole || state.user?.role };
+                        persistUser();
                         hydrateUser();
                     }
                 } catch (error) {
@@ -2821,19 +1520,20 @@
                 event.preventDefault();
 
                 const payload = {
-                    name: $("editProfileName").value.trim(),
+                    fullName: $("editProfileName").value.trim(),
                     phone: $("editProfilePhone").value.trim(),
-                    role: $("editProfileRole").value.trim()
+                    company: $("editProfileCompany").value.trim()
                 };
 
                 try {
-                    const result = await api("/profile", {
+                    const result = await apiFetch("/api/v1/capo/profile", {
                         method: "PUT",
                         body: JSON.stringify(payload)
                     });
 
-                    state.user = { ...state.user, ...(result?.user || result || payload) };
-                    localStorage.setItem(CONFIG.STORAGE_USER, JSON.stringify(state.user));
+                    const data = result?.data || result?.user || result || payload;
+                    state.user = { ...state.user, ...data, name: data.fullName || state.user?.name, role: state.authRole || state.user?.role };
+                    persistUser();
                     hydrateUser();
                     closeModal("profileModal");
                     toast("Profilo aggiornato", "Le informazioni del Capo sono state salvate.");
@@ -2843,10 +1543,11 @@
             }
 
             function openProfileModal() {
+                applyPermissions();
                 const u = state.user || {};
                 $("editProfileName").value = u.name || u.displayName || u.fullName || "";
                 $("editProfilePhone").value = u.phone || u.telefono || "";
-                $("editProfileRole").value = u.role || u.ruolo || "Chief Executive · RadioTech";
+                $("editProfileCompany").value = u.company || "";
                 openModal("profileModal");
             }
 
@@ -2856,7 +1557,7 @@
                 if (state.map) return true;
                 if (!window.L) {
                     setText("mapStatus", "Leaflet non disponibile");
-                    setText("mapSubstatus", "Controlla la connessione al CDN.");
+                    setText("mapSubstatus", "Ricarica la pagina per inizializzare la mappa.");
                     return false;
                 }
 
@@ -2902,7 +1603,7 @@
                     const color = status === "ATTIVA" ? "#2bd576" : status === "MANUTENZIONE" ? "#ffb648" : status === "CRITICA" ? "#b66cff" : "#ff5f6d";
                     const icon = L.divIcon({ className: "", html: `<div style="width:18px;height:18px;border-radius:50%;background:${color};border:3px solid rgba(255,255,255,.95);box-shadow:0 0 0 6px ${color}22,0 5px 18px #0009"></div>`, iconSize: [18, 18], iconAnchor: [9, 9] });
                     const marker = L.marker([lat, lng], { icon }).addTo(state.map);
-                    const specs = a.specs || {};
+                    const specs = antennaSpecs(a);
                     marker.bindPopup(`<div style="min-width:220px;color:#111827;font-family:system-ui"><strong>${escapeHtml(a.name || a.id)}</strong><br><small>Stato: ${escapeHtml(formatStatus(status))}</small><br><small>Frequenza: ${escapeHtml(specs.Frequenza ?? "—")}</small><br><small>Potenza: ${escapeHtml(specs.Potenza ?? "—")}</small><br><small>ROS: ${escapeHtml(specs.ROS ?? "—")}</small><br><small>Temperatura: ${escapeHtml(specs.Temperatura ?? "—")}</small></div>`);
                     state.markerByAntennaId.set(a.id, marker); state.markers.push(marker); valid.push([lat, lng]);
                 });
@@ -2966,7 +1667,7 @@
 
             async function loadSystemHealth() {
                 try {
-                    const r = await apiFetch("/api/health/firebase");
+                    const r = await apiFetch("/api/v1/health/firebase");
                     const ok = r?.status === "UP";
                     setText("firestoreStatus", ok ? "OK" : "DOWN");
                     $("firestoreBadge").textContent = ok ? "CONNECTED" : "OFFLINE";
@@ -3026,7 +1727,7 @@
                 }
 
                 $("antennasTableBody").innerHTML = list.map(a => {
-                    const specs = a.specs || {};
+                    const specs = antennaSpecs(a);
                     return `
                 <tr>
                     <td>
@@ -3041,6 +1742,7 @@
                     <td>${escapeHtml(specs.Temperatura ?? "—")}</td>
                     <td>
                         <div class="actions">
+                            <button class="mini-btn" data-qr="${escapeHtml(a.id)}">QR Code</button>
                             <button class="mini-btn" data-edit="${escapeHtml(a.id)}">Modifica</button>
                             <button class="mini-btn" data-focus="${escapeHtml(a.id)}">Mappa</button>
                             <button class="mini-btn" data-delete="${escapeHtml(a.id)}">Elimina</button>
@@ -3049,12 +1751,18 @@
                 </tr>`;
                 }).join("");
 
+                applyPermissions();
+                $("antennasTableBody").querySelectorAll("[data-qr]").forEach(b =>
+                    b.addEventListener("click", () => showAntennaQr(b.dataset.qr))
+                );
                 $("antennasTableBody").querySelectorAll("[data-edit]").forEach(b =>
                     b.addEventListener("click", () => openAntennaModal(b.dataset.edit))
                 );
+                applyPermissions();
                 $("antennasTableBody").querySelectorAll("[data-focus]").forEach(b =>
                     b.addEventListener("click", () => focusAntenna(b.dataset.focus))
                 );
+                applyPermissions();
                 $("antennasTableBody").querySelectorAll("[data-delete]").forEach(b =>
                     b.addEventListener("click", () => deleteAntenna(b.dataset.delete))
                 );
@@ -3086,7 +1794,7 @@
                 if (id) {
                     const a = state.antennas.find(x => x.id === id);
                     if (!a) return;
-                    const s = a.specs || {};
+                    const s = antennaSpecs(a);
 
                     $("antennaId").value = a.id;
                     $("antennaName").value = a.name || "";
@@ -3104,6 +1812,16 @@
                 openModal("antennaModal");
             }
 
+            function antennaSpecs(antenna) {
+                const s = antenna.specs || {};
+                return {
+                    Frequenza: s.frequenza ?? s.Frequenza ?? s.frequencyMHz,
+                    Potenza: s.potenza ?? s.Potenza ?? s.powerWatts,
+                    ROS: s.ros ?? s.ROS,
+                    Temperatura: s.temperatura ?? s.Temperatura ?? s.temperature
+                };
+            }
+
             async function saveAntenna(event) {
                 event.preventDefault();
 
@@ -3113,11 +1831,16 @@
                     lat: Number($("antennaLat").value),
                     lng: Number($("antennaLng").value),
                     status: $("antennaStatus").value,
-                    specs: {
-                        Frequenza: numberOrNull($("antennaFreq").value),
-                        Potenza: numberOrNull($("antennaPower").value),
-                        ROS: numberOrNull($("antennaRos").value),
-                        Temperatura: numberOrNull($("antennaTemp").value)
+                    specs: id ? {
+                        frequenza: numberOrNull($("antennaFreq").value),
+                        potenza: numberOrNull($("antennaPower").value),
+                        ros: numberOrNull($("antennaRos").value),
+                        temperatura: numberOrNull($("antennaTemp").value)
+                    } : {
+                        frequencyMHz: numberOrNull($("antennaFreq").value),
+                        powerWatts: numberOrNull($("antennaPower").value),
+                        ros: numberOrNull($("antennaRos").value),
+                        temperature: numberOrNull($("antennaTemp").value)
                     }
                 };
 
@@ -3132,10 +1855,6 @@
 
                 try {
                     if (!id) {
-                        /*
-                         * Il tuo backend originale non aveva POST /antenne.
-                         * Se lo aggiungi, questo frontend lo utilizzerà.
-                         */
                         await api("/antenne", {
                             method: "POST",
                             body: JSON.stringify(payload)
@@ -3173,7 +1892,7 @@
             }
 
             async function loadTasks() {
-                try { const data = await apiFetch("/api/tasks"); state.tasks = Array.isArray(data) ? data : (data?.tasks || []); renderTaskList(); populateTaskSelectors(); }
+                try { const response = await apiFetch("/api/v1/tasks"); const data = response?.data ?? response; state.tasks = Array.isArray(data) ? data : (data?.tasks || []); renderTaskList(); populateTaskSelectors(); }
                 catch (e) { $("tasksList").innerHTML = `<div class="empty">Task non disponibili: ${escapeHtml(e.message)}</div>`; }
             }
             function eligibleOperators() {
@@ -3185,7 +1904,7 @@
             }
             function populateTaskSelectors() {
                 const op = $("taskOperator"); if (op) op.innerHTML = '<option value="">Seleziona operatore</option>' + eligibleOperators().map(o => `<option value="${escapeHtml(o.id)}">${escapeHtml(o.fullName || o.email || o.id)}</option>`).join("");
-                const an = $("taskAntenna"); if (an) an.innerHTML = '<option value="">Nessuna antenna</option>' + state.antennas.map(a => `<option value="${escapeHtml(a.id)}">${escapeHtml(a.name || a.id)}</option>`).join("");
+                const an = $("taskAntenna"); if (an) an.innerHTML = '<option value="">Seleziona antenna</option>' + state.antennas.map(a => `<option value="${escapeHtml(a.id)}">${escapeHtml(a.name || a.id)}</option>`).join("");
             }
             function renderTaskList() {
                 if (!$('tasksList')) return;
@@ -3194,29 +1913,54 @@
                 $('tasksList').innerHTML = list.length ? list.slice(0, 50).map(t => `<div class="task-row"><div><div class="task-title">${escapeHtml(t.title || t.id)}</div><div class="task-meta">${escapeHtml(t.operatorName || t.operatorId || t.operator_uid || "Non assegnato")} · ${escapeHtml(t.antennaId || "—")} · ${t.dueAt ? `scade ${escapeHtml(new Date(t.dueAt).toLocaleString('it-IT'))}` : 'senza scadenza'}</div></div><span class="badge ${badgeClass(t.status)}">${escapeHtml(formatStatus(t.status))}</span></div>`).join('') : '<div class="empty">Nessun task.</div>';
             }
             async function createTask() {
+                const button = $("createTaskBtn");
+                if (button.disabled) return;
                 const title = $("taskTitle").value.trim(), operatorId = $("taskOperator").value, antennaId = $("taskAntenna").value;
-                if (!title || !operatorId) { toast("Task incompleto", "Titolo e operatore sono obbligatori.", "error"); return; }
+                if (!title || !operatorId || !antennaId) { toast("Task incompleto", "Titolo, operatore e antenna sono obbligatori per il flusso sul campo.", "error"); return; }
                 const dueAt = $("taskDueAt").value ? new Date($("taskDueAt").value).toISOString() : null;
-                try { await apiFetch("/api/tasks", { method: "POST", body: JSON.stringify({ title, description: $("taskDescription").value.trim(), operatorId, antennaId: antennaId || null, dueAt, status: "ASSIGNED", priority: $("taskPriority").value }) }); $("taskTitle").value = ""; $("taskDescription").value = ""; $("taskDueAt").value = ""; await Promise.all([loadTasks(), loadStats()]); toast("Task assegnato", "L'operatore può ora visualizzarlo nell'app mobile."); } catch (e) { toast("Assegnazione fallita", e.message, "error"); }
+                button.disabled = true;
+                try { await apiFetch("/api/v1/tasks", { method: "POST", body: JSON.stringify({ title, description: $("taskDescription").value.trim(), operatorId, antennaId: antennaId || null, dueAt, status: "ASSIGNED", priority: $("taskPriority").value }) }); $("taskTitle").value = ""; $("taskDescription").value = ""; $("taskDueAt").value = ""; await Promise.all([loadTasks(), loadStats()]); toast("Task assegnato", "L'operatore può ora visualizzarlo nell'app mobile."); } catch (e) { toast("Assegnazione fallita", e.message, "error"); }
+                finally { button.disabled = false; }
             }
 
             async function loadReports() {
                 try {
-                    const data = await apiFetch("/api/reports", { method: "GET" });
+                    const data = await apiFetch("/api/v1/reports", { method: "GET" });
                     const reports = Array.isArray(data) ? data : [];
-                    $("reportsList").innerHTML = reports.length ? reports.map(r => `<div class="task-row"><div><div class="task-title">Report ${escapeHtml(r.id || "—")}</div><div class="task-meta">Task ${escapeHtml(r.taskId || "—")} · Operatore ${escapeHtml(r.operatorId || "—")} · ${escapeHtml(r.operatorNotes || r.description || "Nessuna nota")}</div></div><div class="actions"><span class="badge ${badgeClass(r.status)}">${escapeHtml(r.status || "SUBMITTED")}</span>${r.status === "SUBMITTED" ? `<button class="mini-btn" data-report-approve="${escapeHtml(r.id)}">Approva</button><button class="mini-btn" data-report-reject="${escapeHtml(r.id)}">Rifiuta</button>` : ""}</div></div>`).join("") : `<div class="empty">Nessun report ricevuto.</div>`;
+                    $("reportsList").innerHTML = reports.length ? reports.map(r => `<div class="task-row"><div><div class="task-title">Report ${escapeHtml(r.id || "—")}</div><div class="task-meta">Task ${escapeHtml(r.taskId || "—")} · Operatore ${escapeHtml(r.operatorName || r.operatorId || "—")} · ${escapeHtml(r.operatorNotes || r.description || "Nessuna nota")}</div>${reportDetails(r)}</div><div class="actions"><span class="badge ${badgeClass(r.status)}">${escapeHtml(r.status || "SUBMITTED")}</span>${r.status === "SUBMITTED" ? `<button class="mini-btn" data-report-approve="${escapeHtml(r.id)}">Approva</button><button class="mini-btn" data-report-reject="${escapeHtml(r.id)}">Rifiuta</button>` : ""}</div></div>`).join("") : `<div class="empty">Nessun report ricevuto.</div>`;
+                applyPermissions();
                     $("reportsList").querySelectorAll('[data-report-approve]').forEach(b => b.addEventListener('click', () => reviewReport(b.dataset.reportApprove, true)));
                     $("reportsList").querySelectorAll('[data-report-reject]').forEach(b => b.addEventListener('click', () => reviewReport(b.dataset.reportReject, false)));
                 } catch (e) { $("reportsList").innerHTML = `<div class="empty">Report non disponibili: ${escapeHtml(e.message)}</div>`; }
             }
 
-            async function reviewReport(id, approve) {
-                const note = approve ? 'Report approvato dalla centrale.' : (prompt('Motivo del rifiuto:') || '');
-                if (!approve && !note.trim()) return;
-                try { await apiFetch(`/api/reports/${encodeURIComponent(id)}/${approve ? 'approve' : 'reject'}`, { method: 'POST', body: JSON.stringify({ note }) }); await Promise.all([loadReports(), loadStats()]); toast(approve ? 'Report approvato' : 'Report rifiutato', approve ? 'Materiali aggiornati e task completato.' : 'Il report è stato restituito all’operatore.'); } catch (e) { toast('Revisione fallita', e.message, 'error'); }
+            document.addEventListener("click", async event => {
+                const button=event.target.closest("[data-local-file]");if(!button||button.disabled)return;button.disabled=true;
+                try { const file=await apiFetch(`/api/v1/files/${button.dataset.localFile}`);const data=Uint8Array.from(atob(file.base64),c=>c.charCodeAt(0));const url=URL.createObjectURL(new Blob([data],{type:"application/octet-stream"}));const link=document.createElement("a");link.href=url;link.download=file.name;link.click();setTimeout(()=>URL.revokeObjectURL(url),1000); }
+                catch(error){toast("Allegato non disponibile",error.message,"error");}finally{button.disabled=false;}
+            });
+            function reportDetails(report) {
+                const measurements = Object.entries(report.measurements || {}).map(([key, value]) => `<li>${escapeHtml(key)}: ${escapeHtml(value)}</li>`).join("");
+                const materials = (report.materialsUsed || []).map(item => `<li>${escapeHtml(item.name || item.itemId || item.inventoryItemId || item.ricambioId || "Materiale")}: ${escapeHtml(item.quantity ?? item.quantita ?? "—")}</li>`).join("");
+                const checklist = Object.entries(report.checklist || {}).map(([key, value]) => `<li>${escapeHtml(key)}: ${value === true ? "Verificato" : "Non verificato"}</li>`).join("");
+                const attachments = (report.attachments || []).map((value, index) => {
+                    if(typeof value==="string"&&/^radiotech-file:[a-f0-9]{64}$/.test(value))return `<li><button class="btn" data-local-file="${value.slice(15)}">Scarica allegato ${index+1}</button></li>`;
+                    try { const url = new URL(value); if (url.protocol !== "https:" || url.username || url.password) return ""; return `<li><a href="${escapeHtml(url.href)}" target="_blank" rel="noopener noreferrer">Allegato ${index + 1}</a></li>`; } catch (_) { return ""; }
+                }).join("");
+                return `<details class="report-details"><summary>Dettagli intervento</summary><p>Asset: ${escapeHtml(report.antennaId || "—")} · Inviato: ${escapeHtml(report.submittedAt ? new Date(report.submittedAt).toLocaleString("it-IT") : "Data non disponibile")}</p><p><strong>Lavoro eseguito</strong><br>${escapeHtml(report.workPerformed || report.description || "Non indicato")}</p><p><strong>Rilievi</strong><br>${escapeHtml(report.findings || "Nessun rilievo indicato")}</p>${measurements ? `<strong>Misure</strong><ul>${measurements}</ul>` : ""}${materials ? `<strong>Materiali</strong><ul>${materials}</ul>` : ""}${checklist ? `<strong>Checklist</strong><ul>${checklist}</ul>` : ""}${attachments ? `<strong>Documenti</strong><ul>${attachments}</ul>` : ""}${report.reviewNote ? `<p><strong>Nota di revisione</strong><br>${escapeHtml(report.reviewNote)}</p>` : ""}</details>`;
             }
 
-            async function telecomPost(path, payload) { return apiFetch(`/api/telecom-tools${path}`, { method: "POST", body: JSON.stringify(payload) }); }
+            async function reviewReport(id, approve) {
+                const buttons = [...$("reportsList").querySelectorAll('[data-report-approve], [data-report-reject]')].filter(b => b.dataset.reportApprove === id || b.dataset.reportReject === id);
+                if (buttons.some(b => b.disabled)) return;
+                const note = approve ? 'Report approvato dalla centrale.' : (prompt('Motivo del rifiuto:') || '');
+                if (!approve && !note.trim()) return;
+                buttons.forEach(b => { b.disabled = true; });
+                try { await apiFetch(`/api/v1/reports/${encodeURIComponent(id)}/${approve ? 'approve' : 'reject'}`, { method: 'POST', body: JSON.stringify({ note }) }); await Promise.all([loadReports(), loadStats()]); toast(approve ? 'Report approvato' : 'Report rifiutato', approve ? 'Materiali aggiornati e task completato.' : 'Il report è stato restituito all’operatore.'); } catch (e) { toast('Revisione fallita', e.message, 'error'); }
+                finally { buttons.forEach(b => { b.disabled = false; }); }
+            }
+
+            async function telecomPost(path, payload) { return apiFetch(`/api/v1/telecom-tools${path}`, { method: "POST", body: JSON.stringify(payload) }); }
 
             async function calculateLinkBudget() {
                 try {
@@ -3231,7 +1975,7 @@
 
             async function loadOperators() {
                 try {
-                    const response = await apiFetch("/api/operators");
+                    const response = await apiFetch("/api/v1/operators");
                     const data = response?.data ?? response;
                     state.operators = Array.isArray(data) ? data : (data?.operators || []);
                     state.operatorLoadError = "";
@@ -3293,6 +2037,7 @@
                         <td><div class="actions">${pending ? `<button class="mini-btn" data-approve="${escapeHtml(id)}">Approva</button>` : ""}<button class="mini-btn" data-badge="${escapeHtml(id)}">Badge</button><button class="mini-btn" data-regenerate="${escapeHtml(id)}">Rigenera QR</button></div></td>
                     </tr>`;
                 }).join("");
+                applyPermissions();
                 table.querySelectorAll("[data-save-role]").forEach(button => button.addEventListener("click", () => saveOperatorRole(button.dataset.saveRole)));
                 table.querySelectorAll("[data-approve]").forEach(button => button.addEventListener("click", () => approveOperator(button.dataset.approve)));
                 table.querySelectorAll("[data-badge]").forEach(button => button.addEventListener("click", () => showBadge(button.dataset.badge)));
@@ -3308,7 +2053,7 @@
                 if (role === "VIEWER" && (operator.role || "OPERATOR").toUpperCase() !== "VIEWER"
                     && !confirm("Il ruolo Sola lettura disabilita l'accesso alle funzioni operative dell'app mobile. Continuare?")) return;
                 try {
-                    await apiFetch(`/api/operators/${encodeURIComponent(id)}/role`, {
+                    await apiFetch(`/api/v1/operators/${encodeURIComponent(id)}/role`, {
                         method: "PATCH", body: JSON.stringify({ role })
                     });
                     await loadOperators();
@@ -3321,7 +2066,7 @@
             async function approveOperator(id) {
                 if (!confirm("Approvare l'operatore e abilitarne l'accesso?")) return;
                 try {
-                    await apiFetch(`/api/operators/${encodeURIComponent(id)}/approve`, { method: "POST" });
+                    await apiFetch(`/api/v1/operators/${encodeURIComponent(id)}/approve`, { method: "POST" });
                     await loadOperators();
                     toast("Operatore approvato", "L'accesso sarà attivo al prossimo login.");
                 } catch (error) {
@@ -3334,7 +2079,7 @@
                 const button = $("saveOperator");
                 button.disabled = true;
                 try {
-                    const result = await apiFetch("/api/operators/generate-credentials", {
+                    const result = await apiFetch("/api/v1/operators/generate-credentials", {
                         method: "POST", body: JSON.stringify({
                             fullName: $("operatorFullName").value.trim(), email: $("operatorEmail").value.trim() || null,
                             phone: $("operatorPhone").value.trim() || null, level: $("operatorLevel").value,
@@ -3351,15 +2096,34 @@
                 } finally { button.disabled = false; }
             }
 
+            async function showAntennaQr(id) {
+                try {
+                    const result = await apiFetch(`/api/v1/antennas/${encodeURIComponent(id)}/qr`);
+                    const data = result?.data ?? result;
+                    $("antennaQrStationName").textContent = data.name || data.antennaId;
+                    $("antennaQrCode").textContent = data.code || "ANT";
+                    $("antennaQrId").textContent = data.antennaId;
+                    $("antennaQrSite").textContent = data.site || "Nessun indirizzo specificato";
+                    $("antennaQrStatus").textContent = data.status || "ATTIVA";
+                    $("antennaQrImage").src = data.imageDataUrl;
+                    const downloadLink = $("antennaQrDownloadLink");
+                    if (downloadLink) {
+                        downloadLink.href = data.imageDataUrl;
+                        downloadLink.download = `QR_${data.code || data.antennaId}.png`;
+                    }
+                    openModal("antennaQrModal");
+                } catch (error) { toast("QR antenna non disponibile", error.message, "error"); }
+            }
+
             async function showBadge(id) {
                 const operator = state.operators.find(item => item.id === id);
-                if (!operator?.qrCodeToken) { toast("Badge non disponibile", "L'operatore non ha un QR attivo.", "error"); return; }
-                $("badgeName").textContent = operator.fullName || operator.email || "Operatore RadioTech";
-                $("badgeDetails").textContent = `${operator.level || "TECNICO"} · ${operator.shift || "GIORNALIERO"}`;
-                $("badgeToken").textContent = operator.qrCodeToken;
+                if (!operator) return;
                 try {
-                    const result = await apiFetch(`/api/operators/${encodeURIComponent(id)}/qr-image`, { method: "POST", body: JSON.stringify({ qrCodeToken: operator.qrCodeToken }) });
+                    const result = await apiFetch(`/api/v1/operators/${encodeURIComponent(id)}/badge`);
                     const data = result?.data ?? result;
+                    $("badgeName").textContent = operator.fullName || operator.email || "Operatore RadioTech";
+                    $("badgeDetails").textContent = `${operator.level || "TECNICO"} · ${operator.shift || "GIORNALIERO"}`;
+                    $("badgeToken").textContent = data.qrCodeToken;
                     $("badgeQr").src = data.imageDataUrl;
                     openModal("badgeModal");
                 } catch (error) { toast("Badge non disponibile", error.message, "error"); }
@@ -3367,7 +2131,7 @@
 
             async function regenerateQr(id) {
                 if (!confirm("Rigenerare il QR? Il badge precedente verrà invalidato.")) return;
-                try { await apiFetch(`/api/operators/${encodeURIComponent(id)}/regenerate-qr`, { method: "POST" }); await loadOperators(); toast("QR rigenerato", "Il badge precedente non è più valido."); }
+                try { await apiFetch(`/api/v1/operators/${encodeURIComponent(id)}/regenerate-qr`, { method: "POST" }); await loadOperators(); toast("QR rigenerato", "Il badge precedente non è più valido."); await showBadge(id); }
                 catch (error) { toast("Rigenerazione fallita", error.message, "error"); }
             }
 
@@ -3381,7 +2145,7 @@
                 const button = $('syncOperatorBtn');
                 button.disabled = true;
                 try {
-                    await apiFetch('/api/operators/sync-firebase-user', {
+                    await apiFetch('/api/v1/operators/sync-firebase-user', {
                         method: 'POST',
                         body: JSON.stringify({ email, fullName })
                     });
@@ -3507,7 +2271,7 @@
                 button.textContent = "Invio...";
 
                 try {
-                    await apiFetch("/api/notifications", {
+                    await apiFetch("/api/v1/notifications", {
                         method: "POST",
                         body: JSON.stringify(payload)
                     });
@@ -3528,7 +2292,7 @@
 
             async function loadInventory() {
                 try {
-                    const data = await apiFetch("/api/inventory");
+                    const data = await apiFetch("/api/v1/inventory");
                     state.inventory = Array.isArray(data) ? data : (data?.inventory || []);
                     renderInventory();
                 } catch (error) {
@@ -3590,6 +2354,7 @@
                         <td><div class="actions">${active ? `<button class="mini-btn" data-inventory-move="${escapeHtml(item.id)}">Movimenta</button><button class="mini-btn" data-inventory-edit="${escapeHtml(item.id)}">Modifica</button><button class="mini-btn" data-inventory-archive="${escapeHtml(item.id)}">Archivia</button>` : `<button class="mini-btn" data-inventory-restore="${escapeHtml(item.id)}">Ripristina</button>`}</div></td>
                     </tr>`;
                 }).join("");
+                applyPermissions();
                 table.querySelectorAll("[data-inventory-move]").forEach(button => button.addEventListener("click", () => openInventoryMovement(button.dataset.inventoryMove)));
                 table.querySelectorAll("[data-inventory-edit]").forEach(button => button.addEventListener("click", () => openInventoryItem(button.dataset.inventoryEdit)));
                 table.querySelectorAll("[data-inventory-archive]").forEach(button => button.addEventListener("click", () => archiveInventoryItem(button.dataset.inventoryArchive)));
@@ -3639,7 +2404,7 @@
                 const button = $("saveInventoryItem");
                 button.disabled = true;
                 try {
-                    await apiFetch(id ? `/api/inventory/${encodeURIComponent(id)}` : "/api/inventory", {
+                    await apiFetch(id ? `/api/v1/inventory/${encodeURIComponent(id)}` : "/api/v1/inventory", {
                         method: id ? "PUT" : "POST", body: JSON.stringify(payload)
                     });
                     closeModal("inventoryItemModal");
@@ -3669,9 +2434,12 @@
 
             async function saveInventoryMovement(event) {
                 event.preventDefault();
+                const button = event.submitter || event.target.querySelector('[type="submit"]');
+                if (button.disabled) return;
+                button.disabled = true;
                 const id = $("inventoryMovementItemId").value;
                 try {
-                    await apiFetch(`/api/inventory/${encodeURIComponent(id)}/movements`, {
+                    await apiFetch(`/api/v1/inventory/${encodeURIComponent(id)}/movements`, {
                         method: "POST", body: JSON.stringify({
                             type: $("inventoryMovementType").value,
                             quantity: Number($("inventoryMovementQuantity").value),
@@ -3683,13 +2451,14 @@
                     await loadInventory();
                     toast("Movimento registrato", "Giacenza e registro sono stati aggiornati.");
                 } catch (error) { toast("Movimento non riuscito", error.message, "error"); }
+                finally { button.disabled = false; }
             }
 
             async function loadInventoryMovements() {
                 const body = $("inventoryMovementsBody");
                 body.innerHTML = '<tr><td colspan="6"><div class="empty"><span class="spinner"></span> Caricamento movimenti...</div></td></tr>';
                 try {
-                    const data = await apiFetch("/api/inventory/movements?limit=250");
+                    const data = await apiFetch("/api/v1/inventory/movements?limit=250");
                     state.inventoryMovements = Array.isArray(data) ? data : (data?.data || []);
                     renderInventoryMovements();
                 } catch (error) {
@@ -3716,7 +2485,7 @@
                 const item = state.inventory.find(row => row.id === id);
                 if (!item || !confirm(`Archiviare “${item.name}”? Lo storico resta consultabile e l'articolo sarà ripristinabile.`)) return;
                 try {
-                    await apiFetch(`/api/inventory/${encodeURIComponent(id)}`, { method: "DELETE" });
+                    await apiFetch(`/api/v1/inventory/${encodeURIComponent(id)}`, { method: "DELETE" });
                     await loadInventory();
                     toast("Articolo archiviato", "L'articolo è stato mantenuto nello storico.");
                 } catch (error) { toast("Archiviazione non riuscita", error.message, "error"); }
@@ -3724,7 +2493,7 @@
 
             async function restoreInventoryItem(id) {
                 try {
-                    await apiFetch(`/api/inventory/${encodeURIComponent(id)}/restore`, { method: "POST" });
+                    await apiFetch(`/api/v1/inventory/${encodeURIComponent(id)}/restore`, { method: "POST" });
                     await loadInventory();
                     toast("Articolo ripristinato", "L'articolo è di nuovo disponibile.");
                 } catch (error) { toast("Ripristino non riuscito", error.message, "error"); }
@@ -3732,7 +2501,11 @@
 
             function exportInventoryCsv() {
                 const columns = ["sku", "name", "category", "quantity", "unit", "minimumThreshold", "reorderQuantity", "location", "supplier", "barcode", "unitCost", "active"];
-                const quote = value => `"${String(value ?? "").replaceAll('"', '""')}"`;
+                const quote = value => {
+                    let text = String(value ?? "");
+                    if (/^[\s]*[=+@-]/.test(text)) text = "'" + text;
+                    return `"${text.replaceAll('"', '""')}"`;
+                };
                 const rows = [columns.join(";"), ...state.inventory.map(item => columns.map(column => quote(column === "quantity" ? inventoryQty(item) : column === "minimumThreshold" ? item.minimumThreshold ?? item.threshold ?? 0 : item[column])).join(";"))];
                 const blob = new Blob(["\uFEFF" + rows.join("\r\n")], { type: "text/csv;charset=utf-8" });
                 const link = document.createElement("a");
@@ -3761,7 +2534,18 @@
                     notifications: ["Centro notifiche", "Comunicazioni operative ai dipendenti"],
                     inventory: ["Inventario", "Materiali e componenti disponibili"],
                     profile: ["Profilo del Capo", "Identità e impostazioni del responsabile"],
-                    system: ["Stato sistema", "Backend, Firestore e sessione"]
+                    system: ["Stato sistema", "Backend, Firestore e sessione"],
+                    tools: ["Telecom Tools", "Calcolo e verifica dei collegamenti radio"],
+                    enterprise: ["Rischi e competenze", "Incidenti, SLA e abilitazioni della squadra"],
+                    ai: ["AI e previsioni", "Analisi operativa, manutenzione preventiva e assistente aziendale"],
+                    people: ["Squadra e sicurezza", "Turni, pause, segnalazioni e supporto alla squadra"],
+                    operators: ["Operatori", "Anagrafica, accessi e abilitazione della squadra"],
+                    reports: ["Centro report", "Revisione dei resoconti degli interventi"],
+                    planning: ["Agenda interventi", "Scadenze, priorità e pianificazione"],
+                    workload: ["Carico della squadra", "Distribuzione degli incarichi attivi"],
+                    supplies: ["Approvvigionamenti", "Scorte da reintegrare e costi disponibili"],
+                    pro: ["Enterprise Pro", "Clienti, contratti, manutenzione, acquisti e consuntivi"],
+                    access: ["Sicurezza e accessi", "Account clienti, secondo fattore e revoca delle sessioni"]
                 };
 
                 setText("pageTitle", titles[view]?.[0] || "Dashboard");
@@ -3776,7 +2560,7 @@
                 }
 
                 if (view === "antennas") loadAntennas().catch(() => { });
-                if (view === "operations") loadOperators().catch(() => { });
+                if (view === "operations") Promise.all([loadOperators(), loadTasks()]).catch(() => { });
                 if (view === "notifications") {
                     loadOperators().catch(() => { });
                     loadNotifications().catch(() => { });
@@ -3826,7 +2610,9 @@
                     loadNotifications(),
                     loadProfile(),
                     loadReports(),
-                    loadTasks()
+                    loadTasks(),
+                    loadOperators(),
+                    management?.refreshCurrent()
                 ];
 
                 const results = await Promise.allSettled(tasks);
@@ -3842,6 +2628,7 @@
                     }
                 }
 
+                applyPermissions();
                 if (state.map) updateMap();
             }
 
@@ -3909,10 +2696,20 @@
             $("cancelOperator")?.addEventListener("click", () => closeModal("operatorModal"));
             $("closeBadgeModal")?.addEventListener("click", () => closeModal("badgeModal"));
             $("closeBadge")?.addEventListener("click", () => closeModal("badgeModal"));
+            $("closeAntennaQrModal")?.addEventListener("click", () => closeModal("antennaQrModal"));
+            $("closeAntennaQr")?.addEventListener("click", () => closeModal("antennaQrModal"));
             $("printBadge")?.addEventListener("click", () => {
                 const printWindow = window.open("", "_blank", "width=500,height=650");
                 if (!printWindow) return;
                 printWindow.document.write(`<html><head><title>Badge RadioTech</title><style>body{font-family:Arial;text-align:center;padding:30px}img{width:280px}code{display:block;margin-top:14px}</style></head><body>${$("badgePrintArea").innerHTML}</body></html>`);
+                printWindow.document.close();
+                printWindow.focus();
+                printWindow.print();
+            });
+            $("printAntennaQr")?.addEventListener("click", () => {
+                const printWindow = window.open("", "_blank", "width=520,height=680");
+                if (!printWindow) return;
+                printWindow.document.write(`<html><head><title>QR Stazione RadioTech</title><style>body{font-family:Arial,sans-serif;text-align:center;padding:30px}img{width:260px;margin-bottom:15px}h3{margin:8px 0}p{color:#555;margin:4px 0}code{display:inline-block;margin-top:10px;font-size:14px;background:#eee;padding:4px 8px;border-radius:4px}</style></head><body>${$("antennaQrPrintArea").innerHTML}</body></html>`);
                 printWindow.document.close();
                 printWindow.focus();
                 printWindow.print();
@@ -3954,6 +2751,8 @@
 
             function signOut() {
                 clearSession();
+                state.tasks = []; state.antennas = []; state.operators = []; state.notifications = []; state.inventory = [];
+                $("loginPassword").value = "";
                 if (state.refreshTimer) clearInterval(state.refreshTimer);
                 state.refreshTimer = null;
                 showLogin("Sei uscito dal Control Center.");
@@ -4000,7 +2799,17 @@
                 showLogin();
             }
 
-            boot();
+            window.addEventListener("DOMContentLoaded", () => {
+                enterprise = window.RadioTechEnterprise({ apiFetch, state, escapeHtml, toast, switchView });
+                companyHub = window.RadioTechCompanyHub({ apiFetch, state, escapeHtml, toast, switchView });
+                proSuite = window.RadioTechPro({ apiFetch, state, escapeHtml, toast, switchView });
+                proSecurity = window.RadioTechProSecurity({ apiFetch, toast, switchView });
+                management = window.RadioTechManagement({ apiFetch, state, escapeHtml, switchView, loadOperators, loadReports });
+                const skip = document.createElement("a");
+                skip.href = "#mainContent"; skip.className = "skip-link"; skip.textContent = "Vai al contenuto";
+                document.body.prepend(skip);
+                boot();
+            });
 
         })();
     </script>

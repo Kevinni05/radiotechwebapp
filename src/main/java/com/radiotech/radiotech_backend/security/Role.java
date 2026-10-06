@@ -12,7 +12,7 @@ import java.util.Map;
  * privilegio (Role.NONE).
  */
 public enum Role {
-    SUPER_ADMIN, ADMIN, CHIEF_EXECUTIVE, NETWORK_MANAGER, ENGINEER, OPERATOR, VIEWER, NONE;
+    SUPER_ADMIN, ADMIN, CHIEF_EXECUTIVE, NETWORK_MANAGER, ENGINEER, OPERATOR, VIEWER, CUSTOMER, NONE;
 
     /** Ruoli che possono usare le API della Control Room. */
     public static final String[] MANAGERS = { "SUPER_ADMIN", "ADMIN", "CHIEF_EXECUTIVE", "NETWORK_MANAGER" };
@@ -48,6 +48,7 @@ public enum Role {
             case "ENGINEER" -> ENGINEER;
             case "OPERATOR", "OPERATORE" -> OPERATOR;
             case "VIEWER" -> VIEWER;
+            case "CUSTOMER" -> CUSTOMER;
             default -> NONE;
         };
     }

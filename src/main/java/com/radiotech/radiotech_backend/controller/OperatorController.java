@@ -271,12 +271,35 @@ public class OperatorController {
                 }
         }
 
+        @GetMapping("/{id}/badge")
+        public ResponseEntity<?> badge(@PathVariable String id,
+                        @RequestHeader(value = "X-Tenant-Id", required = false) String tenantId) {
+                try {
+                        requirePermission(Permission.USER_UPDATE, tenantId);
+                        Operator operator = operatorService.getById(id);
+                        if (operator.getQrCodeToken() == null || operator.getQrUsedAt() != null
+                                        || operator.getQrExpiresAt() == null
+                                        || !java.time.Instant.parse(operator.getQrExpiresAt()).isAfter(java.time.Instant.now())) {
+                                return ResponseEntity.status(HttpStatus.CONFLICT).body(error("Badge scaduto o utilizzato. Rigenera il QR."));
+                        }
+                        return ResponseEntity.ok(success("Badge operatore.", Map.of(
+                                        "qrCodeToken", operator.getQrCodeToken(),
+                                        "imageDataUrl", qrCodeService.toDataUri(operator.getQrCodeToken()))));
+                } catch (IllegalArgumentException e) {
+                        return ResponseEntity.badRequest().body(error(e.getMessage()));
+                } catch (SecurityException e) {
+                        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error(e.getMessage()));
+                } catch (Exception e) {
+                        return internalError("Badge non disponibile.");
+                }
+        }
+
         @PostMapping("/{id}/qr-image")
         public ResponseEntity<?> qrImage(@PathVariable String id,
                         @RequestBody Map<String, String> request,
                         @RequestHeader(value = "X-Tenant-Id", required = false) String tenantId) {
                 try {
-                        requirePermission(Permission.USER_READ, tenantId);
+                        requirePermission(Permission.USER_UPDATE, tenantId);
                         Operator operator = operatorService.getById(id);
                         String token = request == null ? null : request.get("qrCodeToken");
                         if (token == null || !token.equals(operator.getQrCodeToken())) {
@@ -513,7 +536,7 @@ public class OperatorController {
                         @RequestHeader(value = "X-Tenant-Id", required = false) String tenantId) {
 
                 try {
-                        requirePermission(Permission.USER_READ, tenantId);
+                        requirePermission(Permission.USER_UPDATE, tenantId);
 
                         Operator operator = operatorService.findByQrToken(
                                         qrCodeToken);

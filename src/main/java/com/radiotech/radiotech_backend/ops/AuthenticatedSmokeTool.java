@@ -1,0 +1,30 @@
+package com.radiotech.radiotech_backend.ops;
+import com.google.auth.oauth2.GoogleCredentials;
+import com.google.firebase.*;
+import com.google.firebase.auth.*;
+import java.net.*;
+import java.net.http.*;
+import java.time.Duration;
+import java.util.*;
+import tools.jackson.databind.json.JsonMapper;
+/** Local read-only smoke checks; credentials/tokens are never printed. */
+public final class AuthenticatedSmokeTool {
+ public static void main(String[] args)throws Exception{
+  if(args.length!=1||!URI.create(args[0]).getHost().equals("127.0.0.1"))throw new IllegalArgumentException("Local backend origin required");
+  String project=System.getenv("FIREBASE_PROJECT_ID"),key=System.getenv("RADIOTECH_FIREBASE_WEB_API_KEY"),path=System.getenv("FIREBASE_SERVICE_ACCOUNT_PATH");if(project==null||key==null||path==null)throw new IllegalArgumentException("Explicit Firebase project, API key and service-account path required");
+  try(var stream=java.nio.file.Files.newInputStream(java.nio.file.Path.of(path))){FirebaseApp.initializeApp(FirebaseOptions.builder().setProjectId(project).setCredentials(GoogleCredentials.fromStream(stream)).build());}
+  try{
+   var mapper=JsonMapper.builder().build();var client=HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).followRedirects(HttpClient.Redirect.NEVER).build();UserRecord manager=null;
+   for(var user:FirebaseAuth.getInstance().listUsers(null).iterateAll())if(!user.isDisabled()&&Set.of(com.radiotech.radiotech_backend.security.Role.ADMIN,com.radiotech.radiotech_backend.security.Role.SUPER_ADMIN,com.radiotech.radiotech_backend.security.Role.CHIEF_EXECUTIVE,com.radiotech.radiotech_backend.security.Role.NETWORK_MANAGER).contains(com.radiotech.radiotech_backend.security.Role.fromClaims(user.getCustomClaims()))&&user.getCustomClaims().get("tenantId")!=null&&!Boolean.TRUE.equals(user.getCustomClaims().get("mfaRequired"))){manager=user;break;}
+   if(manager==null)throw new IllegalArgumentException("No eligible test manager exists");
+   String custom=FirebaseAuth.getInstance().createCustomToken(manager.getUid());var authRequest=HttpRequest.newBuilder(URI.create("https://identitytoolkit.googleapis.com/v1/accounts:signInWithCustomToken?key="+key)).timeout(Duration.ofSeconds(20)).header("Content-Type","application/json").POST(HttpRequest.BodyPublishers.ofString(mapper.writeValueAsString(Map.of("token",custom,"returnSecureToken",true)))).build();
+   var authResponse=client.send(authRequest,HttpResponse.BodyHandlers.ofString());if(authResponse.statusCode()!=200)throw new IllegalStateException("Firebase smoke login failed: HTTP "+authResponse.statusCode());String token=mapper.readValue(authResponse.body(),Map.class).get("idToken").toString();
+   var catalog=(List<Map<String,Object>>)get(client,mapper,args[0]+"/api/v1/pro/catalog",token);for(var module:catalog)get(client,mapper,args[0]+"/api/v1/pro/"+module.get("id"),token);System.out.println("Authenticated Pro catalog and "+catalog.size()+" sections: HTTP 200");
+   var antennas=(List<Map<String,Object>>)get(client,mapper,args[0]+"/api/v1/antennas",token);if(!antennas.isEmpty()){String id=antennas.getFirst().get("id").toString();var qr=(Map<String,Object>)get(client,mapper,args[0]+"/api/v1/antennas/"+id+"/qr",token);byte[] png=Base64.getDecoder().decode(qr.get("imageDataUrl").toString().split(",")[1]);var image=javax.imageio.ImageIO.read(new java.io.ByteArrayInputStream(png));var binary=new com.google.zxing.BinaryBitmap(new com.google.zxing.common.HybridBinarizer(new com.google.zxing.client.j2se.BufferedImageLuminanceSource(image)));String decoded=new com.google.zxing.MultiFormatReader().decode(binary).getText();if(!id.equals(decoded))throw new IllegalStateException("QR payload mismatch");var resolved=(Map<String,Object>)get(client,mapper,args[0]+"/api/v1/antennas/resolve/"+id,token);if(!id.equals(resolved.get("id")))throw new IllegalStateException("Mobile QR resolve mismatch");System.out.println("Antenna QR: authenticated HTTP 200, PNG decoded, mobile resolution matched");}else System.out.println("Antenna QR live check skipped: no assets in the test manager tenant");
+   var storage=(Map<String,Object>)get(client,mapper,args[0]+"/api/v1/files/config",token);
+   if("LOCAL".equals(storage.get("mode"))){byte[] content="RadioTech free attachment smoke test".getBytes();var uploadRequest=HttpRequest.newBuilder(URI.create(args[0]+"/api/v1/files?name=smoke-test.txt&operationId=smoke_"+UUID.randomUUID())).timeout(Duration.ofSeconds(20)).header("Authorization","Bearer "+token).header("Content-Type","application/octet-stream").POST(HttpRequest.BodyPublishers.ofByteArray(content)).build();var upload=client.send(uploadRequest,HttpResponse.BodyHandlers.ofString());if(upload.statusCode()!=200)throw new IllegalStateException("Local attachment upload failed: HTTP "+upload.statusCode());var saved=mapper.readValue(upload.body(),Map.class);String id=saved.get("reference").toString().substring("radiotech-file:".length());var downloaded=(Map<String,Object>)get(client,mapper,args[0]+"/api/v1/files/"+id,token);if(!Arrays.equals(content,Base64.getDecoder().decode(downloaded.get("base64").toString())))throw new IllegalStateException("Local attachment content mismatch");System.out.println("Free local attachments: authenticated upload/download and integrity verified");}
+   get(client,mapper,args[0]+"/actuator/health/readiness",token);System.out.println("Authenticated backend readiness: HTTP 200");
+  }finally{FirebaseApp.getInstance().delete();}
+ }
+ private static Object get(HttpClient client,JsonMapper mapper,String url,String token)throws Exception{var response=client.send(HttpRequest.newBuilder(URI.create(url)).timeout(Duration.ofSeconds(25)).header("Authorization","Bearer "+token).GET().build(),HttpResponse.BodyHandlers.ofString());if(response.statusCode()!=200)throw new IllegalStateException("Smoke endpoint failed: "+URI.create(url).getPath()+" HTTP "+response.statusCode());Object body=mapper.readValue(response.body(),Object.class);return body instanceof Map<?,?> m&&m.get("data")!=null?m.get("data"):body;}
+}

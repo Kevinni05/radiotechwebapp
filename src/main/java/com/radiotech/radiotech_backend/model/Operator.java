@@ -39,6 +39,7 @@ public class Operator {
 
     private String firebaseUid;
 
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     private String qrCodeToken;
 
     private String qrExpiresAt;

@@ -1,0 +1,29 @@
+services:
+  api:
+    build: .
+    restart: unless-stopped
+    init: true
+    env_file: .env.production
+    environment:
+      SPRING_PROFILES_ACTIVE: production
+      GOOGLE_APPLICATION_CREDENTIALS: /run/secrets/firebase_credentials
+    secrets:
+      - firebase_credentials
+    ports:
+      - "127.0.0.1:8080:8080"
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=128m
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    mem_limit: 1g
+    cpus: 2
+    healthcheck:
+      test: [CMD, curl, -fsS, http://localhost:8080/actuator/health/readiness]
+      interval: 30s
+      timeout: 10s
+      start_period: 90s
+      retries: 3
+secrets:
+  firebase_credentials:
+    file: ${FIREBASE_CREDENTIALS_FILE:?Set FIREBASE_CREDENTIALS_FILE to the external ADC JSON path}

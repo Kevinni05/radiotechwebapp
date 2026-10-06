@@ -2,8 +2,15 @@ const path = require('node:path');
 const { spawn } = require('node:child_process');
 
 const tests = [
+  'com.radiotech.radiotech_backend.service.ProEmulatorTest',
+  'com.radiotech.radiotech_backend.service.NotificationHistoryEmulatorTest',
+  'com.radiotech.radiotech_backend.service.WorkforceEmulatorTest',
   'com.radiotech.radiotech_backend.service.AlertEngineFirestoreEmulatorTest',
+  'com.radiotech.radiotech_backend.service.TaskIdempotencyEmulatorTest',
+  'com.radiotech.radiotech_backend.service.TechnicianSkillServiceEmulatorTest',
+  'com.radiotech.radiotech_backend.service.RicambioServiceAtomicityEmulatorTest',
   'com.radiotech.radiotech_backend.service.MaintenanceReportFirestoreEmulatorTest',
+  'com.radiotech.radiotech_backend.service.ManutenzioneServiceAlertTest',
   'com.radiotech.radiotech_backend.service.OperatorFieldWorkflowFirestoreEmulatorTest',
   'com.radiotech.radiotech_backend.service.IncidentServiceEmulatorTest',
   'com.radiotech.radiotech_backend.service.OperatorServiceTenantMutationEmulatorTest',

@@ -8,7 +8,7 @@ The web client is the executive Control Room. The same REST API is exposed to th
 
 ## Required production configuration
 
-Do not ship a Firebase Admin service-account JSON inside the application package. Use Google Application Default Credentials or inject `GOOGLE_APPLICATION_CREDENTIALS` / `FIREBASE_SERVICE_ACCOUNT_JSON` as a secret.
+Do not ship a Firebase Admin service-account JSON inside the application package. Use Google Application Default Credentials or mount a credential file outside the image and point `GOOGLE_APPLICATION_CREDENTIALS` to it. See DEPLOYMENT.md for the production configuration.
 
 Set:
 
@@ -180,7 +180,7 @@ Before deployment:
 - configure Firestore indexes/rules and Firebase Storage rules;
 - enable HTTPS;
 - use a shared rate-limit store or edge protection before running multiple API instances; the current limiter is per-process;
-- deploy an explicit Content-Security-Policy only after moving the inline Control Room scripts/styles to nonce/hash-based assets and accounting for Leaflet/OpenStreetMap origins;
+- keep the Control Room nonce-based Content-Security-Policy enabled; Leaflet assets are served locally and OpenStreetMap tile origins are restricted;
 - configure structured application logging and monitoring;
 - test web and mobile authentication with real Firebase accounts;
 - test task/report lifecycle end-to-end.

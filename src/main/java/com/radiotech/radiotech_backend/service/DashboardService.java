@@ -172,7 +172,12 @@ public class DashboardService {
     }
 
     public List<Map<String, Object>> getOperators() throws Exception {
-        return getCollection("operators");
+        List<Map<String, Object>> records = getCollection("operators");
+        records.forEach(record -> {
+            record.remove("qrCodeToken");
+            record.remove("fcmTokens");
+        });
+        return records;
     }
 
     public List<Map<String, Object>> getTasks() throws Exception {

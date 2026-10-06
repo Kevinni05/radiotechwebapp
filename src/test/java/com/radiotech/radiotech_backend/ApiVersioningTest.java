@@ -113,7 +113,7 @@ class ApiVersioningTest {
             FirebaseAuth firebaseAuth = mock(FirebaseAuth.class);
             FirebaseToken decodedToken = mock(FirebaseToken.class);
             firebaseAuthStatic.when(FirebaseAuth::getInstance).thenReturn(firebaseAuth);
-            when(firebaseAuth.verifyIdToken("valid-token")).thenReturn(decodedToken);
+            when(firebaseAuth.verifyIdToken("valid-token", true)).thenReturn(decodedToken);
             when(decodedToken.getUid()).thenReturn("operator-uid");
             when(decodedToken.getClaims()).thenReturn(Map.of("role", "OPERATOR", "tenantId", "tenant-a"));
 

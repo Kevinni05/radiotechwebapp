@@ -72,6 +72,13 @@ public class AntennaController {
         }
     }
 
+    @GetMapping("/{id}/qr")
+    public ResponseEntity<?> qr(@PathVariable String id,
+            @RequestHeader(value = "X-Tenant-Id", required = false) String tenantId) throws Exception {
+        requirePermission(Permission.ASSET_READ, tenantId);
+        return ResponseEntity.ok(antennaService.generateQrData(id));
+    }
+
     /**
      * Resolves a scanned station QR payload to the full antenna document.
      */

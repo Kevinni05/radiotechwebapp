@@ -27,7 +27,7 @@ class DashboardPageControllerTest {
         String firstNonce = (String) firstModel.get("cspNonce");
         assertTrue(firstNonce.matches("[A-Za-z0-9_-]{20,}"));
         assertTrue(firstResponse.getHeader("Content-Security-Policy").contains("'nonce-" + firstNonce + "'"));
-        assertTrue(firstResponse.getHeader("Content-Security-Policy").contains("https://unpkg.com"));
+        assertTrue(!firstResponse.getHeader("Content-Security-Policy").contains("https://unpkg.com"));
         assertTrue(firstResponse.getHeader("Content-Security-Policy").contains("style-src-attr 'unsafe-inline'"));
         assertNotEquals(firstNonce, secondModel.get("cspNonce"));
     }

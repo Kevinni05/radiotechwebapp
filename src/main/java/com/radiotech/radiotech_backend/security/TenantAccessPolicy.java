@@ -54,8 +54,6 @@ public final class TenantAccessPolicy {
             Permission.ALERT_READ,
             Permission.ALERT_ACK,
             Permission.INCIDENT_READ,
-            Permission.INCIDENT_CREATE,
-            Permission.INCIDENT_UPDATE,
             Permission.INVENTORY_READ,
             Permission.USER_READ,
             Permission.ANALYTICS_READ);
@@ -79,7 +77,7 @@ public final class TenantAccessPolicy {
             case ADMIN, CHIEF_EXECUTIVE, NETWORK_MANAGER, ENGINEER -> MANAGER_PERMISSIONS.contains(permission);
             case OPERATOR -> OPERATOR_PERMISSIONS.contains(permission);
             case VIEWER -> VIEWER_PERMISSIONS.contains(permission);
-            case NONE -> false;
+            case CUSTOMER, NONE -> false;
         };
     }
 

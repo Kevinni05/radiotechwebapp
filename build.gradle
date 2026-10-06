@@ -5,7 +5,7 @@ plugins {
 }
 
 group = 'com.radiotech'
-version = '0.0.1-SNAPSHOT'
+version = '1.0.0'
 
 java {
     toolchain {
@@ -19,16 +19,19 @@ repositories {
 
 dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
+    implementation 'io.micrometer:micrometer-registry-prometheus'
+    implementation 'io.micrometer:micrometer-tracing-bridge-otel'
+    implementation 'io.opentelemetry:opentelemetry-exporter-otlp'
     implementation 'org.springframework.boot:spring-boot-starter-security'
     implementation 'org.springframework.boot:spring-boot-starter-web'
     implementation 'org.springframework.boot:spring-boot-starter-validation'
     implementation 'org.springframework.boot:spring-boot-starter-thymeleaf'
-    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.0'
+    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:3.1.1'
     implementation 'jakarta.annotation:jakarta.annotation-api:3.0.0'
     implementation 'jakarta.servlet:jakarta.servlet-api:6.1.0'
     implementation 'jakarta.validation:jakarta.validation-api:3.1.1'
 
-    implementation 'com.google.firebase:firebase-admin:9.2.0'
+    implementation 'com.google.firebase:firebase-admin:9.11.0'
     implementation 'com.google.zxing:core:3.5.3'
     implementation 'com.google.zxing:javase:3.5.3'
 
@@ -42,4 +45,25 @@ dependencies {
 
 tasks.named('test') {
     useJUnitPlatform()
+}
+
+tasks.withType(AbstractArchiveTask).configureEach {
+    preserveFileTimestamps = false
+    reproducibleFileOrder = true
+}
+
+tasks.named('bootJar') {
+    archiveFileName = 'radiotech.jar'
+}
+
+tasks.register('backupTool', JavaExec) {
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.radiotech.radiotech_backend.ops.BackupTool'
+    if (project.hasProperty('backupMode')) args project.property('backupMode'), project.property('backupArchive'), project.property('backupKey')
+}
+
+tasks.register('authenticatedSmoke', JavaExec) {
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.radiotech.radiotech_backend.ops.AuthenticatedSmokeTool'
+    args project.findProperty('smokeOrigin') ?: 'http://127.0.0.1:8080'
 }

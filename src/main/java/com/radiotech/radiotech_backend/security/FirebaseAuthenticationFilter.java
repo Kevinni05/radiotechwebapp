@@ -27,6 +27,8 @@ public class FirebaseAuthenticationFilter
         private static final Logger log = LoggerFactory.getLogger(FirebaseAuthenticationFilter.class);
 
         private static final String BEARER_PREFIX = "Bearer ";
+        @org.springframework.beans.factory.annotation.Value("${radiotech.security.metrics-token:}")
+        private String metricsToken = "";
 
         @Override
         protected boolean shouldNotFilter(HttpServletRequest request) {
@@ -55,6 +57,13 @@ public class FirebaseAuthenticationFilter
                 }
 
                 String authorization = request.getHeader("Authorization");
+                if ("/actuator/prometheus".equals(path) && metricsToken.length() >= 32 && authorization != null
+                        && java.security.MessageDigest.isEqual(authorization.getBytes(java.nio.charset.StandardCharsets.UTF_8),
+                                (BEARER_PREFIX + metricsToken).getBytes(java.nio.charset.StandardCharsets.UTF_8))) {
+                        SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken("METRICS_SCRAPER", null, List.of(new SimpleGrantedAuthority("ROLE_ADMIN"))));
+                        filterChain.doFilter(request,response);
+                        return;
+                }
 
                 if (authorization == null ||
                                 authorization.isBlank()) {
@@ -97,7 +106,7 @@ public class FirebaseAuthenticationFilter
 
                 FirebaseToken decoded;
                 try {
-                        decoded = FirebaseAuth.getInstance().verifyIdToken(idToken);
+                        decoded = FirebaseAuth.getInstance().verifyIdToken(idToken, true);
                 } catch (Exception e) {
                         log.warn("Firebase ID token rifiutato: {}", e.getMessage());
                         SecurityContextHolder.clearContext();
@@ -121,6 +130,14 @@ public class FirebaseAuthenticationFilter
                 }
 
                 Role authenticatedRole = Role.fromClaims(decoded.getClaims());
+                if (Boolean.TRUE.equals(decoded.getClaims().get("mfaRequired"))) {
+                        Object firebase = decoded.getClaims().get("firebase");
+                        if ((!(firebase instanceof java.util.Map<?,?> claims) || claims.get("sign_in_second_factor") == null)
+                                && !(Boolean.TRUE.equals(decoded.getClaims().get("radioMfaVerified")) && decoded.getClaims().get("radioDeviceId") instanceof String)) {
+                                sendForbidden(response, "Autenticazione a due fattori richiesta.");
+                                return;
+                        }
+                }
                 if (authenticatedRole == Role.NONE) {
                         sendForbidden(response, "Ruolo applicativo non assegnato.");
                         return;
@@ -133,6 +150,15 @@ public class FirebaseAuthenticationFilter
                         return;
                 }
                 String role = authenticatedRole.name();
+                if (decoded.getClaims().get("radioDeviceId") instanceof String deviceId) {
+                        try {
+                                if (!deviceId.matches("[a-f0-9]{64}")) throw new SecurityException("Dispositivo non valido.");
+                                var device=com.google.firebase.cloud.FirestoreClient.getFirestore().collection("pro_devices").document(deviceId).get().get();
+                                if (!device.exists() || !tenantId.equals(device.getString("tenantId")) || !decoded.getUid().equals(device.getString("uid")) || !"ACTIVE".equals(device.getString("status"))) {
+                                        sendUnauthorized(response,"Dispositivo revocato: accedi nuovamente.");return;
+                                }
+                        } catch(Exception error) { sendUnauthorized(response,"Impossibile verificare il dispositivo.");return; }
+                }
 
                 request.setAttribute("firebaseUid", decoded.getUid());
                 request.setAttribute("tenantId", tenantId);
@@ -143,7 +169,9 @@ public class FirebaseAuthenticationFilter
                 UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
                                 decoded.getUid(), null, List.of(new SimpleGrantedAuthority("ROLE_" + role)));
                 authentication.setDetails(new FirebaseAuthenticationDetails(
-                                decoded.getUid(), decoded.getEmail(), decoded.getName(), tenantId));
+                                decoded.getUid(), decoded.getEmail(), decoded.getName(), tenantId,
+                                decoded.getClaims().get("customerId") instanceof String customerId ? customerId : null,
+                                decoded.getClaims().get("proPermissions") instanceof java.util.List<?> permissions ? permissions.stream().filter(String.class::isInstance).map(String.class::cast).toList() : null));
                 SecurityContextHolder.getContext().setAuthentication(authentication);
 
                 filterChain.doFilter(request, response);
@@ -159,6 +187,7 @@ public class FirebaseAuthenticationFilter
                 return path.equals("/")
                                 || path.equals("/dashboard")
                                 || path.equals("/login")
+                                || path.equals("/portal")
 
                                 || path.startsWith("/css/")
                                 || path.startsWith("/js/")
@@ -175,6 +204,7 @@ public class FirebaseAuthenticationFilter
                                 || path.equals("/api/auth/refresh")
                                 || path.equals("/api/auth/qr-login")
                                 || path.equals("/api/v1/auth/login")
+                                || path.equals("/api/v1/auth/public-config")
                                 || path.equals("/api/v1/auth/verify")
                                 || path.equals("/api/v1/auth/refresh")
                                 || path.equals("/api/v1/auth/qr-login")

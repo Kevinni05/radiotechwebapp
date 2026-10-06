@@ -18,6 +18,10 @@ import java.util.Map;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+        @ExceptionHandler(org.springframework.web.servlet.resource.NoResourceFoundException.class)
+        public ResponseEntity<Map<String,Object>> missingResource(org.springframework.web.servlet.resource.NoResourceFoundException exception) {
+                return buildResponse(HttpStatus.NOT_FOUND, "Risorsa non disponibile.");
+        }
 
         @ExceptionHandler(IllegalArgumentException.class)
         public ResponseEntity<Map<String, Object>> handleIllegalArgument(
@@ -80,9 +84,9 @@ public class GlobalExceptionHandler {
                         "Permesso insufficiente.");
         }
 
-        @ExceptionHandler(MaintenanceReportService.IdempotencyConflictException.class)
+        @ExceptionHandler({MaintenanceReportService.IdempotencyConflictException.class, com.radiotech.radiotech_backend.service.TaskService.IdempotencyConflictException.class})
         public ResponseEntity<Map<String, Object>> handleIdempotencyConflict(
-                        MaintenanceReportService.IdempotencyConflictException exception) {
+                        RuntimeException exception) {
 
                 return buildResponse(
                                 HttpStatus.CONFLICT,
@@ -96,6 +100,12 @@ public class GlobalExceptionHandler {
                                 .findFirst()
                                 .orElse("Dati della richiesta non validi.");
                 return buildResponse(HttpStatus.BAD_REQUEST, message);
+        }
+
+        @ExceptionHandler(org.springframework.web.server.ResponseStatusException.class)
+        public ResponseEntity<Map<String, Object>> handleResponseStatus(org.springframework.web.server.ResponseStatusException exception) {
+                HttpStatus status = HttpStatus.resolve(exception.getStatusCode().value());
+                return buildResponse(status == null ? HttpStatus.INTERNAL_SERVER_ERROR : status, exception.getReason());
         }
 
         @ExceptionHandler(Exception.class)

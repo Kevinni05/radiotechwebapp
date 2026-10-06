@@ -1,0 +1,70 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: radiotech
+spec:
+  replicas: 2
+  revisionHistoryLimit: 5
+  selector:
+    matchLabels: {app: radiotech}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate: {maxUnavailable: 0, maxSurge: 1}
+  template:
+    metadata:
+      labels: {app: radiotech}
+    spec:
+      serviceAccountName: radiotech
+      terminationGracePeriodSeconds: 45
+      securityContext: {runAsNonRoot: true, runAsUser: 10001, runAsGroup: 10001, fsGroup: 10001}
+      containers:
+        - name: api
+          image: REPLACE_WITH_COMPANY_REGISTRY/radiotech@sha256:REPLACE_WITH_VERIFIED_DIGEST
+          ports: [{containerPort: 8080}]
+          env:
+            - {name: SPRING_PROFILES_ACTIVE, value: production}
+          envFrom:
+            - secretRef: {name: radiotech-runtime}
+          resources:
+            requests: {cpu: 500m, memory: 512Mi}
+            limits: {cpu: '2', memory: 1Gi}
+          startupProbe:
+            httpGet: {path: /actuator/health/liveness, port: 8080}
+            failureThreshold: 30
+            periodSeconds: 5
+          readinessProbe:
+            httpGet: {path: /actuator/health/readiness, port: 8080}
+          livenessProbe:
+            httpGet: {path: /actuator/health/liveness, port: 8080}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: [ALL]}
+          volumeMounts:
+            - {name: temporary, mountPath: /tmp}
+            - {name: credentials, mountPath: /run/secrets/firebase, readOnly: true}
+      volumes:
+        - name: temporary
+          emptyDir: {sizeLimit: 128Mi}
+        - name: credentials
+          secret: {secretName: radiotech-firebase-credentials}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata: {name: radiotech}
+automountServiceAccountToken: false
+---
+apiVersion: v1
+kind: Service
+metadata: {name: radiotech}
+spec:
+  selector: {app: radiotech}
+  ports: [{port: 80, targetPort: 8080}]
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata: {name: radiotech}
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels: {app: radiotech}

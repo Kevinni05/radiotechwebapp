@@ -35,6 +35,7 @@ public class SecurityConfig {
                                                                 "/api/auth/verify",
                                                                 "/api/auth/qr-login",
                                                                 "/api/v1/auth/login",
+                                                                "/api/v1/auth/public-config",
                                                                 "/api/v1/auth/refresh",
                                                                 "/api/v1/auth/verify",
                                                                 "/api/v1/auth/qr-login",
@@ -56,7 +57,7 @@ public class SecurityConfig {
                                                 .requestMatchers("/api/reports/verify/**", "/api/v1/reports/verify/**")
                                                 .permitAll()
 
-                                                .requestMatchers("/actuator/metrics", "/actuator/metrics/**")
+                                                .requestMatchers("/actuator/metrics", "/actuator/metrics/**", "/actuator/prometheus")
                                                 .hasAnyRole(Role.ACCOUNT_ADMINS)
 
                                                 // Auto-registrazione: basta un account Firebase valido.
@@ -93,6 +94,7 @@ public class SecurityConfig {
                                                 .requestMatchers(
                                                                 "/",
                                                                 "/login",
+                                                                "/portal",
                                                                 "/dashboard",
                                                                 "/css/**",
                                                                 "/js/**",

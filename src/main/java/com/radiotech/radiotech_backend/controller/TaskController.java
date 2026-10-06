@@ -70,6 +70,8 @@ public class TaskController {
                                                         "Task recuperato correttamente.",
                                                         task));
 
+                } catch (TaskService.IdempotencyConflictException e) {
+                        return ResponseEntity.status(HttpStatus.CONFLICT).body(error("Conflitto di idempotenza."));
                 } catch (IllegalArgumentException e) {
 
                         return ResponseEntity
@@ -105,6 +107,8 @@ public class TaskController {
                                                                         "Task creato correttamente.",
                                                                         created));
 
+                } catch (TaskService.IdempotencyConflictException e) {
+                        return ResponseEntity.status(HttpStatus.CONFLICT).body(error("Conflitto di idempotenza."));
                 } catch (IllegalArgumentException e) {
 
                         return ResponseEntity
@@ -159,6 +163,8 @@ public class TaskController {
                                                         "Stato del task aggiornato.",
                                                         updated));
 
+                } catch (TaskService.IdempotencyConflictException e) {
+                        return ResponseEntity.status(HttpStatus.CONFLICT).body(error("Conflitto di idempotenza."));
                 } catch (IllegalArgumentException e) {
 
                         return ResponseEntity
@@ -182,6 +188,8 @@ public class TaskController {
                 try {
                         requirePermission(Permission.TASK_APPROVE, tenantId);
                         return ResponseEntity.ok(taskService.updateStatus(id, "CLOSED", idempotencyKey));
+                } catch (TaskService.IdempotencyConflictException e) {
+                        return ResponseEntity.status(HttpStatus.CONFLICT).body(error("Conflitto di idempotenza."));
                 } catch (IllegalArgumentException e) {
                         return ResponseEntity.badRequest().body(error(e.getMessage()));
                 } catch (SecurityException e) {
@@ -207,6 +215,8 @@ public class TaskController {
                                                         "Task dell'operatore recuperati.",
                                                         tasks));
 
+                } catch (TaskService.IdempotencyConflictException e) {
+                        return ResponseEntity.status(HttpStatus.CONFLICT).body(error("Conflitto di idempotenza."));
                 } catch (IllegalArgumentException e) {
 
                         return ResponseEntity
@@ -238,6 +248,8 @@ public class TaskController {
                                                         "Task dell'antenna recuperati.",
                                                         tasks));
 
+                } catch (TaskService.IdempotencyConflictException e) {
+                        return ResponseEntity.status(HttpStatus.CONFLICT).body(error("Conflitto di idempotenza."));
                 } catch (IllegalArgumentException e) {
 
                         return ResponseEntity

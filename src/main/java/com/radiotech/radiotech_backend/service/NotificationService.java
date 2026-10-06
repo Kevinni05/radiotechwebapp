@@ -80,11 +80,12 @@ public class NotificationService {
                                         "Nessun token FCM per l'operatore: "
                                                         + operatorId);
 
+                        record(title, body, 0, operatorId, data);
                         return 0;
                 }
 
                 int delivered = sendNotification(tokens, title, body, data);
-                record(title, body, delivered, operatorId);
+                record(title, body, delivered, operatorId, data);
 
                 log.info(
                                 "Notifica FCM inviata all'operatore: "
@@ -144,11 +145,12 @@ public class NotificationService {
                         log.info(
                                         "Nessun token FCM disponibile.");
 
+                        record(title, body, 0, "BROADCAST", Map.of());
                         return 0;
                 }
 
                 int delivered = sendNotification(tokens, title, body, Map.of());
-                record(title, body, delivered, "BROADCAST");
+                record(title, body, delivered, "BROADCAST", Map.of());
                 return delivered;
         }
 
@@ -166,18 +168,90 @@ public class NotificationService {
                 return result;
         }
 
-        private void record(String title, String body, int delivered, String target) {
+        public List<Map<String, Object>> getOperatorHistory(String uid) throws Exception {
+                String tenantId = currentTenant();
+                Operator operator = operatorService.getByFirebaseUid(uid);
+                if (operator == null || !tenantId.equals(operator.getTenantId())
+                                || !uid.equals(operator.getFirebaseUid())) {
+                        throw new SecurityException("Operatore non appartenente alla sessione autenticata.");
+                }
+                List<Map<String, Object>> result = new ArrayList<>();
+                // A single tenant equality index also supports existing installations.
+                // Filter recipients before returning any records to the mobile client.
+                var documents = FirestoreClient.getFirestore().collection("notificationHistory")
+                                .whereEqualTo("tenantId", tenantId).get().get().getDocuments();
+                var receipts = new java.util.HashMap<String, Map<String, Object>>();
+                for (var receipt : FirestoreClient.getFirestore().collection("notificationReceipts")
+                                .whereEqualTo("uid", uid).get().get().getDocuments()) {
+                        if (tenantId.equals(receipt.getString("tenantId"))) receipts.put(receipt.getString("notificationId"), receipt.getData());
+                }
+                for (var document : documents) {
+                        String target = document.getString("target");
+                        if (!"BROADCAST".equals(target) && !operator.getId().equals(target)) continue;
+                        Map<String, Object> item = new java.util.LinkedHashMap<>(document.getData());
+                        item.put("id", document.getId());
+                        var receipt = receipts.get(document.getId());
+                        if (receipt != null) {
+                                item.put("readAt", receipt.getOrDefault("readAt", ""));
+                                item.put("acknowledgedAt", receipt.getOrDefault("acknowledgedAt", ""));
+                        }
+                        result.add(item);
+                }
+                result.sort(java.util.Comparator.comparing(
+                                (Map<String, Object> item) -> String.valueOf(item.getOrDefault("createdAt", "")))
+                                .reversed());
+                return result.stream().limit(100).toList();
+        }
+
+        public Map<String, Object> receipt(String uid, String notificationId, boolean acknowledge) throws Exception {
+                if (notificationId == null || !notificationId.matches("[A-Za-z0-9_-]{1,128}")) throw new IllegalArgumentException("Notifica non valida.");
+                String tenant = currentTenant(); Operator operator = operatorService.getByFirebaseUid(uid);
+                if (operator == null || !tenant.equals(operator.getTenantId()) || !uid.equals(operator.getFirebaseUid())) throw new SecurityException("Operatore non autorizzato.");
+                var db = FirestoreClient.getFirestore(); var ref = db.collection("notificationHistory").document(notificationId);
+                String receiptId = java.util.HexFormat.of().formatHex(java.security.MessageDigest.getInstance("SHA-256").digest((tenant+":"+uid+":"+notificationId).getBytes(java.nio.charset.StandardCharsets.UTF_8)));
+                var own = db.collection("notificationReceipts").document(receiptId);
+                return db.runTransaction(tx -> {
+                        var message = tx.get(ref).get(); var previous = tx.get(own).get();
+                        if (!message.exists() || !tenant.equals(message.getString("tenantId")) || (!"BROADCAST".equals(message.getString("target")) && !operator.getId().equals(message.getString("target")))) throw new SecurityException("Notifica non autorizzata.");
+                        var data = previous.exists() ? new java.util.LinkedHashMap<>(previous.getData()) : new java.util.LinkedHashMap<String,Object>();
+                        data.put("tenantId",tenant); data.put("uid",uid); data.put("notificationId",notificationId);
+                        data.putIfAbsent("readAt",Instant.now().toString()); if (acknowledge) data.putIfAbsent("acknowledgedAt",Instant.now().toString());
+                        tx.set(own,data); return data;
+                }).get();
+        }
+
+        private void record(String title, String body, int delivered, String target, Map<String, String> payload) {
                 try {
-                        FirestoreClient.getFirestore().collection("notificationHistory").add(Map.of(
+                        Map<String, Object> item = new java.util.LinkedHashMap<>(Map.of(
                                         "tenantId", currentTenant(),
                                         "title", title, "message", body, "target", target,
-                                        "delivered", delivered, "createdAt", Instant.now().toString())).get();
-                } catch (Exception ignored) {
+                                        "delivered", delivered, "createdAt", Instant.now().toString()));
+                        if (payload != null && payload.get("taskId") != null) item.put("taskId", payload.get("taskId"));
+                        if (payload != null && payload.get("type") != null) item.put("type", payload.get("type"));
+                        FirestoreClient.getFirestore().collection("notificationHistory").add(item).get();
+                } catch (Exception error) {
+                        log.error("Salvataggio storico notifica non riuscito", error);
                 }
         }
 
         private String currentTenant() {
                 return TenantAccessPolicy.requireTenantAccess(SecurityContextAccessor.currentTenantId(), null);
+        }
+
+        /** Deliver an existing inbox item without creating a second history entry. */
+        public void deliverRecorded(String id) throws Exception {
+                var db=FirestoreClient.getFirestore();var ref=db.collection("notificationHistory").document(id);String tenant=currentTenant();String lease=java.util.UUID.randomUUID().toString();
+                boolean claimed=db.runTransaction(tx->{var doc=tx.get(ref).get();if(!doc.exists()||!tenant.equals(doc.getString("tenantId")))return false;
+                        String status=doc.getString("deliveryStatus");if(!"PENDING".equals(status)&&!"SENDING".equals(status))return false;
+                        if("SENDING".equals(status)&&doc.getString("leaseUntil")!=null&&Instant.parse(doc.getString("leaseUntil")).isAfter(Instant.now()))return false;
+                        tx.update(ref,Map.of("deliveryStatus","SENDING","lease",lease,"leaseUntil",Instant.now().plusSeconds(120).toString()));return true;}).get();
+                if(!claimed)return;var doc=ref.get().get();var tokens=new ArrayList<String>();String target=doc.getString("target");
+                if("BROADCAST".equals(target)){for(var op:operatorService.getAllOperators())if(op.getFcmTokens()!=null)tokens.addAll(op.getFcmTokens());}
+                else{var op=operatorService.getById(target);if(op!=null&&op.getFcmTokens()!=null)tokens.addAll(op.getFcmTokens());}
+                var payload=new java.util.LinkedHashMap<String,String>();payload.put("notificationId",id);if(doc.getString("taskId")!=null)payload.put("taskId",doc.getString("taskId"));if(doc.getString("type")!=null)payload.put("type",doc.getString("type"));
+                try{int delivered=sendNotification(tokens.stream().filter(t->t!=null&&!t.isBlank()).distinct().toList(),doc.getString("title"),doc.getString("message"),payload);
+                        db.runTransaction(tx->{var current=tx.get(ref).get();if(lease.equals(current.getString("lease")))tx.update(ref,Map.of("deliveryStatus",tokens.isEmpty()?"NO_TOKENS":"SENT","delivered",delivered,"deliveryAttemptAt",Instant.now().toString()));return true;}).get();
+                }catch(Exception error){ref.update(Map.of("deliveryStatus","PENDING","lastFailureAt",Instant.now().toString())).get();throw error;}
         }
 
         /**

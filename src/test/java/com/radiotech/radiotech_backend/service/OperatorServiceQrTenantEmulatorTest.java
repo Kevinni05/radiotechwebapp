@@ -62,6 +62,12 @@ class OperatorServiceQrTenantEmulatorTest {
                         Operator sameTenant = operatorService.findByQrToken("tenant-a-qr");
                         assertEquals("tenant-a", sameTenant.getTenantId());
                         assertEquals("Tenant A operator", sameTenant.getFullName());
+                        var dashboardOperators = new DashboardService().getOperators();
+                        for (var record : dashboardOperators) {
+                                org.junit.jupiter.api.Assertions.assertFalse(record.containsKey("qrCodeToken"));
+                                org.junit.jupiter.api.Assertions.assertFalse(record.containsKey("fcmTokens"));
+                                assertEquals("tenant-a", record.get("tenantId"));
+                        }
                 }
         }
 
@@ -94,6 +100,47 @@ class OperatorServiceQrTenantEmulatorTest {
                         assertEquals("operator-single-use", firstUse.getId());
                         assertThrows(IllegalArgumentException.class,
                                         () -> operatorService.consumeQrToken("single-use-qr"));
+                }
+        }
+
+        @Test
+        void regenerationPersistsNewTokenAndClearsUsedState() throws Exception {
+                var authentication = new UsernamePasswordAuthenticationToken(
+                                "manager-a", null, List.of(new SimpleGrantedAuthority("ROLE_ADMIN")));
+                authentication.setDetails(new FirebaseAuthenticationDetails(
+                                "manager-a", "manager@example.test", "Manager", "tenant-a"));
+                SecurityContextHolder.getContext().setAuthentication(authentication);
+                try (Firestore firestore = FirestoreOptions.newBuilder()
+                                .setProjectId("demo-radiotech")
+                                .setHost(System.getenv("FIRESTORE_EMULATOR_HOST"))
+                                .setCredentials(GoogleCredentials.create(
+                                                new AccessToken("emulator-only", new Date(Long.MAX_VALUE))))
+                                .build().getService();
+                                var firestoreClient = mockStatic(FirestoreClient.class)) {
+                        firestoreClient.when(FirestoreClient::getFirestore).thenReturn(firestore);
+                        var reference = firestore.collection("operators").document("operator-regenerate");
+                        reference.set(Map.of("tenantId", "tenant-a", "status", "ATTIVO",
+                                        "qrCodeToken", "old-used-badge", "qrUsedAt", "2026-01-01T00:00:00Z",
+                                        "qrLastUsedAt", "2026-01-01T00:00:00Z",
+                                        "qrExpiresAt", "2026-01-01T00:00:00Z", "fullName", "Badge User")).get();
+                        OperatorService service = new OperatorService();
+                        var otherTenant = firestore.collection("operators").document("operator-regenerate-other-tenant");
+                        otherTenant.set(Map.of("tenantId", "tenant-b", "qrCodeToken", "other-tenant-badge")).get();
+                        assertThrows(SecurityException.class,
+                                        () -> service.regenerateQrToken("operator-regenerate-other-tenant"));
+                        assertEquals("other-tenant-badge", otherTenant.get().get().getString("qrCodeToken"));
+                        String token = service.regenerateQrToken("operator-regenerate");
+                        var saved = reference.get().get();
+                        assertEquals(token, saved.getString("qrCodeToken"));
+                        org.junit.jupiter.api.Assertions.assertNull(saved.getString("qrUsedAt"));
+                        org.junit.jupiter.api.Assertions.assertNull(saved.getString("qrLastUsedAt"));
+                        org.junit.jupiter.api.Assertions.assertTrue(java.time.Instant.parse(
+                                        saved.getString("qrExpiresAt")).isAfter(java.time.Instant.now()));
+                        assertThrows(IllegalArgumentException.class, () -> service.consumeQrToken("old-used-badge"));
+                        service.validateQrToken(token);
+                        org.junit.jupiter.api.Assertions.assertNull(reference.get().get().getString("qrUsedAt"));
+                        assertEquals("operator-regenerate", service.consumeQrToken(token).getId());
+                        assertThrows(IllegalArgumentException.class, () -> service.consumeQrToken(token));
                 }
         }
 

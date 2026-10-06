@@ -85,6 +85,8 @@ public class OperatorMobileController {
             operator.setRole("OPERATOR");
 
             return ResponseEntity.status(HttpStatus.CREATED).body(operatorService.createOperator(operator));
+        } catch (TaskService.IdempotencyConflictException e) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(message("Conflitto di idempotenza."));
         } catch (IllegalArgumentException e) {
             return bad(e.getMessage());
         } catch (SecurityException e) {
@@ -145,6 +147,8 @@ public class OperatorMobileController {
             }
 
             return ResponseEntity.ok(operatorService.updateOperator(operator.getId(), operator));
+        } catch (TaskService.IdempotencyConflictException e) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(message("Conflitto di idempotenza."));
         } catch (IllegalArgumentException e) {
             return bad(e.getMessage());
         } catch (Exception e) {
@@ -170,6 +174,8 @@ public class OperatorMobileController {
 
             operatorService.addFcmToken(operator.getId(), token);
             return ResponseEntity.ok(message("Token FCM registrato."));
+        } catch (TaskService.IdempotencyConflictException e) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(message("Conflitto di idempotenza."));
         } catch (IllegalArgumentException e) {
             return bad(e.getMessage());
         } catch (Exception e) {
@@ -229,6 +235,8 @@ public class OperatorMobileController {
             return ResponseEntity.ok(taskService.checkInTask(
                     id, uid, operator.getId(), ((Number) latitude).doubleValue(),
                     ((Number) longitude).doubleValue()));
+        } catch (TaskService.IdempotencyConflictException e) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(message("Conflitto di idempotenza."));
         } catch (IllegalArgumentException e) {
             return bad(e.getMessage());
         } catch (SecurityException e) {
@@ -266,6 +274,8 @@ public class OperatorMobileController {
             return ResponseEntity.ok(taskService.completeTaskWithLocation(
                     id, uid, operator.getId(), ((Number) latitude).doubleValue(),
                     ((Number) longitude).doubleValue()));
+        } catch (TaskService.IdempotencyConflictException e) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(message("Conflitto di idempotenza."));
         } catch (IllegalArgumentException e) {
             return bad(e.getMessage());
         } catch (SecurityException e) {
@@ -301,6 +311,8 @@ public class OperatorMobileController {
                     "report", submitted, "verificationUrl", reportService.verificationUrl(submitted)));
         } catch (MaintenanceReportService.IdempotencyConflictException e) {
             return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("success", false, "message", e.getMessage()));
+        } catch (TaskService.IdempotencyConflictException e) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(message("Conflitto di idempotenza."));
         } catch (IllegalArgumentException e) {
             return bad(e.getMessage());
         } catch (SecurityException e) {
@@ -324,6 +336,8 @@ public class OperatorMobileController {
                     "report", submitted, "verificationUrl", reportService.verificationUrl(submitted)));
         } catch (MaintenanceReportService.IdempotencyConflictException e) {
             return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("success", false, "message", e.getMessage()));
+        } catch (TaskService.IdempotencyConflictException e) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(message("Conflitto di idempotenza."));
         } catch (IllegalArgumentException e) {
             return bad(e.getMessage());
         } catch (SecurityException e) {
@@ -357,7 +371,13 @@ public class OperatorMobileController {
                 return forbidden(null);
             }
 
-            return ResponseEntity.ok(taskService.updateStatus(taskId, status));
+            var requestAttributes = org.springframework.web.context.request.RequestContextHolder.getRequestAttributes();
+            String key = requestAttributes instanceof org.springframework.web.context.request.ServletRequestAttributes servlet
+                    ? servlet.getRequest().getHeader("Idempotency-Key") : null;
+            return ResponseEntity.ok(key == null ? taskService.updateStatus(taskId, status)
+                    : taskService.updateStatus(taskId, status, key));
+        } catch (TaskService.IdempotencyConflictException e) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(message("Conflitto di idempotenza."));
         } catch (IllegalArgumentException e) {
             return bad(e.getMessage());
         } catch (SecurityException e) {

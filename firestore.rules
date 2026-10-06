@@ -19,7 +19,7 @@ service cloud.firestore {
 
     match /operators/{id} {
       allow read: if tenantMatches(resource.data)
-        && (manager() || viewer()
+        && (manager()
           || (operator() && (resource.data.firebaseUid == request.auth.uid || id == request.auth.uid)));
       allow create, update, delete: if false;
     }

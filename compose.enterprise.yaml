@@ -1,0 +1,41 @@
+services:
+  api:
+    environment:
+      RADIOTECH_AI_ENABLED: "true"
+      RADIOTECH_OLLAMA_URL: http://ollama:11434
+      RADIOTECH_AI_MODEL: ${RADIOTECH_AI_MODEL:-qwen3:4b}
+    depends_on:
+      model-init:
+        condition: service_completed_successfully
+  ollama:
+    image: ollama/ollama:0.35.1
+    restart: unless-stopped
+    environment:
+      OLLAMA_HOST: 0.0.0.0:11434
+      OLLAMA_NUM_PARALLEL: "2"
+      OLLAMA_MAX_LOADED_MODELS: "1"
+      OLLAMA_KEEP_ALIVE: "-1"
+    volumes:
+      - ollama_models:/root/.ollama
+    # No published port: only the authenticated backend can reach the model.
+    mem_limit: 8g
+    cpus: 4
+    security_opt: [no-new-privileges:true]
+    healthcheck:
+      test: [CMD, ollama, list]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+  model-init:
+    image: ollama/ollama:0.35.1
+    restart: "no"
+    environment:
+      OLLAMA_HOST: http://ollama:11434
+      RADIOTECH_AI_MODEL: ${RADIOTECH_AI_MODEL:-qwen3:4b}
+    entrypoint: [/bin/sh, -ec]
+    command: ['ollama pull "$${RADIOTECH_AI_MODEL}" && ollama run "$${RADIOTECH_AI_MODEL}" "Rispondi soltanto PRONTO. /no_think"']
+    depends_on:
+      ollama:
+        condition: service_healthy
+volumes:
+  ollama_models:

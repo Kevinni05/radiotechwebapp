@@ -267,6 +267,8 @@ public class OperatorService {
                         existingOperator.setQrUsedAt(null);
                         existingOperator.setQrLastUsedAt(null);
                         operator = updateOperator(existingOperator.getId(), existingOperator);
+                        regenerateQrToken(operator.getId());
+                        operator = getById(operator.getId());
                 } else {
                         operator = new Operator();
                         operator.setFullName(cleanName);
@@ -296,24 +298,49 @@ public class OperatorService {
 
         public String regenerateQrToken(String operatorId) throws Exception {
                 validateId(operatorId);
-                Operator operator = getById(operatorId);
                 String newQrToken = "AUTH_OP_" + UUID.randomUUID();
-                operator.setQrCodeToken(newQrToken);
-                operator.setQrExpiresAt(qrExpiry());
-                operator.setQrUsedAt(null);
-                operator.setQrLastUsedAt(null);
-                updateOperator(operatorId, operator);
+                DocumentReference reference = FirestoreClient.getFirestore()
+                                .collection(COLLECTION).document(operatorId);
+                dbRotateBadge(reference, newQrToken);
                 return newQrToken;
         }
 
-        /**
-         * Validates a personal badge QR code and records its use.
-         *
-         * A badge is a durable credential for the assigned technician: it stays
-         * valid until it expires or the manager regenerates it. Revocation is
-         * immediate because regenerating the badge replaces the stored token.
-         */
+        private void dbRotateBadge(DocumentReference reference, String token) throws Exception {
+                String tenantId = currentTenant();
+                try {
+                    FirestoreClient.getFirestore().runTransaction(transaction -> {
+                        DocumentSnapshot current = transaction.get(reference).get();
+                        if (!current.exists()) {
+                                throw new IllegalArgumentException("Operatore non trovato.");
+                        }
+                        requireDocumentTenant(current, tenantId);
+                        Map<String, Object> updates = new java.util.HashMap<>();
+                        updates.put("qrCodeToken", token);
+                        updates.put("qrExpiresAt", qrExpiry());
+                        updates.put("qrUsedAt", null);
+                        updates.put("qrLastUsedAt", null);
+                        updates.put("updatedAt", Instant.now().toString());
+                        transaction.update(reference, updates);
+                        return null;
+                    }).get();
+                } catch (ExecutionException exception) {
+                        if (exception.getCause() instanceof SecurityException denied) throw denied;
+                        if (exception.getCause() instanceof IllegalArgumentException invalid) throw invalid;
+                        throw exception;
+                }
+        }
+
+        /** Validate without consuming, so Firebase failures leave the badge usable. */
+        public Operator validateQrToken(String qrCodeToken) throws Exception {
+                return resolveQrToken(qrCodeToken, false);
+        }
+
+        /** Atomically consumes the badge after the session token is prepared. */
         public Operator consumeQrToken(String qrCodeToken) throws Exception {
+                return resolveQrToken(qrCodeToken, true);
+        }
+
+        private Operator resolveQrToken(String qrCodeToken, boolean consume) throws Exception {
                 if (isBlank(qrCodeToken)) {
                         throw new IllegalArgumentException("QR operatore non valido.");
                 }
@@ -349,11 +376,12 @@ public class OperatorService {
                 String now = Instant.now().toString();
 
                 try {
-                        db.runTransaction(transaction -> {
+                        return db.runTransaction(transaction -> {
                                 DocumentSnapshot current = transaction.get(reference).get();
                                 Operator operator = current.toObject(Operator.class);
 
-                                if (operator == null || !tenantId.equals(operator.getTenantId())) {
+                                if (operator == null || !tenantId.equals(operator.getTenantId())
+                                                || !qrCodeToken.trim().equals(operator.getQrCodeToken())) {
                                         throw new IllegalArgumentException("QR operatore non valido.");
                                 }
 
@@ -378,13 +406,16 @@ public class OperatorService {
                                         }
                                 }
 
-                                transaction.update(reference,
-                                                "qrLastUsedAt", now,
-                                                "qrUsedAt", now,
-                                                "lastSeen", now,
-                                                "updatedAt", now);
-
-                                return null;
+                                if (consume) {
+                                        transaction.update(reference,
+                                                        "qrLastUsedAt", now, "qrUsedAt", now,
+                                                        "lastSeen", now, "updatedAt", now);
+                                        operator.setQrUsedAt(now);
+                                        operator.setQrLastUsedAt(now);
+                                }
+                                operator.setId(reference.getId());
+                                ensureFcmTokens(operator);
+                                return operator;
                         }).get();
                 } catch (ExecutionException exception) {
                         Throwable cause = exception.getCause();
@@ -397,7 +428,6 @@ public class OperatorService {
                         throw exception;
                 }
 
-                return getById(reference.getId());
         }
 
         private String qrExpiry() {

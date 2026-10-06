@@ -179,6 +179,8 @@ test('VIEWER can read within its tenant but cannot write', async () => {
         tenantId: 'tenant-a',
     }).firestore();
 
+    // Operator documents include credential material: viewers use the redacted API.
+    await assertFails(getDoc(doc(database, 'operators/operators-a')));
     await assertSucceeds(getDoc(doc(database, 'tasks/task-a')));
     await assertFails(getDoc(doc(database, 'tasks/task-b')));
     await assertSucceeds(getDoc(doc(database, 'auditLogs/auditLogs-a')));
@@ -228,5 +230,13 @@ test('Managed business documents are writable only through the backend API', asy
         await assertFails(updateDoc(doc(database, `${collectionName}/${collectionName}-a`), {
             title: 'direct client write must be denied',
         }));
+    }
+});
+
+test('Workforce records cannot be read or modified directly even by a manager', async () => {
+    const database = environment.authenticatedContext('manager-a', { role: 'ADMIN', tenantId: 'tenant-a' }).firestore();
+    for (const collection of ['workforceShifts', 'workforceSignals', 'workforceOperations']) {
+        await assertFails(getDoc(doc(database, `${collection}/private-record`)));
+        await assertFails(setDoc(doc(database, `${collection}/private-record`), { tenantId: 'tenant-a', readiness: 'READY' }));
     }
 });

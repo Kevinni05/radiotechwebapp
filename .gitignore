@@ -10,5 +10,10 @@ out/
 *.zip
 .env
 .env.*
+!.env.example
+!.env.production.example
+secrets/
+test-results/
+playwright-report/
 serviceAccountKey.json
 firebase-service-account.json

@@ -28,7 +28,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  * quello del proxy.
  */
 @Component
-@Order(Ordered.HIGHEST_PRECEDENCE)
+@Order(Ordered.HIGHEST_PRECEDENCE + 1)
 public class RateLimitFilter extends OncePerRequestFilter {
 
         private static final Set<String> LIMITED_PATHS = Set.of(
