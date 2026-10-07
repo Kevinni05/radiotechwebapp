@@ -1,0 +1,47 @@
+services:
+  - type: web
+    name: radiotechwebapp
+    runtime: docker
+    plan: free
+    region: frankfurt
+    branch: main
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    autoDeployTrigger: checksPass
+    healthCheckPath: /actuator/health/readiness
+    maxShutdownDelaySeconds: 30
+    envVars:
+      - key: PORT
+        value: "10000"
+      - key: SPRING_PROFILES_ACTIVE
+        value: production
+      - key: FIREBASE_PROJECT_ID
+        value: gestionale-radio
+      - key: FIREBASE_STORAGE_BUCKET
+        value: gestionale-radio.firebasestorage.app
+      - key: FIREBASE_SERVICE_ACCOUNT_PATH
+        value: /etc/secrets/firebase-service-account.json
+      - key: RADIOTECH_FIREBASE_WEB_API_KEY
+        sync: false
+      - key: RADIOTECH_CAPO_EMAIL
+        sync: false
+      - key: RADIOTECH_PUBLIC_BASE_URL
+        sync: false
+      - key: RADIOTECH_CORS_ORIGINS
+        sync: false
+      - key: RADIOTECH_REPORT_VERIFICATION_SECRET
+        generateValue: true
+      - key: RADIOTECH_TENANT_INVITE_SECRET
+        generateValue: true
+      - key: RADIOTECH_FIRESTORE_SEED
+        value: "false"
+      - key: RADIOTECH_TENANT_MIGRATION_ENABLED
+        value: "false"
+      - key: RADIOTECH_AI_ENABLED
+        value: "false"
+      - key: RADIOTECH_SSO_ENABLED
+        value: "false"
+      - key: RADIOTECH_OTLP_ENABLED
+        value: "false"
+      - key: RADIOTECH_RATE_LIMIT_PER_MINUTE
+        value: "10"
