@@ -59,6 +59,9 @@ jobs:
       - name: Firestore and Storage rules
         run: npm run test:rules
 
+      - name: Ensure Gradle wrapper is executable
+        run: chmod +x gradlew
+
       - name: Firestore and Auth emulator integration tests
         run: npm run test:firestore
 
