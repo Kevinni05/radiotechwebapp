@@ -48,7 +48,7 @@ public class ProIdentityController {
     var before = new LinkedHashMap<>(user.getCustomClaims());
     if (before.get("tenantId") != null && !tenant.equals(before.get("tenantId")))
       throw new SecurityException("Account appartenente ad un'altra azienda.");
-    if (Set.of("ADMIN", "SUPER_ADMIN", "CHIEF_EXECUTIVE", "CAPO").contains(before.get("role")))
+    if (Set.of(Role.ADMIN,Role.SUPER_ADMIN,Role.CHIEF_EXECUTIVE).contains(Role.fromClaims(before)))
       throw new SecurityException("Usare la gestione amministratori per questo account.");
     if (role == Role.CUSTOMER) {
       if (request.customerId == null || !request.customerId.matches("[A-Za-z0-9_-]{1,128}"))

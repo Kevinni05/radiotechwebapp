@@ -112,6 +112,7 @@ public class GlobalExceptionHandler {
         public ResponseEntity<Map<String, Object>> handleException(
                         Exception exception) {
 
+                if (CloudQuota.exhausted(exception)) return buildResponse(HttpStatus.SERVICE_UNAVAILABLE, CloudQuota.MESSAGE);
                 return buildResponse(
                                 HttpStatus.INTERNAL_SERVER_ERROR,
                                 "Si è verificato un errore interno al server.");

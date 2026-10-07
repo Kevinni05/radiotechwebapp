@@ -1,13 +1,127 @@
 import { test, expect } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
 
+test('login identifies proxy and CORS rejection instead of claiming bad credentials',async({page})=>{
+  await page.route('**/api/v1/auth/public-config',route=>route.fulfill({json:{enabled:false}}));
+  await page.route('**/api/v1/auth/login',route=>route.fulfill({status:403,contentType:'text/plain',body:'Invalid CORS request'}));
+  await page.goto('/');await page.locator('#loginEmail').fill('capo@radiotech.it');await page.locator('#loginPassword').fill('fixture-password');await page.locator('#loginButton').click();
+  await expect(page.locator('#loginStatus')).toContainText('configurazione del link HTTPS');await expect(page.locator('#loginStatus')).not.toContainText('Credenziali non valide');
+  await page.route('**/api/v1/auth/login',route=>route.fulfill({status:503,contentType:'text/plain',body:'Unavailable'}));
+  await page.locator('#loginButton').click();await expect(page.locator('#loginStatus')).toContainText('backend e il tunnel');
+});
+
+test('glass surfaces align cards and brand returns home without losing the session', async ({page})=>{
+  await page.emulateMedia({reducedMotion:'reduce'});
+  await page.setViewportSize({width:1440,height:1000});
+  await session(page,'ADMIN',{'/inventory':[{id:'short',name:'Connettore',quantity:4,minimumThreshold:1},{id:'long',name:'Ricambio tecnico con una descrizione più lunga '.repeat(4),sku:'RF-2',quantity:10,minimumThreshold:1}]});
+  const boxes=await page.locator('.stats .stat').evaluateAll(nodes=>nodes.map(n=>{const r=n.getBoundingClientRect();return {width:r.width,height:r.height};}));
+  expect(boxes).toHaveLength(6);expect(Math.abs(boxes[0].width-boxes[1].width)).toBeLessThan(1);expect(Math.abs(boxes[0].height-boxes[1].height)).toBeLessThan(1);
+  await expect(page.locator('.stats .stat').first()).toHaveCSS('backdrop-filter',/blur/);
+  await page.locator('[data-view="inventory"]').click();
+  await page.locator('#brandHome').click();await expect(page.locator('#view-dashboard')).toHaveClass(/active/);
+  expect(await page.evaluate(()=>sessionStorage.getItem('radiotech_control_token'))).toBe('test-token');
+  const panels=await page.locator('#view-dashboard .grid-2 > .panel').evaluateAll(nodes=>nodes.map(n=>{const r=n.getBoundingClientRect();return {width:r.width,height:r.height};}));
+  expect(Math.abs(panels[0].width-panels[1].width)).toBeLessThan(1);expect(Math.abs(panels[0].height-panels[1].height)).toBeLessThan(1);
+  await expect(page.locator('.footer')).toContainText('Kevin Cagnazzo e Anthony Piccinonno');
+  expect(await page.evaluate(()=>getComputedStyle(document.body,'::before').animationName)).toBe('none');
+  await page.emulateMedia({reducedMotion:'no-preference'});
+  expect(await page.evaluate(()=>getComputedStyle(document.body,'::before').animationName)).toBe('radiotech-aurora');
+  await page.setViewportSize({width:390,height:844});await page.locator('#mobileMenu').click();await page.locator('[data-view="inventory"]').click();
+  await page.locator('#mobileMenu').click();await page.locator('#brandHome').focus();await page.keyboard.press('Enter');
+  await expect(page.locator('#view-dashboard')).toHaveClass(/active/);await expect(page.locator('#mobileMenu')).toHaveAttribute('aria-expanded','false');
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+});
+
+test('Signal customer portal preserves login, requests and logout on small screens', async ({page}) => {
+  const errors=[],records=[],calls=[];page.on('pageerror',e=>errors.push(e.message));
+  await page.emulateMedia({reducedMotion:'reduce'});
+  await page.route('**/api/**',async route=>{
+    const path=new URL(route.request().url()).pathname,method=route.request().method();let data;
+    if(path==='/api/v1/auth/public-config')data={enabled:false};
+    if(path==='/api/v1/auth/login')data={role:'CUSTOMER',token:'portal-test-token',refreshToken:'portal-test-refresh'};
+    if(path==='/api/v1/pro/catalog')data=[{id:'requests',title:'Richieste di assistenza',writable:true,fields:[{key:'name',label:'Oggetto',type:'text',required:true},{key:'notes',label:'Descrizione',type:'textarea'}],actions:[]}];
+    if(path==='/api/v1/pro/requests') {
+      if(method==='POST'){const body=route.request().postDataJSON();calls.push(body);records.push({id:'request-test',...body.fields,status:'OPEN',version:1});data=records.at(-1);}
+      else data={records,partial:false};
+    }
+    await route.fulfill({status:data===undefined?404:200,contentType:'application/json',body:JSON.stringify(data??{})});
+  });
+  await page.setViewportSize({width:1440,height:1000});await page.goto('/portal');await page.evaluate(()=>document.fonts.ready);
+  await expect(page.locator('body')).toHaveCSS('font-family',/Inter/);
+  await page.screenshot({path:'.dist/signal-portal-login-desktop.png',fullPage:true});
+  await page.setViewportSize({width:320,height:800});
+  await page.locator('[name="email"]').fill('cliente@example.test');await page.locator('[name="password"]').fill('test-password');await page.locator('#portalLogin button').click();
+  await expect(page.locator('#proTitle')).toHaveText('Richieste di assistenza');await expect(page.locator('.portal-login')).toBeHidden();
+  await page.locator('#proNew').click();await page.locator('#proField-name').fill('Verifica collegamento');await page.locator('#proField-notes').fill('Descrizione della richiesta del cliente.');
+  await page.locator('#proForm [type="submit"]').click();await expect(page.locator('#proRecords')).toContainText('Verifica collegamento');
+  await page.locator('#portalBrandHome').click();await expect(page.locator('#portalApp')).toBeVisible();await expect(page.locator('.footer')).toContainText('Kevin Cagnazzo e Anthony Piccinonno');
+  expect(calls).toHaveLength(1);expect(calls[0].operationId).toBeTruthy();
+  for(const width of [320,768,1440]){
+    await page.setViewportSize({width,height:1000});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+    const outside=await page.locator('input,select,textarea,button,.pro-record').evaluateAll(nodes=>nodes.filter(n=>n.getClientRects().length).some(n=>{const r=n.getBoundingClientRect();return r.left<0||r.right>innerWidth+1;}));expect(outside).toBe(false);
+    if(width!==768)await page.screenshot({path:`.dist/signal-portal-${width}.png`,fullPage:true});
+  }
+  await page.locator('#portalLogout').click();await expect(page.locator('#portalLogin')).toBeVisible();await expect(page.locator('#portalApp')).toBeHidden();
+  expect(errors).toEqual([]);
+});
+
+test('Pro and access workspaces contain long content and fields at every breakpoint', async ({page}) => {
+  await page.emulateMedia({reducedMotion:'reduce'});
+  const errors=[];page.on('pageerror',e=>errors.push(e.message));
+  const fields=[{key:'name',label:'Ragione sociale',type:'text',required:true},{key:'email',label:'Email',type:'email'},{key:'notes',label:'Note',type:'textarea'}];
+  await session(page,'ADMIN',{respond(path){
+    if(path==='/pro/catalog')return [{id:'clients',title:'Clienti e contatti',writable:true,fields,actions:['ARCHIVE']}];
+    if(path==='/pro/clients')return {records:Array.from({length:4},(_,i)=>({id:`c${i}`,name:i?'Cliente aziendale': 'Nome molto lungo '.repeat(10),status:'ACTIVE',version:1,email:'cliente@example.test',notes:'Riferimento'.repeat(35)})),partial:false};
+    if(path==='/pro/security')return {revocationChecked:true,providerActivation:'Configurazione del provider aziendale',mfaActivation:'Configurazione MFA richiesta'};
+  }});
+  expect(await page.locator('.content').evaluate(container=>{const footer=container.querySelector(':scope > .footer');return [...container.querySelectorAll(':scope > .view')].every(view=>Boolean(view.compareDocumentPosition(footer)&Node.DOCUMENT_POSITION_FOLLOWING));})).toBe(true);
+  await page.locator('#toastStack').evaluate(node=>node.replaceChildren());
+  async function open(view){if(await page.locator('#mobileMenu').isVisible())await page.locator('#mobileMenu').click();await page.locator(`[data-view="${view}"]`).click();}
+  async function contained(selector){
+    const problems=await page.locator(selector).evaluateAll(nodes=>nodes.filter(n=>n.getClientRects().length).flatMap(n=>{const r=n.getBoundingClientRect();return r.left<0||r.right>innerWidth+1? [n.id||n.className]:[]}));
+    expect(problems).toEqual([]);expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+  }
+  for(const width of [1440,1024,768,390,320]){
+    await page.setViewportSize({width,height:1000});await open('pro');
+    await expect(page.locator('.pro-record')).toHaveCount(4);await page.locator('#proNew').click();
+    await expect(page.locator('#proField-notes')).toBeVisible();
+    await contained('#view-pro input,#view-pro select,#view-pro textarea,#view-pro .btn,#view-pro .pro-record');
+    const overlap=await page.locator('#proForm .pro-field').evaluateAll(nodes=>nodes.some((n,i)=>nodes.slice(i+1).some(m=>{const a=n.getBoundingClientRect(),b=m.getBoundingClientRect();return a.left<b.right&&a.right>b.left&&a.top<b.bottom&&a.bottom>b.top;})));
+    expect(overlap).toBe(false);
+    if(width===1440||width===390)await page.screenshot({path:`.dist/layout-pro-${width}.png`,fullPage:true});
+    await page.locator('#proCancel').click();await page.locator('#proSearch').fill('inesistente');await expect(page.locator('#proRecords')).toContainText('Nessun risultato');await page.locator('#proSearch').clear();
+    await open('access');await expect(page.locator('#accessStatus')).toContainText('Controllo delle sessioni attivo');
+    await contained('#view-access input,#view-access select,#view-access textarea,#view-access .btn,#view-access .panel');
+    const checkbox=await page.locator('#accessMfa').boundingBox();expect(checkbox.width).toBeLessThanOrEqual(22);expect(checkbox.height).toBeLessThanOrEqual(22);
+    await page.locator('#accessRole').selectOption('OPERATOR');await expect(page.locator('#accessCustomer')).toBeHidden();
+    await page.locator('#accessRole').selectOption('CUSTOMER');await expect(page.locator('#accessCustomer')).toBeVisible();
+    if(width===1440||width===390)await page.screenshot({path:`.dist/layout-access-${width}.png`,fullPage:true});
+  }
+  expect(errors).toEqual([]);
+});
+
+test('access form keeps account binding and revocation functional after redesign', async ({page}) => {
+  const calls=[];
+  await session(page,'ADMIN',{respond(path,method,request){
+    if(path==='/pro/security')return {revocationChecked:true};
+    if(path.startsWith('/pro/security/accounts/')){calls.push({path,method,body:request.postDataJSON()});return {success:true};}
+  }});
+  await page.locator('[data-view="access"]').click();await page.locator('#accessUid').fill('account-test');
+  await page.locator('#accessRole').selectOption('OPERATOR');await page.locator('#accessMfa').check();
+  await page.locator('#accessPermissions').fill('clients:READ, purchases:READ');
+  await page.locator('#accessForm [type="submit"]').click();await expect(page.locator('#accessStatus')).toContainText('Accesso assegnato');
+  expect(calls[0]).toMatchObject({method:'PUT',body:{role:'OPERATOR',mfaRequired:true,proPermissions:['clients:READ','purchases:READ']}});
+  page.once('dialog',dialog=>dialog.accept());await page.locator('#accessRevoke').click();await expect(page.locator('#accessStatus')).toHaveText('Sessioni revocate.');
+  expect(calls[1].path).toBe('/pro/security/accounts/account-test/revoke');
+});
+
 test('private local report attachments download with authentication and preserve bytes', async ({page}) => {
   const id='a'.repeat(64);let authorization;
   await session(page,'ADMIN',{'/reports':[{id:'r-file',taskId:'t1',operatorId:'o1',status:'SUBMITTED',attachments:[`radiotech-file:${id}`]}],respond(path,method,request){
     if(path===`/files/${id}`){authorization=request.headers().authorization;return{name:'photo-test.txt',base64:Buffer.from('private file').toString('base64')};}
   }});
   await page.locator('[data-view="reports"]').click();await page.locator('#reportsList details summary').click();
-  const downloaded=page.waitForEvent('download');await page.locator('[data-local-file]').click();const file=await downloaded;
+  const downloaded=page.waitForEvent('download');await page.locator('[data-file-download]').click();const file=await downloaded;
   expect(file.suggestedFilename()).toBe('photo-test.txt');expect((await readFile(await file.path())).toString()).toBe('private file');expect(authorization).toMatch(/^Bearer /);
 });
 
@@ -47,7 +161,7 @@ test('task assignment validates input and prevents duplicate clicks while saving
     if(path === '/tasks' && method === 'POST') { ++creates; await new Promise(resolve => setTimeout(resolve,300)); const task = {...request.postDataJSON(),id:'t-new'}; tasks.push(task); return {data:task}; }
   }});
   await page.locator('[data-view="operations"]').click();
-  await page.locator('#createTaskBtn').click(); await expect(page.locator('#toastStack')).toContainText('Task incompleto');
+  await page.locator('#createTaskBtn').click(); await expect(page.locator('#toastStack')).toContainText('Incarico incompleto');
   expect(creates).toBe(0);
   await page.locator('#taskTitle').fill('Verifica impianto'); await page.locator('#taskOperator').selectOption('o1'); await page.locator('#taskAntenna').selectOption('a1');
   await page.locator('#createTaskBtn').dblclick();
@@ -146,6 +260,7 @@ test('procurement excludes archived stock, distinguishes missing costs and escap
 });
 
 test('report review filters and approval update the dedicated review center', async ({ page }) => {
+  await page.route('https://firebasestorage.googleapis.com/example.pdf', async route => route.fulfill({contentType:'application/pdf',body:await readFile(new URL('./fixtures/professional-report.pdf',import.meta.url))}));
   const reports = [{id:'r1',taskId:'t1',operatorId:'o1',operatorNotes:'Verifica RF',status:'SUBMITTED',workPerformed:'Allineamento ponte radio',measurements:{ROS:1.2},attachments:['javascript:alert(1)','https://firebasestorage.googleapis.com/example.pdf']},{id:'r2',operatorNotes:'Sostituzione batteria',status:'REJECTED'}];
   await session(page,'ADMIN',{ '/reports':reports, respond(path, method, request) {
     if (path === '/reports/r1/approve' && method === 'POST') { reports[0].status = 'APPROVED'; return reports[0]; }
@@ -157,8 +272,8 @@ test('report review filters and approval update the dedicated review center', as
   await page.locator('#reportsList .task-row:visible summary').click();
   await expect(page.locator('#reportsList .task-row:visible')).toContainText('Allineamento ponte radio');
   await expect(page.locator('#reportsList .task-row:visible')).toContainText('ROS: 1.2');
-  await expect(page.locator('#reportsList a')).toHaveCount(1);
-  await expect(page.locator('#reportsList a')).toHaveAttribute('rel','noopener noreferrer');
+  await expect(page.locator('#reportsList [data-report-file]')).toHaveCount(1);
+  await expect(page.locator('#reportsList [data-report-file]')).toHaveAttribute('data-report-file','https://firebasestorage.googleapis.com/example.pdf');
   const approved = page.waitForRequest(r => r.url().endsWith('/reports/r1/approve'));
   await page.locator('[data-report-approve="r1"]').click();
   expect((await approved).postDataJSON().note).toContain('approvato');
@@ -317,7 +432,7 @@ test('wrapped task responses render and enterprise workflows call real route con
   await expect(page.locator('#enterpriseAlerts img')).toHaveCount(0);
   await expect(page.locator('#enterpriseAlerts')).toContainText('<img src=x onerror=alert(1)>');
   await page.locator('[data-incident-next="i1"]').click();
-  await expect(page.locator('#enterpriseIncidents')).toContainText('ACKNOWLEDGED');
+  await expect(page.locator('#enterpriseIncidents')).toContainText('Preso in carico');
   await page.locator('#enterpriseOperator').selectOption('o1');
   await expect(page.locator('#enterpriseSkills')).toContainText('RF Test');
   expect(errors).toEqual([]);
@@ -478,10 +593,10 @@ test('new sign-in design loads local typography and fits a small screen', async 
   await page.goto('/');
   await page.evaluate(() => document.fonts.ready);
   await expect(page.locator('.login-shell')).toHaveCSS('opacity','1');
-  await expect(page.locator('.login-copy h1')).toContainText('Una visione superiore.');
+  await expect(page.locator('.login-copy h1')).toContainText('Il controllo è tuo.');
   expect((await page.request.get('/assets/brand/radiotech-symbol-v1.png')).status()).toBe(200);
   expect(await page.locator('.login-visual .brand-mark img').evaluate(img => img.complete && img.naturalWidth > 0)).toBe(true);
-  expect(await page.evaluate(() => document.fonts.check('500 13px Manrope'))).toBe(true);
+  expect(await page.evaluate(() => document.fonts.check('500 13px Inter'))).toBe(true);
   await page.screenshot({ path: 'build/reports/web/redesign-login-desktop.png', fullPage: true });
   await page.locator('#togglePassword').click();
   await expect(page.locator('#loginPassword')).toHaveAttribute('type','text');
@@ -536,4 +651,175 @@ test('mobile menu and dialogs support keyboard navigation and focus return', asy
   await page.keyboard.press('Escape');
   await expect(page.locator('#antennaModal')).toBeHidden();
   await expect(page.locator('#newAntennaBtn')).toBeFocused();
+});
+
+test('Aurora feedback respects reduced motion and the Pro editor fits every viewport', async ({page}) => {
+  await page.emulateMedia({reducedMotion:'no-preference'});
+  await session(page,'ADMIN',{respond(path) {
+    if(path==='/pro/catalog')return [{id:'clients',title:'Clienti e contatti',writable:true,fields:[{key:'name',label:'Ragione sociale',type:'text',required:true}],actions:['ARCHIVE']}];
+    if(path==='/pro/clients')return {records:[{id:'c1',name:'Cliente con ragione sociale molto lunga '.repeat(5),status:'ACTIVE',version:1}],partial:false};
+  }});
+  await page.locator('[data-view="pro"]').click();
+  await page.locator('#proNew').click();
+  await expect(page.locator('#proNew')).toHaveClass(/press-glow/);
+  expect(await page.evaluate(()=>getComputedStyle(document.body,'::before').animationName)).toBe('radiotech-aurora');
+  for(const width of [320,768,1440]) {
+    await page.setViewportSize({width,height:900});
+    expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+    const bounds=await page.locator('#proForm').boundingBox();
+    expect(bounds.x).toBeGreaterThanOrEqual(0);expect(bounds.x+bounds.width).toBeLessThanOrEqual(width);
+  }
+  await page.screenshot({path:'.dist/aurora-web-desktop.png',fullPage:true});
+  await page.setViewportSize({width:390,height:844});
+  await expect(page.locator('#sidebar')).toHaveCSS('visibility','hidden');
+  await page.screenshot({path:'.dist/aurora-web-phone.png',fullPage:true});
+  await page.emulateMedia({reducedMotion:'reduce'});
+  expect(await page.evaluate(()=>getComputedStyle(document.body,'::before').animationName)).toBe('none');
+});
+
+
+test('report attachments show image and PDF previews, enlargement and explicit downloads', async ({page}) => {
+  const errors=[]; page.on('pageerror',e=>errors.push(e.message));
+  const pdf=await readFile(new URL('./fixtures/professional-report.pdf',import.meta.url));
+  const png=await readFile('src/main/resources/static/assets/brand/radiotech-symbol-v1.png');
+  const ids=['a','b','c','d'].map(c=>c.repeat(64)); let retry=false;
+  await session(page,'ADMIN',{'/reports':[{id:'report-preview',antennaId:'a1',operatorName:'Operatore di collaudo',submittedAt:'2026-10-06T16:30:25Z',status:'SUBMITTED',attachments:ids.map(id=>'radiotech-file:'+id)}],antennas:[{id:'a1',name:'Ponte Sanarica'}],respond(path){
+    if(path===`/files/${ids[0]}`)return {name:'Fotografia impianto.png',base64:png.toString('base64')};
+    if(path===`/files/${ids[1]}`)return {name:'Rapporto tecnico.pdf',base64:pdf.toString('base64')};
+    if(path===`/files/${ids[2]}`)return {name:'test.html',base64:Buffer.from('<script>window.untrustedAttachment=true</script>').toString('base64')};
+    if(path===`/files/${ids[3]}` && retry)return {name:'Foto recuperata.png',base64:png.toString('base64')};
+  }});
+  await page.locator('[data-view="reports"]').click();
+  const list=page.locator('#reportsList');
+  await expect(list.locator('img').first()).toBeVisible();
+  expect(await list.locator('img').first().evaluate(img=>img.complete && img.naturalWidth>0)).toBe(true);
+  await list.locator('.report-file').nth(1).scrollIntoViewIfNeeded();
+  await expect(list.locator('canvas[data-pdf-rendered="true"]')).toBeVisible();
+  await expect(list.locator('.report-pdf-toolbar')).toContainText('Pagina 1 di 2');
+  await expect(list.locator('canvas')).toHaveAttribute('aria-label',/Ponte radio Sanarica/);
+  await list.locator('[data-file-open]').nth(1).click();
+  const pdfDialog=page.locator('.report-file-dialog');
+  await expect(pdfDialog.locator('canvas[data-pdf-rendered="true"]')).toBeVisible();
+  await pdfDialog.getByRole('button',{name:'Successiva'}).click();
+  await expect(pdfDialog).toContainText('Pagina 2 di 2');
+  await pdfDialog.getByLabel('Zoom PDF').selectOption('1.5');
+  await pdfDialog.getByRole('button',{name:'Chiudi'}).click();
+  await list.locator('.report-file').nth(2).scrollIntoViewIfNeeded();
+  await expect(list.locator('.report-file').nth(2)).toContainText('Questo formato è disponibile per il download');
+  expect(await page.evaluate(()=>window.untrustedAttachment)).toBeUndefined();
+  await list.locator('.report-file').nth(3).scrollIntoViewIfNeeded();
+  await expect(list.locator('.report-file').nth(3).getByRole('button',{name:'Riprova'})).toBeVisible();
+  retry=true; await list.locator('.report-file').nth(3).getByRole('button',{name:'Riprova'}).click();
+  await expect(list.locator('.report-file').nth(3).locator('img')).toBeVisible();
+  await list.locator('[data-file-open]').first().click(); await expect(page.locator('.report-file-dialog')).toBeVisible();
+  await expect(page.locator('.report-file-dialog img')).toBeVisible(); await page.keyboard.press('Escape'); await expect(page.locator('.report-file-dialog')).toHaveCount(0);
+  const downloadEvent=page.waitForEvent('download'); await list.locator('[data-file-download]').nth(1).click();
+  const download=await downloadEvent; expect(download.suggestedFilename()).toBe('Rapporto tecnico.pdf');
+  for (const width of [320,768,1440]) { await page.setViewportSize({width,height:1000}); expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true); }
+  await page.setViewportSize({width:1440,height:1000});
+  await list.scrollIntoViewIfNeeded();
+  await page.screenshot({path:'.dist/report-attachments-desktop.png',fullPage:true});
+  await page.locator('#reportsRefreshBtn').click(); await expect(list.locator('img').first()).toBeVisible();
+  expect(errors).toEqual([]);
+});
+
+
+test('advanced report filters and collapse retain Italian status and original attachments',async({page})=>{
+ await session(page,'ADMIN',{'/reports':[
+ {id:'r-new',taskId:'t-new',operatorName:'Operatore Uno',status:'SUBMITTED',submittedAt:'2026-10-07T09:00:00Z',operatorNotes:'Allineamento RF'},
+ {id:'r-old',operatorName:'Operatore Due',status:'APPROVED',submittedAt:'2026-09-01T09:00:00Z',operatorNotes:'Collaudo ottico'}]});
+ await page.locator('.nav [data-view="reports"]').click();await expect(page.locator('#reportsList')).toContainText('Da revisionare');
+ await page.locator('#reportDateFrom').fill('2026-10-01');await page.locator('#reportDateFrom').dispatchEvent('change');await expect(page.locator('.report-row:visible')).toHaveCount(1);
+ await page.locator('#reportOperatorFilter').selectOption('Operatore Uno');await page.locator('#reportStatusFilter').selectOption('SUBMITTED');await expect(page.locator('.report-row:visible')).toHaveCount(1);
+ await page.locator('#reportCollapseAll').click();await expect(page.locator('.report-row:visible [data-report-toggle]')).toHaveAttribute('aria-expanded','false');await expect(page.locator('.report-row:visible .report-details')).toBeHidden();
+ await page.locator('.report-row:visible [data-report-toggle]').click();await expect(page.locator('.report-row:visible .report-details')).toBeVisible();
+ await page.locator('#reportClearFilters').click();await expect(page.locator('.report-row:visible')).toHaveCount(2);
+});
+
+test('personal calendar saves notes and reminders using local time without overwriting edits',async({page})=>{
+ await session(page);let note={day:'2026-10-07',note:'Verifica ponte radio',reminderAt:'2099-10-07T08:00:00Z'};const writes=[];
+ await page.route('**/api/v1/calendar**',route=>{if(route.request().method()==='PUT'){const input=route.request().postDataJSON();writes.push(input);note={...input,day:new URL(route.request().url()).pathname.split('/').pop()};return route.fulfill({json:note});}return route.fulfill({json:[note]});});
+ await page.locator('#calendarDay').fill('2026-10-07');await page.locator('#calendarDay').dispatchEvent('change');
+ await expect(page.locator('#liveDateTime')).not.toBeEmpty();await page.locator('#calendarNote').fill('Nota aggiornata dal responsabile');await page.locator('#calendarReminder').fill('2099-10-07T12:30');
+ await page.locator('#calendarNoteForm [type=submit]').click();await expect.poll(()=>writes.length).toBe(1);expect(writes[0].note).toBe('Nota aggiornata dal responsabile');expect(new Date(writes[0].reminderAt).getTime()).toBeGreaterThan(Date.now());await expect(page.locator('#calendarNote')).toHaveValue('Nota aggiornata dal responsabile');
+});
+
+test('TelcoTools calculates CIDR, VLSM and RF at narrow widths and exports the session',async({page})=>{
+ await session(page);await page.locator('.nav [data-view="tools"]').click();await page.getByRole('tab',{name:'IP / CIDR',exact:true}).click();const ip=page.locator('.telco-card').filter({hasText:'IPv4 / CIDR'});await ip.locator('button[type=submit]').click();await expect(ip.locator('output')).toContainText('192.168.1.0/24');
+ const vlsm=page.locator('.telco-card').filter({hasText:'Piano VLSM'});await vlsm.locator('button[type=submit]').click();await expect(vlsm.locator('output')).toContainText('100 host');
+ await page.getByRole('tab',{name:'Radio',exact:true}).click();const eirp=page.locator('.telco-card').filter({hasText:'EIRP'});await eirp.locator('button[type=submit]').click();await expect(eirp.locator('output')).toContainText('47 dBm');
+ await page.getByRole('tab',{name:'Report',exact:true}).click();await expect(page.locator('#telcoSummary')).toContainText('EIRP: 47 dBm');
+ for(const width of [320,390,768,1440]){await page.setViewportSize({width,height:900});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBeTruthy();}
+});
+
+test('QR validity config and operator deletion call their protected APIs',async({page})=>{
+ await session(page);const requests=[];await page.route('**/api/v1/operators/**',route=>{requests.push({path:new URL(route.request().url()).pathname,method:route.request().method(),data:route.request().postDataJSON()});return route.fulfill({json:{message:'Operazione completata'}});});
+ await page.locator('.nav [data-view="operators"]').click();const button=page.locator('[data-validity]').first();await button.click();await page.locator('#validityMode').selectOption('UNLIMITED');await page.locator('#validityForm [type=submit]').click();await expect.poll(()=>requests.some(r=>r.path.endsWith('/qr-validity'))).toBeTruthy();expect(requests.find(r=>r.path.endsWith('/qr-validity')).data).toEqual({mode:'UNLIMITED',expiresAt:null});
+ page.on('dialog',d=>d.accept());await page.locator('[data-delete-operator]').first().click();await expect.poll(()=>requests.some(r=>r.method==='DELETE')).toBeTruthy();
+});
+
+
+test('report headings use assigned task title operator name and date even with delayed metadata', async ({ page }) => {
+  await page.setViewportSize({width:320,height:850});
+  await session(page,'ADMIN',{
+    '/reports':[{id:'r-heading',taskId:'t-heading',operatorId:'o1',submittedAt:'2026-10-07T10:00:00Z',status:'APPROVED',operatorNotes:'Verifica completata',attachments:[]}],
+    '/operators':[{id:'o1',fullName:'Mario Rossi',status:'ATTIVO',role:'OPERATOR'}],
+    async respond(path,method) {if(path==='/tasks'&&method==='GET'){await new Promise(resolve=>setTimeout(resolve,450));return {data:[{id:'t-heading',title:'Verifica collegamento <sede>',operatorId:'o1',status:'COMPLETED'}]};}}
+  });
+  await page.locator('#mobileMenu').click();
+  await page.locator('.nav [data-view="reports"]').click();
+  const title=page.locator('#reportsList [data-report-id="r-heading"] .task-title');
+  await expect(title).toHaveText('Report-Verifica collegamento <sede>-Mario Rossi-07/10/2026');
+  await expect(title).not.toContainText('r-heading');
+  expect(await title.evaluate(node=>node.getBoundingClientRect().right<=innerWidth)).toBeTruthy();
+});
+
+
+test('late calendar refresh preserves an edited note and its reminder',async({page})=>{
+ let releaseRead,reads=0;const waiting=new Promise(resolve=>{releaseRead=resolve;});
+ await session(page,'ADMIN',{async respond(path,method){if(path==='/calendar'&&method==='GET'){reads++;await waiting;return [{day:'2026-10-07',note:'Nota precedente'}];}}});
+ await expect.poll(()=>reads).toBe(1);
+ await page.locator('#calendarDay').fill('2026-10-07');await page.locator('#calendarDay').dispatchEvent('change');
+ await page.locator('#calendarNote').fill('Bozza da conservare');await page.locator('#calendarReminder').fill('2099-10-07T12:30');
+ releaseRead();await page.waitForTimeout(1200);
+ await expect(page.locator('#calendarNote')).toHaveValue('Bozza da conservare');await expect(page.locator('#calendarReminder')).toHaveValue('2099-10-07T12:30');
+});
+
+
+test('environment widget searches cities and antennas with five day forecast and contained clock',async({page})=>{
+ const errors=[];page.on('pageerror',e=>errors.push(e.message));
+ const forecast={temperature_2m:24,weather_code:0,apparent_temperature:25,relative_humidity_2m:60,wind_speed_10m:12,observedAt:'2026-10-07T10:00:00Z',timezone:'Europe/Rome',daily:{time:['2026-10-07','2026-10-08','2026-10-09','2026-10-10','2026-10-11','2026-10-12'],weather_code:[0,0,3,61,2,95],temperature_2m_min:[15,15,16,14,13,12],temperature_2m_max:[24,25,26,22,21,20],precipitation_probability_max:[0,0,20,80,10,90],sunrise:['2026-10-07T07:00'],sunset:['2026-10-07T18:30'],uv_index_max:[4]}};
+ await session(page,'ADMIN',{antennas:[{id:'a1',name:'Ponte Bari',latitude:41.1,longitude:16.8}],'/weather':forecast,'/weather/locations':{results:[{name:'Lecce',admin1:'Puglia',country:'Italia',latitude:40.35,longitude:18.17}]}});
+ await expect(page.locator('#liveWeather')).toContainText('Ponte Bari');await expect(page.locator('#liveWeather')).toContainText('24 °C');await expect(page.locator('.weather-day')).toHaveCount(5);await expect(page.locator('#weatherOutlook')).not.toHaveAttribute('open','');await expect(page.locator('#weatherForecast')).toBeHidden();await page.locator('#weatherOutlook summary').click();await expect(page.locator('#weatherForecast')).toBeVisible();
+ await expect(page.locator('#liveDateTime')).toHaveText(/\d{1,2} [a-z]+ \d{4}/);await expect(page.locator('#liveTime')).toHaveText(/\d{2}:\d{2}:\d{2}/);
+ await expect(page.locator('#weatherExtras')).toContainText('Umidità');await expect(page.locator('#weatherExtras')).toContainText('60 %');expect(await page.locator('#weatherExtras strong').evaluateAll(nodes=>nodes.every(n=>n.clientHeight<20))).toBe(true);
+ await page.locator('#weatherPicker summary').click();await page.locator('#weatherSearch').fill('Lecce');await page.locator('#weatherSearchForm button').click();await page.getByRole('button',{name:'Lecce · Puglia · Italia',exact:true}).click();await expect(page.locator('#liveWeather')).toContainText('Lecce');
+ expect(await page.evaluate(()=>JSON.parse(localStorage.getItem('rt-weather-position')).latitude)).toBe(40.35);
+ await page.locator('#weatherPicker summary').click();await page.locator('#weatherAntennas').click();await page.getByRole('button',{name:'Ponte Bari',exact:true}).click();await expect(page.locator('#liveWeather')).toContainText('Ponte Bari');
+ for(const width of [1440,768,390,320]){await page.setViewportSize({width,height:1000});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);expect(await page.locator('.environment-widget input,.weather-day,.environment-details>div,.analog-clock').evaluateAll(nodes=>nodes.filter(n=>n.getClientRects().length).some(n=>{const r=n.getBoundingClientRect();return r.left<0||r.right>innerWidth+1;}))).toBe(false);if(width===1440||width===390){await page.locator('#weatherOutlook').evaluate(n=>n.open=false);await page.locator('.environment-widget').screenshot({path:`build/reports/web/environment-console-${width}.png`});}}
+ expect(errors).toEqual([]);
+});
+
+
+test('Raycast footer navigates workspaces preserves session and fits all screen widths',async({page})=>{
+ await page.emulateMedia({reducedMotion:'reduce'});const errors=[];page.on('pageerror',e=>errors.push(e.message));await session(page);
+ const footer=page.locator('footer.app-footer');await expect(footer).toContainText('Kevin Cagnazzo e Anthony Piccinonno');await expect(page.locator('#footerServiceStatus')).toHaveText('Backend disponibile');
+ for(const width of [1440,1024,768,390,320]){await page.setViewportSize({width,height:1000});await footer.scrollIntoViewIfNeeded();expect(await footer.locator('button,.footer-group,.footer-brand,.footer-bottom').evaluateAll(nodes=>nodes.filter(n=>n.getClientRects().length).some(n=>{const r=n.getBoundingClientRect();return r.left<0||r.right>innerWidth+1;}))).toBe(false);expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);}
+ for(const view of ['reports','planning','inventory','pro','access','system','dashboard']){await footer.locator(`[data-footer-view="${view}"]`).first().click();await expect(page.locator(`#view-${view}`)).toBeVisible();}
+ expect(await page.evaluate(()=>sessionStorage.getItem('radiotech_control_token'))).toBe('test-token');await footer.scrollIntoViewIfNeeded();await page.locator('#footerBackTop').click();await expect(page.locator('.topbar')).toBeInViewport();await expect.poll(()=>page.evaluate(()=>document.scrollingElement.scrollTop)).toBe(0);
+ await page.locator('#backendStatus').evaluate(n=>n.textContent='ERROR');await expect(page.locator('#footerServiceStatus')).toHaveText('Backend non disponibile');expect(errors).toEqual([]);
+ await footer.scrollIntoViewIfNeeded();await page.screenshot({path:'build/reports/web/footer-320.png'});
+});
+
+
+test('compact environment starts closed and operational widgets use actual records',async({page})=>{
+ await page.emulateMedia({reducedMotion:'reduce'});
+ await session(page,'ADMIN',{'/dashboard/stats':{antennas:0,tasks:2,operators:1,availability:100,lowStock:1},'/tasks':{data:[{id:'w1',title:'Verifica',status:'ASSIGNED',dueAt:'2020-01-01T00:00:00Z'},{id:'w2',title:'Concluso',status:'COMPLETED',dueAt:'2020-01-01T00:00:00Z'}]},'/reports':[{id:'wr1',status:'SUBMITTED'},{id:'wr2',status:'APPROVED'}],'/inventory':[{id:'wi1',name:'Ricambio',quantity:2,minimumThreshold:3},{id:'wi2',name:'Riserva',quantity:20,minimumThreshold:3}]});
+ await expect(page.locator('#weatherForecast')).toBeHidden();await expect(page.locator('#widgetActiveTasks')).toHaveText('1');await expect(page.locator('#widgetOverdueTasks')).toHaveText('1');await expect(page.locator('#widgetPendingReports')).toHaveText('1');await expect(page.locator('#widgetLowStock')).toHaveText('1');
+ for(const width of [1440,768,390,320]){await page.setViewportSize({width,height:900});const widget=page.locator('.environment-widget');await widget.scrollIntoViewIfNeeded();expect(await widget.evaluate(n=>n.scrollWidth<=n.clientWidth+1)).toBe(true);expect(await widget.locator('button,input,.environment-details>div,.environment-operations>button').evaluateAll(nodes=>nodes.filter(n=>n.getClientRects().length).some(n=>{const r=n.getBoundingClientRect();return r.left<0||r.right>innerWidth+1;}))).toBe(false);}
+ await page.locator('#weatherOutlook summary').click();await expect(page.locator('#weatherForecast')).toBeVisible();await page.locator('#weatherOutlook summary').click();await expect(page.locator('#weatherForecast')).toBeHidden();
+ await page.locator('[data-widget-view="reports"]').click();await expect(page.locator('#view-reports')).toBeVisible();await page.locator('footer [data-footer-view="dashboard"]').click();await expect(page.locator('#weatherForecast')).toBeHidden();
+ for(const motion of ['reduce','no-preference']){await page.emulateMedia({reducedMotion:motion});await page.locator('footer').scrollIntoViewIfNeeded();expect(await page.evaluate(()=>document.scrollingElement.scrollTop)).toBeGreaterThan(200);await page.locator('#footerBackTop').click();await expect.poll(()=>page.evaluate(()=>document.scrollingElement.scrollTop),{timeout:8000}).toBe(0);}
+ await page.setViewportSize({width:1440,height:1000});await page.screenshot({path:'build/reports/web/weather-compact-desktop.png'});
+ await page.setViewportSize({width:390,height:1000});await page.screenshot({path:'build/reports/web/weather-compact-mobile.png'});
 });

@@ -163,7 +163,11 @@ class OperatorServiceQrTenantEmulatorTest {
                                         "qrExpiresAt", "2099-12-31T00:00:00Z",
                                         "fullName", "Anonymous Login Operator")).get();
 
-                        Operator operator = new OperatorService().consumeQrToken("anonymous-login-qr");
+                        OperatorService service = new OperatorService();
+                        assertEquals("new-firebase-user", service.linkQrAccount("anonymous-login-qr", "new-firebase-user").getFirebaseUid());
+                        assertThrows(SecurityException.class, () -> service.linkQrAccount("anonymous-login-qr", "different-user"));
+                        Operator operator = service.consumeQrToken("anonymous-login-qr");
+                        assertThrows(IllegalArgumentException.class, () -> service.linkQrAccount("anonymous-login-qr", "different-user"));
 
                         assertEquals("operator-anonymous", operator.getId());
                         assertEquals("tenant-a", operator.getTenantId());

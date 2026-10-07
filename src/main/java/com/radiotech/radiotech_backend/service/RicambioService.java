@@ -73,6 +73,7 @@ public class RicambioService {
         item.put("description", optionalText(request, "description", 1000, ""));
         item.put("unit", optionalText(request, "unit", 20, "pz"));
         item.put("location", optionalText(request, "location", 120, ""));
+        for (String field : List.of("warehouse", "aisle", "rack", "bin")) item.put(field, optionalText(request, field, 80, ""));
         item.put("supplier", optionalText(request, "supplier", 160, ""));
         item.put("barcode", optionalText(request, "barcode", 100, ""));
         item.put("unitCost", nonNegativeDecimal(request, "unitCost", 0d));
@@ -116,6 +117,7 @@ public class RicambioService {
         if (request.containsKey("description")) updates.put("description", optionalText(request, "description", 1000, ""));
         if (request.containsKey("unit")) updates.put("unit", optionalText(request, "unit", 20, "pz"));
         if (request.containsKey("location")) updates.put("location", optionalText(request, "location", 120, ""));
+        for (String field : List.of("warehouse", "aisle", "rack", "bin")) if (request.containsKey(field)) updates.put(field, optionalText(request, field, 80, ""));
         if (request.containsKey("supplier")) updates.put("supplier", optionalText(request, "supplier", 160, ""));
         if (request.containsKey("barcode")) updates.put("barcode", optionalText(request, "barcode", 100, ""));
         if (request.containsKey("unitCost")) updates.put("unitCost", nonNegativeDecimal(request, "unitCost", 0d));
@@ -141,37 +143,69 @@ public class RicambioService {
         if (quantity < 0 || ("ADJUSTMENT".equals(type) ? false : quantity == 0)) {
             throw new IllegalArgumentException("La quantità del movimento deve essere valida e maggiore di zero.");
         }
+        String lotCode = optionalText(request, "lotCode", 100, "");
+        if (!lotCode.isBlank() && !lotCode.matches("[A-Za-z0-9._-]{1,100}")) throw new IllegalArgumentException("Il lotto può contenere lettere, numeri, punti, trattini e underscore.");
+        String expires = optionalText(request, "lotExpiresOn", 10, "");
+        if (!expires.isBlank()) { try { java.time.LocalDate.parse(expires); } catch(Exception e) { throw new IllegalArgumentException("Scadenza lotto non valida."); } }
         String tenantId = currentTenant();
         Firestore db = FirestoreClient.getFirestore();
         DocumentReference itemReference = db.collection(COLLECTION).document(id.trim());
         DocumentReference movementReference = db.collection("inventoryMovements").document();
         String now = Instant.now().toString();
-        Map<String, Object> result = db.runTransaction(transaction -> {
+        Map<String, Object> result;
+        try { result = db.runTransaction(transaction -> {
             DocumentSnapshot snapshot = transaction.get(itemReference).get();
             requireInventoryTenant(snapshot, tenantId);
             if (Boolean.FALSE.equals(snapshot.getBoolean("active")))
                 throw new IllegalArgumentException("Articolo archiviato: riattivalo prima di movimentarlo.");
             Map<String, Object> item = snapshot.getData();
             int previous = number(snapshot.get("quantity"));
+            Map<String,Object> lots = snapshot.get("lots") instanceof Map<?,?> raw ? new HashMap<>((Map<String,Object>)raw) : new HashMap<>();
+            int tracked = 0;
+            for (Object raw : lots.values()) if (raw instanceof Map<?,?> data) tracked = Math.addExact(tracked, number(data.get("quantity")));
+            Map<String,Object> lot = !lotCode.isBlank() && lots.get(lotCode) instanceof Map<?,?> raw ? new HashMap<>((Map<String,Object>)raw) : new HashMap<>();
+            int lotPrevious = number(lot.get("quantity"));
+            if ("ISSUE".equals(type)) {
+                int available = lotCode.isBlank() ? previous-tracked : lotPrevious;
+                if (quantity > available) throw new IllegalArgumentException(lotCode.isBlank()?"Quantità non disponibile senza lotto. Seleziona il lotto da scaricare.":"Quantità insufficiente nel lotto selezionato.");
+                String expiry = text(lot.get("expiresOn"));
+                if (!lotCode.isBlank() && !expiry.isBlank() && java.time.LocalDate.parse(expiry).isBefore(java.time.LocalDate.now(java.time.ZoneOffset.UTC))) throw new IllegalArgumentException("Lotto scaduto: non utilizzabile per interventi.");
+            }
+            if ("ADJUSTMENT".equals(type) && lotCode.isBlank() && tracked > 0) throw new IllegalArgumentException("Articolo con lotti: rettifica il singolo lotto per preservare la tracciabilità.");
             int target;
             if ("RECEIPT".equals(type)) target = Math.addExact(previous, quantity);
             else if ("ISSUE".equals(type)) {
                 if (previous < quantity) throw new IllegalArgumentException("Scorta insufficiente: disponibili " + previous + ".");
                 target = previous - quantity;
-            } else target = quantity;
+            } else target = lotCode.isBlank() ? quantity : Math.addExact(previous, quantity-lotPrevious);
             int delta = target - previous;
-            transaction.update(itemReference, "quantity", target, "updatedAt", now);
+            Map<String,Object> stockUpdate = new HashMap<>(); stockUpdate.put("quantity", target); stockUpdate.put("updatedAt", now);
+            if (!lotCode.isBlank()) {
+                int lotTarget = "RECEIPT".equals(type)?Math.addExact(lotPrevious,quantity):"ISSUE".equals(type)?lotPrevious-quantity:quantity;
+                if (!expires.isBlank() && lot.containsKey("expiresOn") && !expires.equals(lot.get("expiresOn"))) throw new IllegalArgumentException("Il lotto ha già una scadenza diversa. Usa un codice lotto distinto.");
+                lot.put("quantity",lotTarget); lot.put("updatedAt",now); if(!expires.isBlank())lot.put("expiresOn",expires);
+                lots.put(lotCode,lot);stockUpdate.put("lots",lots);
+            }
+            transaction.update(itemReference, stockUpdate);
             Map<String, Object> movementData = movement(tenantId, item, type,
                     "ADJUSTMENT".equals(type) ? delta : quantity, previous, target,
                     optionalText(request, "note", 500, ""), optionalText(request, "reference", 100, ""), now);
             movementData.put("actorUid", SecurityContextAccessor.currentUid() == null ? "SYSTEM" : SecurityContextAccessor.currentUid());
+            movementData.put("lotCode", lotCode); movementData.put("lotExpiresOn", expires.isBlank()?text(lot.get("expiresOn")):expires);
+            movementData.put("warehouse", text(item.get("warehouse")));movementData.put("location", text(item.get("location")));
             transaction.set(movementReference, movementData);
             Map<String, Object> updated = new HashMap<>(item);
+            updated.putAll(stockUpdate);
             updated.put("quantity", target);
             updated.put("updatedAt", now);
             updated.put("id", snapshot.getId());
             return updated;
-        }).get();
+        }).get(); } catch (java.util.concurrent.ExecutionException error) {
+            if(error.getCause() instanceof IllegalArgumentException invalid)throw invalid;
+            if(error.getCause() instanceof SecurityException denied)throw denied;
+            if(error.getCause() instanceof ArithmeticException)throw new IllegalArgumentException("La quantità supera il limite consentito.");
+            throw error;
+        }
         auditService.record("INVENTORY_" + type, tenantId, SecurityContextAccessor.currentUid(), "INVENTORY",
                 id.trim(), "SUCCESS", null, Map.of("movementId", movementReference.getId(), "quantity", quantity));
         return result;
@@ -243,6 +277,28 @@ public class RicambioService {
         movement.put("actorUid", SecurityContextAccessor.currentUid() == null ? "SYSTEM" : SecurityContextAccessor.currentUid());
         movement.put("createdAt", now);
         return movement;
+    }
+
+    /** Consume non-expired lots in FEFO order, then unallocated legacy stock. */
+    private Map<String,Object> allocateLots(DocumentSnapshot item, int quantity, String now) {
+        var lots = item.get("lots") instanceof Map<?,?> raw ? new HashMap<>((Map<String,Object>)raw) : new HashMap<String,Object>();
+        var codes = new ArrayList<>(lots.keySet());
+        codes.sort(java.util.Comparator.comparing(code -> {
+            var data = (Map<?,?>)lots.get(code); String date = text(data.get("expiresOn"));return date.isBlank()?"9999-12-31":date;
+        }));
+        int remaining = quantity, tracked = 0; var allocations = new ArrayList<Map<String,Object>>();
+        String today = java.time.LocalDate.now(java.time.ZoneOffset.UTC).toString();
+        for (String code : codes) {
+            var data = new HashMap<>((Map<String,Object>)lots.get(code));int available = number(data.get("quantity"));tracked = Math.addExact(tracked,available);
+            String expiry = text(data.get("expiresOn"));
+            if (remaining <= 0 || (!expiry.isBlank() && expiry.compareTo(today)<0)) continue;
+            int used = Math.min(remaining, available);remaining -= used;data.put("quantity",available-used);data.put("updatedAt",now);lots.put(code,data);
+            if(used>0)allocations.add(Map.of("lotCode",code,"quantity",used));
+        }
+        int unallocated = number(item.get("quantity"))-tracked;
+        if(remaining>unallocated)throw new IllegalArgumentException("Scorte utilizzabili insufficienti: alcuni lotti sono scaduti.");
+        if(remaining>0)allocations.add(Map.of("lotCode","", "quantity",remaining));
+        return Map.of("lots",lots,"allocations",allocations);
     }
 
     private String requiredText(Map<String, Object> request, String field, int max) {
@@ -383,6 +439,7 @@ public class RicambioService {
                 if (!tenantId.equals(item.getString("tenantId"))) {
                     throw new SecurityException("Articolo non appartenente al tenant autenticato.");
                 }
+                if (item.get("lots") instanceof Map<?,?> lots && !lots.isEmpty()) throw new IllegalArgumentException("Articolo tracciato per lotto: utilizza i movimenti del singolo lotto.");
                 int previousQuantity = number(item.get("quantity"));
                 int adjustment = Math.subtractExact(targetQuantity, previousQuantity);
                 Map<String, Object> updated = new HashMap<>(item.getData());
@@ -590,7 +647,10 @@ public class RicambioService {
                     InventoryLookup lookup = consumptionLookups.get(key);
                     int available = number(item.get("quantity"));
                     int consumed = consumptionQuantities.get(key);
-                    transaction.update(consumptionReferences.get(key), "quantity", available - consumed, "updatedAt", now);
+                    var allocation = allocateLots(item, consumed, now);
+                    var stock = new HashMap<String,Object>(); stock.put("quantity", available-consumed);stock.put("updatedAt",now);
+                    if (allocation.containsKey("lots")) stock.put("lots",allocation.get("lots"));
+                    transaction.update(consumptionReferences.get(key), stock);
 
                     Map<String, Object> movement = new HashMap<>();
                     movement.put("tenantId", tenantId);
@@ -599,6 +659,8 @@ public class RicambioService {
                     movement.put("name", item.getString("name") == null ? lookup.name() : item.getString("name"));
                     movement.put("quantity", consumed);
                     movement.put("type", "CONSUMPTION");
+                    movement.put("lotAllocations", allocation.get("allocations"));
+                    movement.put("warehouse", text(item.get("warehouse")));
                     movement.put("createdAt", now);
                     if (operationId != null) {
                         movement.put("operationId", operationId);

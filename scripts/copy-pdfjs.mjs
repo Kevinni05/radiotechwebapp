@@ -1,0 +1,10 @@
+import { cp, mkdir } from 'node:fs/promises';
+import { resolve } from 'node:path';
+const root = resolve(import.meta.dirname, '..');
+const source = resolve(root, 'node_modules/pdfjs-dist');
+const target = resolve(root, 'src/main/resources/static/assets/pdfjs');
+await mkdir(target, {recursive:true});
+for(const file of ['pdf.min.mjs','pdf.worker.min.mjs']) await cp(resolve(source,'build',file),resolve(target,file));
+for(const file of ['LICENSE','README.md']) await cp(resolve(source,file),resolve(target,file));
+for(const folder of ['standard_fonts','cmaps']) await cp(resolve(source,folder),resolve(target,folder),{recursive:true});
+console.log('PDF.js browser assets copied, with license and bundled fonts.');

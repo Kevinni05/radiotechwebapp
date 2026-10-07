@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+@com.google.cloud.firestore.annotation.IgnoreExtraProperties
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -16,6 +17,8 @@ public class MaintenanceReport {
     private String id;
     private String tenantId;
     private String taskId;
+    private String taskTitle;
+    private String antennaName;
 
     /** Firestore document id of the operator that submitted the report. */
     private String operatorId;

@@ -157,7 +157,11 @@ public class FirebaseAuthenticationFilter
                                 if (!device.exists() || !tenantId.equals(device.getString("tenantId")) || !decoded.getUid().equals(device.getString("uid")) || !"ACTIVE".equals(device.getString("status"))) {
                                         sendUnauthorized(response,"Dispositivo revocato: accedi nuovamente.");return;
                                 }
-                        } catch(Exception error) { sendUnauthorized(response,"Impossibile verificare il dispositivo.");return; }
+                        } catch(Exception error) {
+                                response.setStatus(503); response.setContentType("application/json"); response.setCharacterEncoding("UTF-8");
+                                String message=com.radiotech.radiotech_backend.exception.CloudQuota.exhausted(error)?com.radiotech.radiotech_backend.exception.CloudQuota.MESSAGE:"Verifica del dispositivo temporaneamente non disponibile. Riprova.";
+                                response.getWriter().write("{\"success\":false,\"status\":503,\"message\":\""+escapeJson(message)+"\"}");return;
+                        }
                 }
 
                 request.setAttribute("firebaseUid", decoded.getUid());

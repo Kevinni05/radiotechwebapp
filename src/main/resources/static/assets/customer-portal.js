@@ -4,6 +4,11 @@
   const state={authRole:"CUSTOMER",sessionEpoch:0};
   const esc=value=>String(value??"").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#039;");
   const status=document.getElementById("portalStatus");
+  document.getElementById("portalBrandHome").onclick=event=>{
+    if(!token)return;
+    event.preventDefault();document.querySelector('[data-view="pro"]')?.click();
+    window.scrollTo({top:0,behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth'});
+  };
   async function apiFetch(path,options={},retry=true) {
     const response=await fetch(path,{...options,headers:{"Content-Type":"application/json","Authorization":`Bearer ${token}`},signal:AbortSignal.timeout(20000)});
     if(response.status===401&&retry&&refreshToken) { const r=await fetch("/api/v1/auth/refresh",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({refreshToken}),signal:AbortSignal.timeout(20000)});const data=await r.json();if(!r.ok)throw new Error("Sessione scaduta: accedi nuovamente.");token=data.token;refreshToken=data.refreshToken||refreshToken;return apiFetch(path,options,false); }

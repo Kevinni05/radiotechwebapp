@@ -106,7 +106,9 @@ public class MaintenanceReportService {
         String value = operatorRef.trim();
         List<MaintenanceReport> reports = new ArrayList<>(query("operatorId", value));
 
-        for (MaintenanceReport report : query("operatorFirebaseUid", value)) {
+        var additional = new ArrayList<>(query("operatorFirebaseUid", value));
+        additional.addAll(query("operator_uid",value));
+        for (MaintenanceReport report : additional) {
             if (reports.stream().noneMatch(existing -> existing.getId().equals(report.getId()))) {
                 reports.add(report);
             }
@@ -189,8 +191,12 @@ public class MaintenanceReportService {
             if (!antenna.exists() || !tenantId.equals(antenna.getString("tenantId"))) {
                 throw new IllegalArgumentException("Antenna del report non trovata: " + report.getAntennaId());
             }
+            report.setAntennaName(antenna.getString("name"));
+        } else {
+            report.setAntennaName(null);
         }
 
+        report.setTaskTitle(linkedTask == null ? null : linkedTask.getTitle());
         String requestHash = reportRequestHash(report);
 
         Operator operator = operatorService.getByFirebaseUid(authenticatedUid);
@@ -677,6 +683,18 @@ public class MaintenanceReportService {
             MaintenanceReport report = doc.toObject(MaintenanceReport.class);
             if (report == null) {
                 continue;
+            }
+            if (blank(report.getAntennaId())) report.setAntennaId(doc.getString("antenna_id"));
+            if (blank(report.getOperatorNotes())) report.setOperatorNotes(doc.getString("notes"));
+            if (blank(report.getOperatorFirebaseUid())) report.setOperatorFirebaseUid(doc.getString("operator_uid"));
+            if (blank(report.getSubmittedAt())) {
+                Object legacy = doc.get("created_at");
+                if (legacy instanceof com.google.cloud.Timestamp timestamp) report.setSubmittedAt(java.time.Instant.ofEpochSecond(timestamp.getSeconds(),timestamp.getNanos()).toString());
+                else if (legacy instanceof String text) report.setSubmittedAt(text);
+            }
+            if (report.getAttachments()==null)report.setAttachments(new ArrayList<>());
+            for (String field : List.of("pdfUrl","pdf_url")) {
+                Object ref=doc.get(field); if(ref instanceof String text && !text.isBlank() && !report.getAttachments().contains(text))report.getAttachments().add(text);
             }
             report.setId(doc.getId());
             if (report.getOperatorFirebaseUid() == null) {

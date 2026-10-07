@@ -207,9 +207,11 @@ public class AuthController {
                         return ResponseEntity.status(HttpStatus.FORBIDDEN)
                                         .body(error("Operazione non autorizzata."));
                 } catch (Exception e) {
-                        log.error("Errore non gestito", e);
+                        if (com.radiotech.radiotech_backend.exception.CloudQuota.exhausted(e)) return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(error(com.radiotech.radiotech_backend.exception.CloudQuota.MESSAGE));
+                        String reference = java.util.UUID.randomUUID().toString();
+                        log.error("QR login failure reference={}", reference, e);
                         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                                        .body(error("Errore durante il login con QR."));
+                                        .body(error("Errore durante il login con QR. Rif. " + reference));
                 }
         }
 

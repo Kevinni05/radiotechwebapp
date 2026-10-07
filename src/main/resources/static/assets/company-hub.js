@@ -9,7 +9,8 @@ window.RadioTechCompanyHub = function ({ apiFetch, state, escapeHtml: esc, toast
     button.addEventListener("click", () => { switchView(name); if (name === "ai") loadAI(); else loadPeople(); });
     document.querySelector(".nav").append(button);
     const section = document.createElement("section"); section.className = "view"; section.id = `view-${name}`; section.innerHTML = markup;
-    document.querySelector(".view").parentElement.append(section);
+    const container=document.querySelector(".view").parentElement;
+    container.insertBefore(section,container.querySelector(":scope > .footer"));
   }
   addView("ai", "✧ AI e previsioni", `
     <div class="enterprise-kpis"><div class="panel"><span>Asset osservati</span><strong id="aiAssets">—</strong></div><div class="panel"><span>Priorità elevate</span><strong id="aiRiskCount">—</strong></div><div class="panel"><span>Incarichi attivi</span><strong id="aiTasks">—</strong></div><div class="panel"><span>Oltre scadenza</span><strong id="aiOverdue">—</strong></div></div>
@@ -27,7 +28,7 @@ window.RadioTechCompanyHub = function ({ apiFetch, state, escapeHtml: esc, toast
   }
   function renderRisks() {
     const query = $("aiRiskSearch").value.trim().toLowerCase();
-    $("aiRisks").innerHTML = risks.filter(r => `${r.name} ${r.assetId}`.toLowerCase().includes(query)).map(r => `<article class="task-row"><div><strong>${esc(r.name || r.assetId)}</strong><div class="task-meta">${esc(r.assetId)} · ${esc(label(r.level))} · Indicatore ${esc(r.score)}/100</div><ul class="enterprise-summary">${r.reasons.map(reason => `<li>${esc(reason)}</li>`).join("")}</ul><p class="enterprise-summary">${r.dataQuality === "LIMITED" ? "Dati limitati. " : ""}${esc(r.recommendation)}</p><p class="task-meta">${r.estimatedMaintenanceAt ? `Prossima manutenzione stimata: ${esc(new Date(r.estimatedMaintenanceAt).toLocaleDateString("it-IT"))} · Mediana ${esc(r.medianIntervalDays)} giorni · ${esc(r.historyCount)} interventi` : "Storico insufficiente per stimare una data."}</p></div></article>`).join("") || '<div class="enterprise-empty">Nessun asset corrispondente.</div>';
+    $("aiRisks").innerHTML = risks.filter(r => `${r.name} ${r.assetId}`.toLowerCase().includes(query)).map(r => `<article class="task-row"><div><strong>${esc(r.name || r.assetId)}</strong><div class="task-meta">${esc(r.assetId)} · ${esc(label(r.level))} · Indicatore ${esc(r.score)}/100</div><ul class="enterprise-summary">${r.reasons.map(reason => `<li>${esc(reason)}</li>`).join("")}</ul><p class="enterprise-summary">${r.dataQuality === "LIMITED" ? "Dati limitati. " : ""}${esc(r.recommendation)}</p><p class="task-meta">${r.estimatedMaintenanceAt ? `Prossima manutenzione stimata: ${esc(new Date(r.estimatedMaintenanceAt).toLocaleDateString("it-IT"))} · Mediana ${esc(r.medianIntervalDays)} giorni · ${esc(r.historyCount)} interventi` : "Storico insufficiente per stimare una data."}</p></div></article>`).join("") || '<div class="enterprise-empty">Nessun impianto corrispondente.</div>';
   }
   async function loadAI() {
     const epoch = state.sessionEpoch || 0;

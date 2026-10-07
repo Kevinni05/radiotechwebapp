@@ -50,7 +50,7 @@ public class AuthService {
 
                 return FirebaseAuth
                                 .getInstance()
-                                .verifyIdToken(idToken.trim());
+                                .verifyIdToken(idToken.trim(), true);
         }
 
         /**
@@ -262,7 +262,12 @@ public class AuthService {
                  * ==========================================================
                  */
 
-                if (capoService.isCapo(decodedToken)) {
+                var signedRole=com.radiotech.radiotech_backend.security.Role.fromClaims(decodedToken.getClaims());
+                if(java.util.Set.of(com.radiotech.radiotech_backend.security.Role.ADMIN,com.radiotech.radiotech_backend.security.Role.SUPER_ADMIN,com.radiotech.radiotech_backend.security.Role.NETWORK_MANAGER,com.radiotech.radiotech_backend.security.Role.VIEWER).contains(signedRole)){
+                        response.put("role",signedRole.name());response.put("operatorFound",false);
+                        response.put("user",Map.of("uid",firebaseUid,"email",decodedToken.getEmail()==null?"":decodedToken.getEmail(),"name",decodedToken.getName()==null?"":decodedToken.getName(),"role",signedRole.name()));return response;
+                }
+                if (signedRole==com.radiotech.radiotech_backend.security.Role.CHIEF_EXECUTIVE) {
 
                         CapoProfile profile = capoService.ensureCapoProfile(
                                         firebaseUid);
@@ -649,7 +654,10 @@ public class AuthService {
                         try {
                                 UserRecord existingUser = FirebaseAuth.getInstance().getUserByEmail(email);
                                 firebaseUid = existingUser.getUid();
-                        } catch (Exception notFound) {
+                        } catch (com.google.firebase.auth.FirebaseAuthException notFound) {
+                                if (notFound.getAuthErrorCode() != com.google.firebase.auth.AuthErrorCode.USER_NOT_FOUND) {
+                                        throw notFound;
+                                }
                                 UserRecord.CreateRequest createReq = new UserRecord.CreateRequest()
                                                 .setEmail(email)
                                                 .setDisplayName(operator.getFullName())
@@ -657,21 +665,44 @@ public class AuthService {
                                 UserRecord created = FirebaseAuth.getInstance().createUser(createReq);
                                 firebaseUid = created.getUid();
                         }
-                        operator.setFirebaseUid(firebaseUid);
-                        operatorService.updateOperator(operator.getId(), operator);
                 }
 
-                UserRecord qrUser = FirebaseAuth.getInstance().getUser(firebaseUid);
+                UserRecord qrUser;
+                try {
+                        qrUser = FirebaseAuth.getInstance().getUser(firebaseUid);
+                } catch (com.google.firebase.auth.FirebaseAuthException missing) {
+                        if (missing.getAuthErrorCode() != com.google.firebase.auth.AuthErrorCode.USER_NOT_FOUND) throw missing;
+                        throw new IllegalArgumentException("Account collegato non trovato. Risincronizza l'operatore e rigenera il badge.");
+                }
+                if (qrUser.isDisabled()) {
+                        throw new IllegalArgumentException("Account disabilitato. Contatta l'amministratore.");
+                }
+                var accountRole = com.radiotech.radiotech_backend.security.Role.fromClaims(qrUser.getCustomClaims());
+                if (accountRole != com.radiotech.radiotech_backend.security.Role.NONE
+                                && accountRole != com.radiotech.radiotech_backend.security.Role.OPERATOR
+                                && accountRole != com.radiotech.radiotech_backend.security.Role.VIEWER) {
+                        throw new SecurityException("Il badge non può modificare il ruolo di questo account.");
+                }
                 Map<String, Object> claims = new HashMap<>();
                 if (qrUser.getCustomClaims() != null) {
                         claims.putAll(qrUser.getCustomClaims());
+                }
+                if (Boolean.TRUE.equals(claims.get("mfaRequired"))) {
+                        throw new IllegalArgumentException("Questo account richiede il secondo fattore. Accedi con le credenziali aziendali e MFA.");
                 }
                 Object existingTenant = claims.get("tenantId");
                 if (existingTenant instanceof String value && !value.isBlank()
                                 && !operator.getTenantId().equals(value.trim())) {
                         throw new SecurityException("Account Firebase già assegnato a un tenant diverso.");
                 }
-                claims.put("role", "OPERATOR");
+                if (operator.getFirebaseUid() == null || operator.getFirebaseUid().isBlank()) {
+                        operator = operatorService.linkQrAccount(cleanToken, firebaseUid);
+                }
+                claims.remove("radioDeviceId");
+                claims.remove("radioMfaVerified");
+                String qrRole = "VIEWER".equalsIgnoreCase(operator.getRole())
+                                || accountRole == com.radiotech.radiotech_backend.security.Role.VIEWER ? "VIEWER" : "OPERATOR";
+                claims.put("role", qrRole);
                 claims.put("operatorId", operator.getId());
                 claims.put("tenantId", operator.getTenantId());
                 FirebaseAuth.getInstance().setCustomUserClaims(firebaseUid, claims);
@@ -691,7 +722,7 @@ public class AuthService {
                 response.put("message", "Login tramite QR Code completato con successo.");
                 response.put("customToken", customToken);
                 response.put("operator", operator);
-                response.put("role", "OPERATOR");
+                response.put("role", qrRole);
 
                 return response;
         }

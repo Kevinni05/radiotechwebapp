@@ -10,7 +10,7 @@ import java.util.*;
 public class LocalAttachmentController {
  private final LocalAttachmentService files;
  public LocalAttachmentController(LocalAttachmentService files){this.files=files;}
- private String tenant(Permission permission){if(!TenantAccessPolicy.canAccess(SecurityContextAccessor.currentRole(),permission))throw new SecurityException("Operazione non autorizzata.");return TenantAccessPolicy.requireTenantAccess(SecurityContextAccessor.currentTenantId(),null);}
+ private String tenant(Permission permission){Role role=SecurityContextAccessor.currentRole();boolean allowed=TenantAccessPolicy.canAccess(role,permission)||(permission==Permission.REPORT_READ&&role==Role.OPERATOR&&TenantAccessPolicy.canAccess(role,Permission.REPORT_CREATE));if(!allowed)throw new SecurityException("Operazione non autorizzata.");return TenantAccessPolicy.requireTenantAccess(SecurityContextAccessor.currentTenantId(),null);}
  @GetMapping("/config") public Map<String,Object> config(){tenant(Permission.REPORT_READ);return Map.of("mode",files.enabled()?"LOCAL":"FIREBASE","maxBytes",LocalAttachmentService.MAX_BYTES);}
  @PostMapping(consumes="application/octet-stream") public Map<String,Object> upload(@RequestParam String operationId,@RequestParam String name,HttpServletRequest request)throws Exception{
   String tenant=tenant(Permission.REPORT_CREATE);byte[] data=request.getInputStream().readNBytes(LocalAttachmentService.MAX_BYTES+1);return files.save(tenant,SecurityContextAccessor.currentUid(),operationId,name,data);

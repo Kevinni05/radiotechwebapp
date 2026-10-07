@@ -29,10 +29,9 @@ $qrOrigin = [Uri]$PublicBaseUrl
 if (($qrOrigin.Scheme -ne 'https' -and $PublicBaseUrl -ne 'http://localhost:8080') -or $qrOrigin.UserInfo -or $qrOrigin.Query -or $qrOrigin.Fragment -or $qrOrigin.AbsolutePath -ne '/') { throw 'Use an HTTPS origin or the localhost test origin.' }
 $qrSecrets = Join-Path $qrRoot '.dist/secrets'
 New-Item -ItemType Directory -Force -Path $qrSecrets | Out-Null
-$qrAcl = Get-Acl -LiteralPath $qrSecrets
-$qrAcl.SetAccessRuleProtection($true, $false)
-$qrAcl.AddAccessRule([Security.AccessControl.FileSystemAccessRule]::new([Security.Principal.WindowsIdentity]::GetCurrent().User,'FullControl','ContainerInherit,ObjectInherit','None','Allow'))
-Set-Acl -LiteralPath $qrSecrets -AclObject $qrAcl
+$qrOwnerSid = [Security.Principal.WindowsIdentity]::GetCurrent().User.Value
+& icacls.exe $qrSecrets /inheritance:r /grant:r ("*" + $qrOwnerSid + ':(OI)(CI)F') | Out-Null
+if ($LASTEXITCODE -ne 0) { throw 'Unable to protect local signing keys.' }
 foreach ($qrSecretName in @('RADIOTECH_REPORT_VERIFICATION_SECRET','RADIOTECH_TENANT_INVITE_SECRET')) {
     if (![Environment]::GetEnvironmentVariable($qrSecretName)) {
         $qrSecretFile = Join-Path $qrSecrets ($qrSecretName + '.txt')
@@ -42,6 +41,13 @@ foreach ($qrSecretName in @('RADIOTECH_REPORT_VERIFICATION_SECRET','RADIOTECH_TE
 }
 $env:RADIOTECH_PUBLIC_BASE_URL = $PublicBaseUrl.TrimEnd('/')
 $env:RADIOTECH_CORS_ORIGINS = "http://localhost:8080,http://127.0.0.1:8080,$($env:RADIOTECH_PUBLIC_BASE_URL)"
+if (!$env:RADIOTECH_AI_ENABLED) {
+    try {
+        $qrModels = Invoke-RestMethod -Uri 'http://127.0.0.1:11434/api/tags' -TimeoutSec 3
+        if ($qrModels.models.name -contains 'qwen3:4b') { $env:RADIOTECH_AI_ENABLED = 'true'; $env:RADIOTECH_OLLAMA_URL = 'http://127.0.0.1:11434'; $env:RADIOTECH_AI_MODEL = 'qwen3:4b' }
+    } catch { # The optional local AI stays disabled if no installed model is available.
+    }
+}
 $qrLogDirectory = Join-Path $qrRoot '.dist'
 New-Item -ItemType Directory -Force -Path $qrLogDirectory | Out-Null
 $qrJava = (Get-Command java).Source
@@ -50,4 +56,5 @@ $qrProcess = Start-Process -FilePath $qrJava -ArgumentList @(
     '--logging.file.name=.dist/local-backend.log', '--server.forward-headers-strategy=native',
     '--server.tomcat.remoteip.internal-proxies=127\.0\.0\.1|::1'
 ) -WorkingDirectory $qrRoot -WindowStyle Hidden -PassThru
+@{ pid = $qrProcess.Id; workspace = $qrRoot; serviceAccountPath = $qrCredentials } | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $qrSecrets 'local-runtime.json') -Encoding utf8
 Write-Output "RadioTech local PID: $($qrProcess.Id). Log: .dist/local-backend.log"

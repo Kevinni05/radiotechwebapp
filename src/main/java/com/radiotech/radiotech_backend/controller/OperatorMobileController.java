@@ -350,7 +350,12 @@ public class OperatorMobileController {
     @GetMapping("/me/reports")
     public ResponseEntity<?> myReports(@RequestAttribute("firebaseUid") String uid) {
         try {
-            return ResponseEntity.ok(reportService.getByOperator(uid));
+            var reports = new java.util.ArrayList<>(reportService.getByOperator(uid));
+            Operator own = operatorService.getByFirebaseUid(uid);
+            if (own != null) for (var report : reportService.getByOperator(own.getId()))
+                if (reports.stream().noneMatch(r -> java.util.Objects.equals(r.getId(),report.getId()))) reports.add(report);
+            reports.sort(java.util.Comparator.comparing((MaintenanceReport r)->java.util.Objects.toString(r.getSubmittedAt(), "")).reversed());
+            return ResponseEntity.ok(reports);
         } catch (Exception e) {
             return server();
         }

@@ -5,7 +5,9 @@
         "build:auth": "esbuild scripts/auth-client.entry.js --bundle --minify --format=iife --outfile=src/main/resources/static/assets/auth-client.js",
         "test:web": "playwright test --reporter=line",
         "test:rules": "firebase emulators:exec --only firestore,storage --project demo-radiotech \"node --test rules-tests/*.test.js\"",
-        "test:firestore": "firebase emulators:exec --only firestore,auth --project demo-radiotech \"node scripts/run-firestore-tests.cjs\""
+        "test:firestore": "firebase emulators:exec --only firestore,auth --project demo-radiotech \"node scripts/run-firestore-tests.cjs\"",
+        "build:pdf": "node scripts/copy-pdfjs.mjs",
+        "test:telco": "node --test scripts/qa-telco-core.test.mjs"
     },
     "devDependencies": {
         "@firebase/rules-unit-testing": "^5.0.2",
@@ -16,5 +18,8 @@
     },
     "overrides": {
         "@grpc/grpc-js": "^1.13.6"
+    },
+    "dependencies": {
+        "pdfjs-dist": "6.4.299"
     }
 }

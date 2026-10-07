@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 600" fill="none">
+  <defs>
+    <linearGradient id="signal" x1="160" y1="100" x2="590" y2="490" gradientUnits="userSpaceOnUse"><stop stop-color="#ffaaa1"/><stop offset=".38" stop-color="#ff6363"/><stop offset=".7" stop-color="#a52542"/><stop offset="1" stop-color="#16171b"/></linearGradient>
+    <linearGradient id="edge" x1="120" y1="70" x2="640" y2="540" gradientUnits="userSpaceOnUse"><stop stop-color="#ffd9d3"/><stop offset=".45" stop-color="#ff6363"/><stop offset="1" stop-color="#63a1ff" stop-opacity=".3"/></linearGradient>
+    <linearGradient id="glass" x1="250" y1="100" x2="590" y2="490" gradientUnits="userSpaceOnUse"><stop stop-color="#ff6363" stop-opacity=".22"/><stop offset=".5" stop-color="#121317" stop-opacity=".7"/><stop offset="1" stop-color="#63a1ff" stop-opacity=".12"/></linearGradient>
+    <radialGradient id="haze"><stop stop-color="#ff6363" stop-opacity=".24"/><stop offset="1" stop-color="#ff6363" stop-opacity="0"/></radialGradient>
+  </defs>
+  <ellipse cx="340" cy="300" rx="290" ry="240" fill="url(#haze)"/>
+  <g stroke="#ffffff" stroke-opacity=".07"><path d="M60 140 380 20 690 280 380 560 60 300Z"/><path d="m60 140 320 300 310-160M380 20v420M60 300l320 260V440"/><path d="m130 200 250-100 250 210-250 180-250-120Z"/></g>
+  <g transform="translate(22 -30)"><path d="m185 195 204-100 204 178-204 163-204-140Z" fill="url(#glass)" stroke="url(#edge)"/><path d="m185 195 204 170 204-92M389 95v270" stroke="url(#edge)" stroke-opacity=".5"/></g>
+  <path d="m140 248 220-107 220 191-220 174-220-154Z" fill="url(#signal)" stroke="url(#edge)"/>
+  <path d="m140 248 220 186 220-102M360 141v293" stroke="#ffd4c9" stroke-opacity=".45"/>
+  <path d="m140 248 220 186v72L140 352Z" fill="#000" fill-opacity=".22"/>
+  <path d="m360 434 220-102v31L360 506Z" fill="#040506" fill-opacity=".4"/>
+  <g transform="translate(-20 100)"><path d="m185 195 204-100 204 178-204 163-204-140Z" fill="url(#glass)" stroke="url(#edge)"/><path d="m185 195 204 170 204-92M389 95v270" stroke="url(#edge)" stroke-opacity=".5"/></g>
+  <g stroke="#ffd9d3" stroke-linecap="round"><path d="m295 283 66-33 66 58-66 49-66-44Z" stroke-opacity=".9"/><path d="m324 296 37-18 37 31-37 28-37-24Z"/><circle cx="361" cy="310" r="4" fill="#fff"/></g>
+  <g fill="#f4b4ac"><circle cx="207" cy="165" r="3"/><circle cx="600" cy="303" r="3"/><circle cx="165" cy="445" r="3"/></g>
+</svg>

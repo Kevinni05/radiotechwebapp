@@ -1,12 +1,12 @@
 <!DOCTYPE html>
-<html lang="it" xmlns:th="http://www.thymeleaf.org">
+<html lang="it" data-theme="signal" xmlns:th="http://www.thymeleaf.org">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="theme-color" content="#070b16">
+    <meta name="theme-color" content="#08090b">
     <meta name="description" content="RadioTech — infrastruttura, operazioni e persone in una console aziendale.">
-    <title>RadioTech · Operations Suite</title>
+    <title>RadioTech · Gestione operativa</title>
     <link rel="icon" href="/assets/brand/radiotech-symbol-v1.png" type="image/png">
 
     <!-- Leaflet: CSS -->
@@ -14,8 +14,12 @@
 
     <link rel="stylesheet" href="/assets/enterprise.css">
     <style th:attr="nonce=${cspNonce}">:root { color-scheme: dark; }</style>
-    <link rel="preload" href="/assets/fonts/manrope-variable.ttf" as="font" type="font/ttf" crossorigin>
+    <link rel="preload" href="/assets/fonts/inter-variable.woff2" as="font" type="font/woff2" crossorigin>
     <link rel="stylesheet" href="/assets/design-system.css">
+    <link rel="stylesheet" href="/assets/radiotech-theme.css">
+    <link rel="stylesheet" href="/assets/report-attachments.css">
+    <link rel="stylesheet" href="/assets/operations-upgrade.css">
+    <link rel="stylesheet" href="/assets/environment-console.css">
 </head>
 
 <body>
@@ -30,43 +34,32 @@
                     <div class="brand-mark has-logo"><img src="/assets/brand/radiotech-symbol-v1.png" width="46" height="46" alt="" decoding="async"></div>
                     <div>
                         <strong>RadioTech</strong>
-                        <span>Operations Suite</span>
+                        <span>Gestione operativa</span>
                     </div>
                 </div>
 
                 <div class="signal-art" aria-hidden="true">
-                    <svg viewBox="0 0 500 500" fill="none">
-                        <defs><pattern id="signalGrid" width="32" height="32" patternUnits="userSpaceOnUse"><path d="M32 0H0V32" stroke="#7295bf" stroke-opacity=".12" stroke-width=".6"/></pattern></defs>
-                        <rect width="500" height="500" fill="url(#signalGrid)"/>
-                        <circle cx="250" cy="250" r="184" stroke="#83a9d9" stroke-opacity=".22"/>
-                        <circle cx="250" cy="250" r="132" stroke="#a5c7f2" stroke-opacity=".28"/>
-                        <circle cx="250" cy="250" r="74" stroke="#aad2f8" stroke-opacity=".38"/>
-                        <path d="M250 42V458M42 250H458M102 102L398 398M398 102L102 398" stroke="#89b2e4" stroke-opacity=".16"/>
-                        <g class="signal-orbit"><path d="M250 66A184 184 0 0 1 434 250" stroke="#8bc7e3" stroke-width="1.6"/><circle cx="434" cy="250" r="5" fill="#b9e8f9"/></g>
-                        <g class="signal-orbit reverse"><path d="M118 250A132 132 0 0 1 250 118" stroke="#aec9f1" stroke-width="1.3"/><circle cx="118" cy="250" r="4" fill="#aec9f1"/></g>
-                        <path d="M250 176L324 250L250 324L176 250Z" stroke="#a7c9f2" stroke-opacity=".35"/>
-                        <circle class="signal-node" cx="250" cy="250" r="9" fill="#c9e0fa"/><circle class="signal-node" cx="250" cy="176" r="3" fill="#b4d4f6"/><circle class="signal-node" cx="176" cy="250" r="3" fill="#b4d4f6"/>
-                    </svg>
+                    <img src="/assets/brand/radiotech-signal-field.svg" alt="" width="720" height="600" decoding="async">
                 </div>
                 <div class="login-copy">
-                    <div class="eyebrow">Precisione. Connessione. Controllo.</div>
-                    <h1>La tua rete.<br><span>Una visione superiore.</span></h1>
+                    <div class="eyebrow">RadioTech · Centro operativo</div>
+                    <h1>Il segnale è chiaro.<br><span>Il controllo è tuo.</span></h1>
                     <p>
-                        Una console unica per antenne, operatori, task, inventario,
-                        notifiche e controllo operativo.
+                        Infrastruttura, interventi e persone. Tutto il necessario
+                        per guidare la tua rete, in un unico spazio.
                     </p>
                     <div class="login-highlights">
                         <span class="login-chip">Infrastruttura</span><span class="login-chip">Operazioni</span><span class="login-chip">Persone &amp; AI</span>
                     </div>
-                    <div class="login-caption"><span>Progettato per chi guarda avanti.</span><span>RadioTech / Operations Suite</span></div>
+                    <div class="login-caption"><span>Connessioni solide. Decisioni precise.</span><span>Gestione operativa</span></div>
                 </div>
             </div>
 
             <div class="login-panel">
                 <form class="login-form" id="loginForm">
-                    <div class="login-brand login-mobile-brand" style="display:none"><div class="brand-mark has-logo"><img src="/assets/brand/radiotech-symbol-v1.png" width="46" height="46" alt="" decoding="async"></div><div><strong>RadioTech</strong><span>Operations Suite</span></div></div>
+                    <div class="login-brand login-mobile-brand" style="display:none"><div class="brand-mark has-logo"><img src="/assets/brand/radiotech-symbol-v1.png" width="46" height="46" alt="" decoding="async"></div><div><strong>RadioTech</strong><span>Gestione operativa</span></div></div>
                     <div class="eyebrow">Accesso riservato</div>
-                    <h2>Benvenuto in RadioTech.</h2>
+                    <h2>Il tuo centro operativo.</h2>
                     <p>Il tuo spazio di lavoro per guidare la rete e la squadra. Accedi con il tuo account aziendale.</p>
 
                     <div class="field">
@@ -91,12 +84,13 @@
                         </label>
                     </div>
 
-                    <button class="login-button" id="loginButton" type="submit">Accedi al Control Center</button>
+                    <button class="login-button" id="loginButton" type="submit">Accedi al Centro operativo</button>
                     <div class="login-status" id="loginStatus" role="status" aria-live="polite"></div>
                     <div class="login-help"><span data-icon="shield"></span>Sessione personale · Dati del tuo spazio aziendale</div>
                 </form>
             </div>
         </div>
+        <p class="login-copyright">© 2026 Kevin Cagnazzo e Anthony Piccinonno. Tutti i diritti riservati.</p>
     </section>
 
     <!-- =========================================================
@@ -107,20 +101,20 @@
         <button type="button" class="nav-scrim" id="navScrim" aria-label="Chiudi navigazione" tabindex="-1" hidden></button>
         <aside class="sidebar" id="sidebar" aria-label="Navigazione principale">
             <button type="button" class="icon-btn sidebar-close" id="sidebarClose" aria-label="Chiudi navigazione" data-icon="close">×</button>
-            <div class="brand">
+            <a class="brand brand-home" id="brandHome" href="/dashboard" aria-label="RadioTech: torna alla dashboard">
                 <div class="brand-mark has-logo"><img src="/assets/brand/radiotech-symbol-v1.png" width="46" height="46" alt="" decoding="async"></div>
                 <div>
                     <strong>RadioTech</strong>
-                    <span>Operations Suite</span>
+                    <span>Gestione operativa</span>
                 </div>
-            </div>
+            </a>
 
-            <div class="sidebar-scroll"><div class="nav-title">Workspace</div>
+            <div class="sidebar-scroll"><div class="nav-title">Centro operativo</div>
             <nav class="nav">
-                <button class="active" data-view="dashboard"><span class="nav-icon">⌂</span> Dashboard</button>
+                <button class="active" data-view="dashboard"><span class="nav-icon">⌂</span> Panoramica</button>
                 <button data-view="antennas"><span class="nav-icon">◉</span> Antenne</button>
                 <button data-view="operations"><span class="nav-icon">✓</span> Operatività</button>
-                <button data-view="tools"><span class="nav-icon">∿</span> Telecom Tools</button>
+                <button data-view="tools"><span class="nav-icon">∿</span> TelcoTools</button>
                 <button data-view="notifications"><span class="nav-icon">✦</span> Notifiche</button>
                 <button data-view="inventory"><span class="nav-icon">▦</span> Inventario</button>
             </nav>
@@ -149,7 +143,7 @@
                 <div style="display:flex;align-items:center;gap:9px;min-width:0">
                     <button class="icon-btn mobile-menu" id="mobileMenu" aria-label="Apri navigazione" aria-controls="sidebar" aria-expanded="false" data-icon="menu">☰</button>
                     <div>
-                        <div class="workspace-label">RadioTech / Workspace</div><h1 id="pageTitle">Dashboard</h1>
+                        <div class="workspace-label">RadioTech / Spazio operativo</div><h1 id="pageTitle">Panoramica</h1>
                         <p id="pageSubtitle">Monitoraggio infrastruttura radio e operazioni tecniche</p>
                     </div>
                 </div>
@@ -172,10 +166,11 @@
                 <section class="view active" id="view-dashboard">
                     <div class="section-head overview-head">
                         <div><span class="section-kicker">La tua visione operativa</span>
-                            <h2>Ogni dettaglio.<br><span>Sotto controllo.</span></h2>
-                            <p>Rete, risorse e persone. Una prospettiva completa per concentrarti su ciò che conta.</p>
+                            <h2>La rete, in primo piano.<br><span>Ogni giorno, sotto controllo.</span></h2>
+                            <p>Dalle infrastrutture alla squadra: una visione d’insieme per decidere dove intervenire.</p>
                         </div>
                         <div class="update-stamp">Aggiornamento <span id="lastUpdate">—</span></div>
+                        <div class="overview-art" aria-hidden="true"><img src="/assets/brand/radiotech-signal-field.svg" alt="" width="720" height="600" decoding="async"></div>
                     </div>
 
                     <div class="stats">
@@ -195,7 +190,7 @@
                             <div class="subtle">interventi registrati</div>
                         </div>
                         <div class="stat">
-                            <div class="stat-top"><span>Task</span><span class="stat-icon">✓</span></div>
+                            <div class="stat-top"><span>Incarichi</span><span class="stat-icon">✓</span></div>
                             <div class="stat-value" id="statTasks">—</div>
                             <div class="subtle">attività complessive</div>
                         </div>
@@ -205,7 +200,7 @@
                             <div class="subtle">articoli sotto soglia</div>
                         </div>
                         <div class="stat">
-                            <div class="stat-top"><span>Task scaduti</span><span class="stat-icon">!</span></div>
+                            <div class="stat-top"><span>Incarichi scaduti</span><span class="stat-icon">!</span></div>
                             <div class="stat-value" id="statOverdueTasks">—</div>
                             <div class="subtle">da verificare</div>
                         </div>
@@ -214,7 +209,7 @@
                     <div class="workspace-links" aria-label="Accessi rapidi">
                         <button class="workspace-link" type="button" data-workspace-link="operations"><span data-icon="briefcase"></span><span><strong>Operazioni e squadra</strong><small>Incarichi, report e risorse</small></span><span class="link-arrow" data-icon="arrow"></span></button>
                         <button class="workspace-link" type="button" data-workspace-link="enterprise"><span data-icon="shield"></span><span><strong>Rischi e competenze</strong><small>Incidenti e abilitazioni</small></span><span class="link-arrow" data-icon="arrow"></span></button>
-                        <button class="workspace-link" type="button" data-workspace-link="ai"><span data-icon="spark"></span><span><strong>Intelligence aziendale</strong><small>Analisi e assistente AI</small></span><span class="link-arrow" data-icon="arrow"></span></button>
+                        <button class="workspace-link" type="button" data-workspace-link="ai"><span data-icon="spark"></span><span><strong>Analisi aziendale</strong><small>Analisi e assistente AI</small></span><span class="link-arrow" data-icon="arrow"></span></button>
                     </div>
                     <div class="grid-2">
                         <div class="panel">
@@ -228,7 +223,7 @@
                             <div class="map-shell">
                                 <div id="map"></div>
                                 <div class="map-overlay">
-                                    <strong id="mapStatus">Network map</strong>
+                                    <strong id="mapStatus">Mappa della rete</strong>
                                     <span id="mapSubstatus">Caricamento infrastruttura...</span>
                                 </div>
                             </div>
@@ -238,7 +233,7 @@
                                 <span class="legend-item"><i class="legend-dot" style="background:#ffb648"></i>
                                     Manutenzione</span>
                                 <span class="legend-item"><i class="legend-dot" style="background:#ff5f6d"></i>
-                                    Offline</span>
+                                    Non connessa</span>
                             </div>
                         </div>
 
@@ -280,7 +275,7 @@
                                     </div>
                                 </div>
 
-                                <div class="subtle" style="margin:24px 0 9px">Distribuzione task</div>
+                                <div class="subtle" style="margin:24px 0 9px">Distribuzione incarichi</div>
                                 <div class="task-list">
                                     <div class="task-row">
                                         <div>
@@ -313,7 +308,7 @@
                     <div class="section-head">
                         <div>
                             <h2>Gestione antenne</h2>
-                            <p>Controlla e modifica l'infrastruttura direttamente dal Control Center.</p>
+                            <p>Controlla e modifica l'infrastruttura direttamente dal Centro operativo.</p>
                         </div>
                         <div class="toolbar">
                             <input class="search" id="antennaSearch" type="search" placeholder="Cerca antenna...">
@@ -321,7 +316,7 @@
                                 <option value="">Tutti gli stati</option>
                                 <option value="ATTIVA">Attiva</option>
                                 <option value="MANUTENZIONE">Manutenzione</option>
-                                <option value="OFFLINE">Offline</option>
+                                <option value="OFFLINE">Non connessa</option>
                                 <option value="CRITICA">Critica</option>
                             </select>
                             <button class="btn primary" id="newAntennaBtn">+ Nuova antenna</button>
@@ -366,7 +361,7 @@
                     <div class="section-head">
                         <div>
                             <h2>Operatività</h2>
-                            <p>Task e indicatori chiave della squadra tecnica.</p>
+                            <p>Incarichi e indicatori chiave della squadra tecnica.</p>
                         </div>
                     </div>
                     <div class="panel" style="margin-bottom:18px">
@@ -441,7 +436,7 @@
                     <div class="panel" style="margin-bottom:18px">
                         <div class="panel-head">
                             <div>
-                                <h3>Assegna task</h3><span>Invio operativo diretto all'app mobile dell'operatore</span>
+                                <h3>Assegna incarico</h3><span>Invio operativo diretto all'app mobile dell'operatore</span>
                             </div>
                         </div>
                         <div class="panel-body">
@@ -463,13 +458,13 @@
                                 </div>
                                 <div class="field" style="grid-column:1/-1"><label>Descrizione</label><textarea
                                         id="taskDescription" maxlength="2000"></textarea></div>
-                            </div><button class="btn primary" id="createTaskBtn">Assegna task</button>
+                            </div><button class="btn primary" id="createTaskBtn">Assegna incarico</button>
                         </div>
                     </div>
                     <div class="panel">
                         <div class="panel-head">
                             <div>
-                                <h3>Task operativi</h3><span>Stato sincronizzato con gli operatori</span>
+                                <h3>Incarichi operativi</h3><span>Stato sincronizzato con gli operatori</span>
                             </div><input class="search" id="taskSearch" type="search" placeholder="Cerca task...">
                         </div>
                         <div class="panel-body" id="tasksList">
@@ -481,7 +476,7 @@
                         <div class="panel">
                             <div class="panel-head">
                                 <div>
-                                    <h3>Task</h3><span>Distribuzione degli stati</span>
+                                    <h3>Incarichi</h3><span>Distribuzione degli stati</span>
                                 </div>
                             </div>
                             <div class="panel-body">
@@ -615,7 +610,7 @@
                 <section class="view" id="view-tools">
                     <div class="section-head">
                         <div>
-                            <h2>Telecom Tools</h2>
+                            <h2>TelcoTools</h2>
                             <p>Calcolatori RF e radio con unità e formule esplicite.</p>
                         </div>
                     </div>
@@ -623,7 +618,7 @@
                         <div class="panel">
                             <div class="panel-head">
                                 <div>
-                                    <h3>Link Budget</h3><span>FSPL, EIRP e potenza ricevuta</span>
+                                    <h3>Bilancio del collegamento</h3><span>FSPL, EIRP e potenza ricevuta</span>
                                 </div>
                             </div>
                             <div class="panel-body">
@@ -763,7 +758,7 @@
                     <div class="section-head">
                         <div>
                             <h2>Stato sistema</h2>
-                            <p>Controllo del collegamento tra dashboard, backend e Firestore.</p>
+                            <p>Controllo del collegamento tra interfaccia, server e database.</p>
                         </div>
                         <button class="btn" id="systemRefreshBtn">Verifica ora</button>
                     </div>
@@ -772,7 +767,7 @@
                         <div class="panel">
                             <div class="panel-head">
                                 <div>
-                                    <h3>Servizi</h3><span>Health monitor</span>
+                                    <h3>Servizi</h3><span>Monitoraggio servizi</span>
                                 </div>
                             </div>
                             <div class="panel-body">
@@ -837,7 +832,7 @@
                         <div class="panel-head">
                             <div>
                                 <h3>Audit operativo</h3><span>Ultime modifiche e transizioni registrate</span>
-                            </div><button class="mini-btn" id="auditRefreshBtn">Aggiorna</button>
+                            </div><div class="actions"><button class="mini-btn" id="auditRefreshBtn">Aggiorna</button><button class="mini-btn" id="auditToggle" aria-expanded="true" aria-controls="auditList" aria-label="Comprimi audit operativo">⌃</button></div>
                         </div>
                         <div class="panel-body" id="auditList">
                             <div class="empty">Caricamento audit...</div>
@@ -847,7 +842,7 @@
                     <div class="panel" style="margin-top:18px">
                         <div class="panel-head">
                             <div>
-                                <h3>API Control Center</h3><span>Endpoint attesi dalla dashboard</span>
+                                <h3>Centro di controllo API</h3><span>Servizi della panoramica</span>
                             </div>
                         </div>
                         <div class="panel-body">
@@ -887,7 +882,19 @@
                     </div>
 
                 </section>
-                <div class="footer"><span>RadioTech / Operations Suite</span><span>Infrastruttura · Operazioni · Persone</span></div>
+                <footer class="footer app-footer" aria-label="RadioTech — informazioni e navigazione">
+                    <div class="footer-grid">
+                        <div class="footer-identity">
+                            <button type="button" class="footer-brand" data-footer-view="dashboard" aria-label="RadioTech: torna alla panoramica"><img src="/assets/brand/radiotech-symbol-v1.png" width="42" height="42" alt=""><span><strong>RadioTech</strong><small>Gestione operativa</small></span></button>
+                            <p>Infrastrutture, persone e interventi.<br>Un unico centro per la tua rete.</p>
+                            <button type="button" class="footer-service" data-footer-view="system"><span class="footer-status-dot" aria-hidden="true"></span><span id="footerServiceStatus" role="status">Verifica del servizio in corso</span><span aria-hidden="true">↗</span></button>
+                        </div>
+                        <nav class="footer-group" aria-label="Operazioni"><h3>Operazioni</h3><button type="button" data-footer-view="antennas">Antenne e rete</button><button type="button" data-footer-view="operations">Incarichi</button><button type="button" data-footer-view="planning">Agenda interventi</button><button type="button" data-footer-view="reports">Centro report</button></nav>
+                        <nav class="footer-group" aria-label="Gestione"><h3>Gestione</h3><button type="button" data-footer-view="operators">Operatori</button><button type="button" data-footer-view="inventory">Magazzino</button><button type="button" data-footer-view="pro">Enterprise Pro</button><button type="button" data-footer-view="tools">TelcoTools</button></nav>
+                        <nav class="footer-group" aria-label="Account e sistema"><h3>Account e sistema</h3><button type="button" data-footer-view="profile">Profilo</button><button type="button" data-footer-view="notifications">Notifiche</button><button type="button" data-footer-view="access">Sicurezza e accessi</button><button type="button" data-footer-view="system">Stato del sistema</button></nav>
+                    </div>
+                    <div class="footer-bottom"><span>© <span id="footerYear">2026</span> Kevin Cagnazzo e Anthony Piccinonno.<br>Tutti i diritti riservati.</span><span class="footer-sync">Ultimo aggiornamento <time id="footerLastUpdate">—</time></span><button type="button" id="footerBackTop">Torna in alto <span aria-hidden="true">↑</span></button></div>
+                </footer>
             </div>
         </main>
     </div>
@@ -976,7 +983,7 @@
                 <h3 id="badgeName"></h3>
                 <p class="subtle" id="badgeDetails"></p><code id="badgeToken"></code>
             </div>
-            <div class="modal-foot"><button class="btn" id="printBadge">Stampa badge</button><button class="btn primary"
+            <div class="modal-foot"><button class="btn" id="badgeValidity" data-validity="">Validità QR</button><button class="btn" id="badgeResetPassword" data-reset-password="">Reimposta password</button><button class="btn" id="printBadge">Stampa badge</button><button class="btn primary"
                     id="closeBadge">Chiudi</button></div>
         </div>
     </div>
@@ -1020,6 +1027,7 @@
                         <div class="field"><label for="inventoryUnit">Unità di misura</label><input id="inventoryUnit" maxlength="20" value="pz" placeholder="pz, m, kg..."></div>
                         <div class="field"><label for="inventoryBarcode">Barcode / EAN</label><input id="inventoryBarcode" maxlength="100"></div>
                         <div class="field"><label for="inventoryLocation">Ubicazione</label><input id="inventoryLocation" maxlength="120" placeholder="Scaffale A · Ripiano 2"></div>
+<div class="field"><label for="inventoryWarehouse">Deposito</label><input id="inventoryWarehouse" maxlength="80"></div><div class="field"><label for="inventoryAisle">Corsia</label><input id="inventoryAisle" maxlength="80"></div><div class="field"><label for="inventoryRack">Scaffale</label><input id="inventoryRack" maxlength="80"></div><div class="field"><label for="inventoryBin">Ripiano / vano</label><input id="inventoryBin" maxlength="80"></div>
                         <div class="field"><label for="inventorySupplier">Fornitore</label><input id="inventorySupplier" maxlength="160"></div>
                         <div class="field"><label for="inventoryUnitCost">Costo unitario (€)</label><input id="inventoryUnitCost" type="number" min="0" step="0.01" value="0"></div>
                         <div class="field"><label for="inventoryMinimum">Soglia minima</label><input id="inventoryMinimum" type="number" min="0" step="1" value="0" required></div>
@@ -1045,7 +1053,7 @@
                     <div class="form-grid">
                         <div class="field"><label for="inventoryMovementType">Operazione</label><select id="inventoryMovementType"><option value="RECEIPT">Carico da fornitore</option><option value="ISSUE">Scarico / prelievo</option><option value="ADJUSTMENT">Inventario fisico (imposta quantità reale)</option></select></div>
                         <div class="field"><label for="inventoryMovementQuantity" id="inventoryMovementQuantityLabel">Quantità</label><input id="inventoryMovementQuantity" type="number" min="0" step="1" required></div>
-                        <div class="field full"><label for="inventoryMovementReference">Documento / riferimento</label><input id="inventoryMovementReference" maxlength="100" placeholder="Ordine, DDT, task..." /></div>
+                        <div class="field"><label for="inventoryMovementLot">Codice lotto</label><input id="inventoryMovementLot" maxlength="100" pattern="[A-Za-z0-9._-]+" placeholder="Lascia vuoto per scorta non assegnata"></div><div class="field"><label for="inventoryMovementLotExpiry">Scadenza lotto (facoltativa)</label><input id="inventoryMovementLotExpiry" type="date"></div><div class="field full"><label for="inventoryMovementReference">Documento / riferimento</label><input id="inventoryMovementReference" maxlength="100" placeholder="Ordine, DDT, task..." /></div>
                         <div class="field full"><label for="inventoryMovementNote">Causale / note</label><textarea id="inventoryMovementNote" rows="3" maxlength="500"></textarea></div>
                     </div>
                 </div>
@@ -1096,6 +1104,10 @@
     <script src="/assets/pro-suite.js" defer></script>
     <script src="/assets/pro-security.js" defer></script>
     <script src="/assets/auth-client.js" defer></script>
+    <script src="/assets/report-attachments.js"></script>
+    <script src="/assets/italian.js"></script>
+    <script src="/assets/operations-upgrade.js" defer></script>
+    <script src="/assets/telco-tools.js" defer></script>
     <script src="/assets/management.js" defer></script>
     <script src="/assets/design-system.js" defer></script>
     <script th:attr="nonce=${cspNonce}">
@@ -1217,7 +1229,7 @@
             }
 
             function formatStatus(status) {
-                return String(status || "N/D").replaceAll("_", " ");
+                return window.RadioTechItalian?.label(status) ?? String(status || "N/D").replaceAll("_", " ");
             }
 
             function numberOrNull(value) {
@@ -1261,6 +1273,7 @@
             }
 
             function clearSession() {
+                reportAttachments?.clear();
                 state.token = null;
                 state.user = null;
                 state.authRole = null;
@@ -1402,7 +1415,12 @@
                     const body = await result.json().catch(() => null);
 
                     if (!result.ok) {
-                        throw new Error(body?.message || "Credenziali non valide.");
+                        const fallback = result.status === 403
+                            ? "Il server blocca questo indirizzo web. Verifica la configurazione del link HTTPS."
+                            : result.status >= 500
+                                ? "Il server non è disponibile. Verifica che il backend e il tunnel siano attivi."
+                                : result.status === 401 ? "Credenziali non valide." : `Accesso non riuscito (HTTP ${result.status}).`;
+                        throw new Error(body?.message || fallback);
                     }
 
                     const token =
@@ -1427,7 +1445,7 @@
                     toast("Accesso negato", error.message, "error");
                 } finally {
                     button.disabled = false;
-                    button.textContent = "Accedi al Control Center";
+                    button.textContent = "Accedi al Centro operativo";
                 }
             }
 
@@ -1466,7 +1484,7 @@
                 for (const id of ["quickAntennaBtn", "quickNotificationBtn", "newAntennaBtn", "newOperatorBtn", "syncOperatorBtn", "createTaskBtn", "newNotificationBtn", "sendNotificationBtn", "newInventoryItemBtn", "editProfileBtn"]) {
                     if ($(id)) $(id).hidden = !allowed;
                 }
-                document.querySelectorAll("[data-edit], [data-delete], [data-save-role], [data-approve], [data-badge], [data-regenerate], [data-report-approve], [data-report-reject], [data-inventory-move], [data-inventory-edit], [data-inventory-archive], [data-inventory-restore]").forEach(element => { element.hidden = !allowed; });
+                document.querySelectorAll("[data-edit], [data-delete], [data-delete-operator], [data-reset-password], [data-validity], [data-save-role], [data-approve], [data-badge], [data-regenerate], [data-report-approve], [data-report-reject], [data-inventory-move], [data-inventory-edit], [data-inventory-archive], [data-inventory-restore]").forEach(element => { element.hidden = !allowed; });
                 document.querySelectorAll("[data-operator-role]").forEach(element => { if (!allowed) element.disabled = true; });
             }
 
@@ -1892,8 +1910,8 @@
             }
 
             async function loadTasks() {
-                try { const response = await apiFetch("/api/v1/tasks"); const data = response?.data ?? response; state.tasks = Array.isArray(data) ? data : (data?.tasks || []); renderTaskList(); populateTaskSelectors(); }
-                catch (e) { $("tasksList").innerHTML = `<div class="empty">Task non disponibili: ${escapeHtml(e.message)}</div>`; }
+                try { const response = await apiFetch("/api/v1/tasks"); const data = response?.data ?? response; state.tasks = Array.isArray(data) ? data : (data?.tasks || []); renderTaskList(); populateTaskSelectors(); refreshReportTitles(); }
+                catch (e) { $("tasksList").innerHTML = `<div class="empty">Incarichi non disponibili: ${escapeHtml(e.message)}</div>`; }
             }
             function eligibleOperators() {
                 return state.operators.filter(operator => {
@@ -1910,44 +1928,56 @@
                 if (!$('tasksList')) return;
                 const query = ($('taskSearch')?.value || '').trim().toLowerCase();
                 const list = state.tasks.filter(t => !query || [t.title, t.description, t.operatorName, t.operatorId, t.status, t.antennaId].join(' ').toLowerCase().includes(query));
-                $('tasksList').innerHTML = list.length ? list.slice(0, 50).map(t => `<div class="task-row"><div><div class="task-title">${escapeHtml(t.title || t.id)}</div><div class="task-meta">${escapeHtml(t.operatorName || t.operatorId || t.operator_uid || "Non assegnato")} · ${escapeHtml(t.antennaId || "—")} · ${t.dueAt ? `scade ${escapeHtml(new Date(t.dueAt).toLocaleString('it-IT'))}` : 'senza scadenza'}</div></div><span class="badge ${badgeClass(t.status)}">${escapeHtml(formatStatus(t.status))}</span></div>`).join('') : '<div class="empty">Nessun task.</div>';
+                $('tasksList').innerHTML = list.length ? list.slice(0, 50).map(t => `<div class="task-row"><div><div class="task-title">${escapeHtml(t.title || t.id)}</div><div class="task-meta">${escapeHtml(t.operatorName || t.operatorId || t.operator_uid || "Non assegnato")} · ${escapeHtml(t.antennaId || "—")} · ${t.dueAt ? `scade ${escapeHtml(new Date(t.dueAt).toLocaleString('it-IT'))}` : 'senza scadenza'}</div></div><span class="badge ${badgeClass(t.status)}">${escapeHtml(formatStatus(t.status))}</span></div>`).join('') : '<div class="empty">Nessun incarico.</div>';
             }
             async function createTask() {
                 const button = $("createTaskBtn");
                 if (button.disabled) return;
                 const title = $("taskTitle").value.trim(), operatorId = $("taskOperator").value, antennaId = $("taskAntenna").value;
-                if (!title || !operatorId || !antennaId) { toast("Task incompleto", "Titolo, operatore e antenna sono obbligatori per il flusso sul campo.", "error"); return; }
+                if (!title || !operatorId || !antennaId) { toast("Incarico incompleto", "Titolo, operatore e antenna sono obbligatori per il flusso sul campo.", "error"); return; }
                 const dueAt = $("taskDueAt").value ? new Date($("taskDueAt").value).toISOString() : null;
                 button.disabled = true;
-                try { await apiFetch("/api/v1/tasks", { method: "POST", body: JSON.stringify({ title, description: $("taskDescription").value.trim(), operatorId, antennaId: antennaId || null, dueAt, status: "ASSIGNED", priority: $("taskPriority").value }) }); $("taskTitle").value = ""; $("taskDescription").value = ""; $("taskDueAt").value = ""; await Promise.all([loadTasks(), loadStats()]); toast("Task assegnato", "L'operatore può ora visualizzarlo nell'app mobile."); } catch (e) { toast("Assegnazione fallita", e.message, "error"); }
+                try { await apiFetch("/api/v1/tasks", { method: "POST", body: JSON.stringify({ title, description: $("taskDescription").value.trim(), operatorId, antennaId: antennaId || null, dueAt, status: "ASSIGNED", priority: $("taskPriority").value }) }); $("taskTitle").value = ""; $("taskDescription").value = ""; $("taskDueAt").value = ""; await Promise.all([loadTasks(), loadStats()]); toast("Incarico assegnato", "L'operatore può ora visualizzarlo nell'app mobile."); } catch (e) { toast("Assegnazione fallita", e.message, "error"); }
                 finally { button.disabled = false; }
             }
 
+            let reportAttachments;
+            function attachmentViewer() { return reportAttachments ??= window.RadioTechReportAttachments({apiFetch, escapeHtml}); }
+            function reportDisplayTitle(report) {
+                const task = state.tasks.find(t => t.id === report.taskId);
+                const operator = state.operators.find(o => o.id === report.operatorId || o.firebaseUid === report.operatorFirebaseUid);
+                const title = report.taskTitle || task?.title || "Intervento senza compito assegnato";
+                const name = report.operatorName || operator?.fullName || "Operatore non disponibile";
+                const instant = new Date(report.submittedAt || report.completedAt || report.createdAt || "");
+                const date = Number.isNaN(instant.getTime()) ? "Data non disponibile" : instant.toLocaleDateString("it-IT", {day:"2-digit",month:"2-digit",year:"numeric"});
+                return `Report-${title}-${name}-${date}`;
+            }
+            function refreshReportTitles() {
+                for (const report of state.reports || []) {
+                    const row = [...$("reportsList").querySelectorAll("[data-report-id]")].find(n => n.dataset.reportId === report.id);
+                    const title = row?.querySelector(".task-title");
+                    if (title) { title.textContent = reportDisplayTitle(report); title.title = title.textContent; }
+                }
+            }
             async function loadReports() {
                 try {
                     const data = await apiFetch("/api/v1/reports", { method: "GET" });
                     const reports = Array.isArray(data) ? data : [];
-                    $("reportsList").innerHTML = reports.length ? reports.map(r => `<div class="task-row"><div><div class="task-title">Report ${escapeHtml(r.id || "—")}</div><div class="task-meta">Task ${escapeHtml(r.taskId || "—")} · Operatore ${escapeHtml(r.operatorName || r.operatorId || "—")} · ${escapeHtml(r.operatorNotes || r.description || "Nessuna nota")}</div>${reportDetails(r)}</div><div class="actions"><span class="badge ${badgeClass(r.status)}">${escapeHtml(r.status || "SUBMITTED")}</span>${r.status === "SUBMITTED" ? `<button class="mini-btn" data-report-approve="${escapeHtml(r.id)}">Approva</button><button class="mini-btn" data-report-reject="${escapeHtml(r.id)}">Rifiuta</button>` : ""}</div></div>`).join("") : `<div class="empty">Nessun report ricevuto.</div>`;
+                    state.reports = reports;
+                    attachmentViewer().clear();
+                    $("reportsList").innerHTML = reports.length ? reports.map(r => `<div class="task-row report-row" data-report-id="${escapeHtml(r.id || "")}" data-status="${escapeHtml(r.status || "SUBMITTED")}" data-operator="${escapeHtml(r.operatorName || r.operatorId || "")}" data-date="${escapeHtml((r.submittedAt || r.createdAt || "").slice(0,10))}"><div><div class="task-title">${escapeHtml(reportDisplayTitle(r))}</div><div class="task-meta">Incarico ${escapeHtml(r.taskId || "—")} · Operatore ${escapeHtml(r.operatorName || r.operatorId || "—")} · ${escapeHtml(r.operatorNotes || r.description || "Nessuna nota")}</div>${reportDetails(r)}${attachmentViewer().markup(r.attachments)}</div><div class="actions"><span class="badge ${badgeClass(r.status)}">${escapeHtml(formatStatus(r.status || "SUBMITTED"))}</span><button class="mini-btn" data-report-toggle aria-expanded="true" aria-label="Comprimi report">⌃</button>${r.status === "SUBMITTED" ? `<button class="mini-btn" data-report-approve="${escapeHtml(r.id)}">Approva</button><button class="mini-btn" data-report-reject="${escapeHtml(r.id)}">Rifiuta</button>` : ""}</div></div>`).join("") : `<div class="empty">Nessun report ricevuto.</div>`;
+                attachmentViewer().mount($("reportsList"));
                 applyPermissions();
                     $("reportsList").querySelectorAll('[data-report-approve]').forEach(b => b.addEventListener('click', () => reviewReport(b.dataset.reportApprove, true)));
                     $("reportsList").querySelectorAll('[data-report-reject]').forEach(b => b.addEventListener('click', () => reviewReport(b.dataset.reportReject, false)));
                 } catch (e) { $("reportsList").innerHTML = `<div class="empty">Report non disponibili: ${escapeHtml(e.message)}</div>`; }
             }
 
-            document.addEventListener("click", async event => {
-                const button=event.target.closest("[data-local-file]");if(!button||button.disabled)return;button.disabled=true;
-                try { const file=await apiFetch(`/api/v1/files/${button.dataset.localFile}`);const data=Uint8Array.from(atob(file.base64),c=>c.charCodeAt(0));const url=URL.createObjectURL(new Blob([data],{type:"application/octet-stream"}));const link=document.createElement("a");link.href=url;link.download=file.name;link.click();setTimeout(()=>URL.revokeObjectURL(url),1000); }
-                catch(error){toast("Allegato non disponibile",error.message,"error");}finally{button.disabled=false;}
-            });
             function reportDetails(report) {
                 const measurements = Object.entries(report.measurements || {}).map(([key, value]) => `<li>${escapeHtml(key)}: ${escapeHtml(value)}</li>`).join("");
                 const materials = (report.materialsUsed || []).map(item => `<li>${escapeHtml(item.name || item.itemId || item.inventoryItemId || item.ricambioId || "Materiale")}: ${escapeHtml(item.quantity ?? item.quantita ?? "—")}</li>`).join("");
                 const checklist = Object.entries(report.checklist || {}).map(([key, value]) => `<li>${escapeHtml(key)}: ${value === true ? "Verificato" : "Non verificato"}</li>`).join("");
-                const attachments = (report.attachments || []).map((value, index) => {
-                    if(typeof value==="string"&&/^radiotech-file:[a-f0-9]{64}$/.test(value))return `<li><button class="btn" data-local-file="${value.slice(15)}">Scarica allegato ${index+1}</button></li>`;
-                    try { const url = new URL(value); if (url.protocol !== "https:" || url.username || url.password) return ""; return `<li><a href="${escapeHtml(url.href)}" target="_blank" rel="noopener noreferrer">Allegato ${index + 1}</a></li>`; } catch (_) { return ""; }
-                }).join("");
-                return `<details class="report-details"><summary>Dettagli intervento</summary><p>Asset: ${escapeHtml(report.antennaId || "—")} · Inviato: ${escapeHtml(report.submittedAt ? new Date(report.submittedAt).toLocaleString("it-IT") : "Data non disponibile")}</p><p><strong>Lavoro eseguito</strong><br>${escapeHtml(report.workPerformed || report.description || "Non indicato")}</p><p><strong>Rilievi</strong><br>${escapeHtml(report.findings || "Nessun rilievo indicato")}</p>${measurements ? `<strong>Misure</strong><ul>${measurements}</ul>` : ""}${materials ? `<strong>Materiali</strong><ul>${materials}</ul>` : ""}${checklist ? `<strong>Checklist</strong><ul>${checklist}</ul>` : ""}${attachments ? `<strong>Documenti</strong><ul>${attachments}</ul>` : ""}${report.reviewNote ? `<p><strong>Nota di revisione</strong><br>${escapeHtml(report.reviewNote)}</p>` : ""}</details>`;
+                return `<details class="report-details"><summary>Dettagli intervento</summary><p>Antenna: ${escapeHtml(state.antennas.find(a => a.id === report.antennaId)?.name || report.antennaId || "—")} · Inviato: ${escapeHtml(report.submittedAt ? new Date(report.submittedAt).toLocaleString("it-IT") : "Data non disponibile")}</p><p><strong>Lavoro eseguito</strong><br>${escapeHtml(report.workPerformed || report.description || "Non indicato")}</p><p><strong>Rilievi</strong><br>${escapeHtml(report.findings || "Nessun rilievo indicato")}</p>${measurements ? `<strong>Misure</strong><ul>${measurements}</ul>` : ""}${materials ? `<strong>Materiali</strong><ul>${materials}</ul>` : ""}${checklist ? `<strong>Lista di controllo</strong><ul>${checklist}</ul>` : ""}${report.reviewNote ? `<p><strong>Nota di revisione</strong><br>${escapeHtml(report.reviewNote)}</p>` : ""}</details>`;
             }
 
             async function reviewReport(id, approve) {
@@ -1956,7 +1986,7 @@
                 const note = approve ? 'Report approvato dalla centrale.' : (prompt('Motivo del rifiuto:') || '');
                 if (!approve && !note.trim()) return;
                 buttons.forEach(b => { b.disabled = true; });
-                try { await apiFetch(`/api/v1/reports/${encodeURIComponent(id)}/${approve ? 'approve' : 'reject'}`, { method: 'POST', body: JSON.stringify({ note }) }); await Promise.all([loadReports(), loadStats()]); toast(approve ? 'Report approvato' : 'Report rifiutato', approve ? 'Materiali aggiornati e task completato.' : 'Il report è stato restituito all’operatore.'); } catch (e) { toast('Revisione fallita', e.message, 'error'); }
+                try { await apiFetch(`/api/v1/reports/${encodeURIComponent(id)}/${approve ? 'approve' : 'reject'}`, { method: 'POST', body: JSON.stringify({ note }) }); await Promise.all([loadReports(), loadStats()]); toast(approve ? 'Report approvato' : 'Report rifiutato', approve ? 'Materiali aggiornati e incarico completato.' : 'Il report è stato restituito all’operatore.'); } catch (e) { toast('Revisione fallita', e.message, 'error'); }
                 finally { buttons.forEach(b => { b.disabled = false; }); }
             }
 
@@ -1969,7 +1999,7 @@
                 } catch (e) { toast("Calcolo non valido", e.message, "error"); }
             }
             async function calculatePower() { try { const payload = $("tbDbm").value !== "" ? { dbm: Number($("tbDbm").value) } : { w: Number($("tbW").value) }; const r = await telecomPost("/power", payload); $("tbPowerResult").textContent = `${number(r.dbm, 2)} dBm · ${number(r.mw, 3)} mW · ${number(r.w, 6)} W`; } catch (e) { toast("Conversione non valida", e.message, "error"); } }
-            async function calculateVswr() { try { const r = await telecomPost("/vswr", { vswr: Number($("tbVswr").value) }); $("tbVswrResult").textContent = `Γ ${number(r.reflectionCoefficient, 4)} · Return Loss ${number(r.returnLossDb, 2)} dB`; } catch (e) { toast("VSWR non valido", e.message, "error"); } }
+            async function calculateVswr() { try { const r = await telecomPost("/vswr", { vswr: Number($("tbVswr").value) }); $("tbVswrResult").textContent = `Γ ${number(r.reflectionCoefficient, 4)} · Perdita di ritorno ${number(r.returnLossDb, 2)} dB`; } catch (e) { toast("VSWR non valido", e.message, "error"); } }
 
             /* ---------- NOTIFICATIONS ---------- */
 
@@ -1981,7 +2011,7 @@
                     state.operatorLoadError = "";
                     renderRecipients();
                     renderOperatorTable();
-                    populateTaskSelectors();
+                    populateTaskSelectors(); refreshReportTitles();
                 } catch (error) {
                     console.warn("Operatori non disponibili:", error.message);
                     state.operatorLoadError = error.message || "Errore di caricamento";
@@ -2032,12 +2062,12 @@
                         </select><button class="mini-btn" data-save-role="${escapeHtml(id)}" ${linked && !pending ? "" : "disabled"}>Salva</button></div></td>
                         <td>${escapeHtml(operator.level || "TECNICO")}</td>
                         <td>${escapeHtml(operator.shift || "—")}</td>
-                        <td><span class="badge ${online ? "green" : pending ? "red" : "blue"}">${online ? "ONLINE" : escapeHtml(operator.status || "OFFLINE")}</span></td>
+                        <td><span class="badge ${online ? "green" : pending ? "red" : "blue"}">${online ? "CONNESSO" : escapeHtml(formatStatus(operator.status || "OFFLINE"))}</span></td>
                         <td>${operator.lastSeen ? escapeHtml(new Date(operator.lastSeen).toLocaleString("it-IT")) : "—"}</td>
-                        <td><div class="actions">${pending ? `<button class="mini-btn" data-approve="${escapeHtml(id)}">Approva</button>` : ""}<button class="mini-btn" data-badge="${escapeHtml(id)}">Badge</button><button class="mini-btn" data-regenerate="${escapeHtml(id)}">Rigenera QR</button></div></td>
+                        <td><div class="actions">${pending ? `<button class="mini-btn" data-approve="${escapeHtml(id)}">Approva</button>` : ""}<button class="mini-btn" data-badge="${escapeHtml(id)}">Badge</button><button class="mini-btn" data-regenerate="${escapeHtml(id)}">Rigenera QR</button><button class="mini-btn" data-validity="${escapeHtml(id)}">Validità QR</button><button class="mini-btn" data-reset-password="${escapeHtml(id)}">Reimposta password</button><button class="mini-btn danger" data-delete-operator="${escapeHtml(id)}">Elimina</button></div></td>
                     </tr>`;
                 }).join("");
-                applyPermissions();
+                applyPermissions(); refreshReportTitles();
                 table.querySelectorAll("[data-save-role]").forEach(button => button.addEventListener("click", () => saveOperatorRole(button.dataset.saveRole)));
                 table.querySelectorAll("[data-approve]").forEach(button => button.addEventListener("click", () => approveOperator(button.dataset.approve)));
                 table.querySelectorAll("[data-badge]").forEach(button => button.addEventListener("click", () => showBadge(button.dataset.badge)));
@@ -2125,6 +2155,8 @@
                     $("badgeDetails").textContent = `${operator.level || "TECNICO"} · ${operator.shift || "GIORNALIERO"}`;
                     $("badgeToken").textContent = data.qrCodeToken;
                     $("badgeQr").src = data.imageDataUrl;
+                    $("badgeResetPassword").dataset.resetPassword=id;
+                    $("badgeValidity").dataset.validity=id;
                     openModal("badgeModal");
                 } catch (error) { toast("Badge non disponibile", error.message, "error"); }
             }
@@ -2327,7 +2359,7 @@
                 const stockFilter = $("inventoryStockFilter")?.value || "ACTIVE";
                 const visible = state.inventory.filter(item => {
                     const active = item.active !== false;
-                    const haystack = [item.sku, item.name, item.barcode, item.location, item.category, item.supplier].join(" ").toLocaleLowerCase("it-IT");
+                    const haystack = [item.sku, item.name, item.barcode, item.location, item.warehouse, item.aisle, item.rack, item.bin, item.category, item.supplier].join(" ").toLocaleLowerCase("it-IT");
                     return (stockFilter === "ALL" || (stockFilter === "ARCHIVED" ? !active : active))
                         && (stockFilter !== "LOW" || (active && inventoryIsLow(item)))
                         && (!category || item.category === category)
@@ -2348,7 +2380,7 @@
                         <td><strong>${escapeHtml(item.name || "Articolo")}</strong><div class="subtle">${escapeHtml(item.sku || item.id || "—")}${item.barcode ? ` · ${escapeHtml(item.barcode)}` : ""}</div></td>
                         <td>${escapeHtml(item.category || "Generale")}<div class="subtle">${escapeHtml(item.unit || "pz")}</div></td>
                         <td><strong>${number(qty, 0)}</strong> ${escapeHtml(item.unit || "pz")}<div class="subtle">Soglia ${number(Number(item.minimumThreshold || item.threshold || item.soglia || 0), 0)} · Riordino ${number(Number(item.reorderQuantity || 0), 0)}</div></td>
-                        <td>${escapeHtml(item.location || "—")}${item.supplier ? `<div class="subtle">${escapeHtml(item.supplier)}</div>` : ""}</td>
+                        <td>${escapeHtml([item.warehouse,item.aisle,item.rack,item.bin,item.location].filter(Boolean).join(" · ") || "—")}${item.supplier ? `<div class="subtle">${escapeHtml(item.supplier)}</div>` : ""}</td>
                         <td>${new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR" }).format(value)}<div class="subtle">${new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR" }).format(Number(item.unitCost || 0))} / ${escapeHtml(item.unit || "pz")}</div></td>
                         <td><span class="badge ${!active ? "red" : low ? "yellow" : "green"}">${!active ? "ARCHIVIATO" : stockLabel}</span></td>
                         <td><div class="actions">${active ? `<button class="mini-btn" data-inventory-move="${escapeHtml(item.id)}">Movimenta</button><button class="mini-btn" data-inventory-edit="${escapeHtml(item.id)}">Modifica</button><button class="mini-btn" data-inventory-archive="${escapeHtml(item.id)}">Archivia</button>` : `<button class="mini-btn" data-inventory-restore="${escapeHtml(item.id)}">Ripristina</button>`}</div></td>
@@ -2377,6 +2409,7 @@
                 $("inventoryUnit").value = item?.unit || "pz";
                 $("inventoryBarcode").value = item?.barcode || "";
                 $("inventoryLocation").value = item?.location || "";
+                for (const [id,field] of [ ["Warehouse","warehouse"],["Aisle","aisle"],["Rack","rack"],["Bin","bin"]]) $("inventory"+id).value=item?.[field]||"";
                 $("inventorySupplier").value = item?.supplier || "";
                 $("inventoryUnitCost").value = Number(item?.unitCost || 0);
                 $("inventoryMinimum").value = Number(item?.minimumThreshold || item?.threshold || 0);
@@ -2396,7 +2429,8 @@
                     sku: $("inventorySku").value.trim(), name: $("inventoryName").value.trim(),
                     category: $("inventoryCategory").value.trim(), unit: $("inventoryUnit").value.trim() || "pz",
                     barcode: $("inventoryBarcode").value.trim(), location: $("inventoryLocation").value.trim(),
-                    supplier: $("inventorySupplier").value.trim(), unitCost: Number($("inventoryUnitCost").value || 0),
+                    supplier: $("inventorySupplier").value.trim(),
+                        warehouse: $("inventoryWarehouse").value.trim(), aisle: $("inventoryAisle").value.trim(), rack: $("inventoryRack").value.trim(), bin: $("inventoryBin").value.trim(), unitCost: Number($("inventoryUnitCost").value || 0),
                     minimumThreshold: Number($("inventoryMinimum").value || 0), reorderQuantity: Number($("inventoryReorder").value || 0),
                     description: $("inventoryDescription").value.trim()
                 };
@@ -2443,6 +2477,7 @@
                         method: "POST", body: JSON.stringify({
                             type: $("inventoryMovementType").value,
                             quantity: Number($("inventoryMovementQuantity").value),
+                            lotCode: $("inventoryMovementLot").value.trim(), lotExpiresOn: $("inventoryMovementLotExpiry").value,
                             reference: $("inventoryMovementReference").value.trim(),
                             note: $("inventoryMovementNote").value.trim()
                         })
@@ -2477,7 +2512,7 @@
                     const quantity = Number(movement.quantity || 0);
                     const signed = ["ISSUE", "CONSUMPTION"].includes(movement.type) ? -Math.abs(quantity) : quantity;
                     const when = movement.createdAt ? new Date(movement.createdAt).toLocaleString("it-IT") : "—";
-                    return `<tr><td>${escapeHtml(when)}</td><td><strong>${escapeHtml(movement.name || "Articolo")}</strong><div class="subtle">${escapeHtml(movement.sku || "")}</div></td><td>${escapeHtml(labels[movement.type] || movement.type || "—")}</td><td class="${signed < 0 ? "text-danger" : ""}">${signed > 0 ? "+" : ""}${number(signed, 0)}</td><td>${movement.previousQuantity == null ? "—" : `${number(Number(movement.previousQuantity), 0)} → ${number(Number(movement.resultingQuantity), 0)}`}</td><td>${escapeHtml([movement.reference, movement.note].filter(Boolean).join(" · ") || "—")}</td></tr>`;
+                    return `<tr><td>${escapeHtml(when)}</td><td><strong>${escapeHtml(movement.name || "Articolo")}</strong><div class="subtle">${escapeHtml(movement.sku || "")}</div></td><td>${escapeHtml(labels[movement.type] || movement.type || "—")}</td><td class="${signed < 0 ? "text-danger" : ""}">${signed > 0 ? "+" : ""}${number(signed, 0)}</td><td>${movement.previousQuantity == null ? "—" : `${number(Number(movement.previousQuantity), 0)} → ${number(Number(movement.resultingQuantity), 0)}`}</td><td>${escapeHtml([movement.reference, movement.note, movement.lotCode ? "Lotto "+movement.lotCode : "", movement.warehouse, ...(movement.lotAllocations || []).map(l => (l.lotCode || "Senza lotto")+": "+l.quantity)].filter(Boolean).join(" · ") || "—")}</td></tr>`;
                 }).join("");
             }
 
@@ -2528,14 +2563,14 @@
                 if (nav) nav.classList.add("active");
 
                 const titles = {
-                    dashboard: ["Dashboard", "Monitoraggio infrastruttura radio e operazioni tecniche"],
+                    dashboard: ["Panoramica", "Monitoraggio infrastruttura radio e operazioni tecniche"],
                     antennas: ["Antenne", "Gestione e controllo dell'infrastruttura"],
-                    operations: ["Operatività", "Task e indicatori della squadra"],
+                    operations: ["Operatività", "Incarichi e indicatori della squadra"],
                     notifications: ["Centro notifiche", "Comunicazioni operative ai dipendenti"],
                     inventory: ["Inventario", "Materiali e componenti disponibili"],
                     profile: ["Profilo del Capo", "Identità e impostazioni del responsabile"],
                     system: ["Stato sistema", "Backend, Firestore e sessione"],
-                    tools: ["Telecom Tools", "Calcolo e verifica dei collegamenti radio"],
+                    tools: ["TelcoTools", "Calcolo e verifica dei collegamenti radio"],
                     enterprise: ["Rischi e competenze", "Incidenti, SLA e abilitazioni della squadra"],
                     ai: ["AI e previsioni", "Analisi operativa, manutenzione preventiva e assistente aziendale"],
                     people: ["Squadra e sicurezza", "Turni, pause, segnalazioni e supporto alla squadra"],
@@ -2548,7 +2583,7 @@
                     access: ["Sicurezza e accessi", "Account clienti, secondo fattore e revoca delle sessioni"]
                 };
 
-                setText("pageTitle", titles[view]?.[0] || "Dashboard");
+                setText("pageTitle", titles[view]?.[0] || "Panoramica");
                 setText("pageSubtitle", titles[view]?.[1] || "");
 
                 if (view === "dashboard") {
@@ -2593,7 +2628,7 @@
                 try {
                     const entries = await api('/audit?limit=30');
                     const list = Array.isArray(entries) ? entries : [];
-                    $('auditList').innerHTML = list.length ? list.map(entry => `<div class="task-row"><div><div class="task-title">${escapeHtml(entry.action || 'EVENTO')}</div><div class="task-meta">${escapeHtml(entry.resource || '')} ${escapeHtml(entry.resourceId || '')} · ${escapeHtml(entry.actor || 'SYSTEM')}</div></div><span class="subtle">${entry.timestamp ? escapeHtml(new Date(entry.timestamp).toLocaleString('it-IT')) : '—'}</span></div>`).join('') : '<div class="empty">Nessun evento registrato.</div>';
+                    $('auditList').innerHTML = list.length ? list.map(entry => `<div class="task-row"><div><div class="task-title">${escapeHtml(formatStatus(entry.action || 'EVENTO'))}</div><div class="task-meta">${escapeHtml(formatStatus(entry.resource || ''))} ${escapeHtml(entry.resourceId || '')} · ${escapeHtml(entry.actor || 'Sistema')}</div></div><span class="subtle">${entry.timestamp ? escapeHtml(new Date(entry.timestamp).toLocaleString('it-IT')) : '—'}</span></div>`).join('') : '<div class="empty">Nessun evento registrato.</div>';
                 } catch (error) {
                     $('auditList').innerHTML = `<div class="empty">Audit non disponibile: ${escapeHtml(error.message)}</div>`;
                 }
@@ -2624,7 +2659,7 @@
                             `${failed.length} servizio/i non hanno risposto.`,
                             "error");
                     } else {
-                        toast("Control Center aggiornato", "Dati sincronizzati con il backend.");
+                        toast("Centro operativo aggiornato", "Dati sincronizzati con il backend.");
                     }
                 }
 
@@ -2660,6 +2695,29 @@
             document.querySelectorAll(".nav button[data-view]").forEach(button => {
                 button.addEventListener("click", () => switchView(button.dataset.view));
             });
+
+            // The header is sticky: scrolling it into view does not move the document.
+            window.RadioTechScrollTop = function() {
+                const behavior = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth';
+                document.scrollingElement?.scrollTo({top:0,left:0,behavior});
+                window.scrollTo({top:0,left:0,behavior});
+            };
+            document.querySelectorAll("[data-footer-view]").forEach(button => button.addEventListener("click", () => {
+                switchView(button.dataset.footerView);
+                window.RadioTechScrollTop();
+            }));
+            $("footerBackTop").addEventListener("click", () => window.RadioTechScrollTop());
+            $("footerYear").textContent = String(new Date().getFullYear());
+            function updateFooterStatus() {
+                const status = $("backendStatus").textContent.trim().toUpperCase();
+                const unavailable = ['ERROR', 'ERRORE'].includes(status);
+                $("footerServiceStatus").textContent = status === 'OK' ? 'Backend disponibile' : unavailable ? 'Backend non disponibile' : 'Verifica del servizio in corso';
+                document.querySelector('.footer-service').dataset.status = status === 'OK' ? 'up' : unavailable ? 'down' : 'pending';
+                $("footerLastUpdate").textContent = $("lastUpdate").textContent;
+            }
+            const footerObserver = new MutationObserver(updateFooterStatus);
+            for (const id of ['backendStatus', 'lastUpdate']) footerObserver.observe($(id), {childList:true,subtree:true,characterData:true});
+            updateFooterStatus();
 
             $("refreshBtn").addEventListener("click", () => refreshAll(false));
             $("systemRefreshBtn").addEventListener("click", checkSystem);
@@ -2701,7 +2759,8 @@
             $("printBadge")?.addEventListener("click", () => {
                 const printWindow = window.open("", "_blank", "width=500,height=650");
                 if (!printWindow) return;
-                printWindow.document.write(`<html><head><title>Badge RadioTech</title><style>body{font-family:Arial;text-align:center;padding:30px}img{width:280px}code{display:block;margin-top:14px}</style></head><body>${$("badgePrintArea").innerHTML}</body></html>`);
+                printWindow.document.write(`<html><head><title>Badge RadioTech</title><style>body{font-family:Arial;text-align:center;padding:30px}img{width:280px}code{display:block;margin-top:14px}</style>    <link rel="stylesheet" href="/assets/operations-upgrade.css">
+</head><body>${$("badgePrintArea").innerHTML}</body></html>`);
                 printWindow.document.close();
                 printWindow.focus();
                 printWindow.print();
@@ -2709,7 +2768,8 @@
             $("printAntennaQr")?.addEventListener("click", () => {
                 const printWindow = window.open("", "_blank", "width=520,height=680");
                 if (!printWindow) return;
-                printWindow.document.write(`<html><head><title>QR Stazione RadioTech</title><style>body{font-family:Arial,sans-serif;text-align:center;padding:30px}img{width:260px;margin-bottom:15px}h3{margin:8px 0}p{color:#555;margin:4px 0}code{display:inline-block;margin-top:10px;font-size:14px;background:#eee;padding:4px 8px;border-radius:4px}</style></head><body>${$("antennaQrPrintArea").innerHTML}</body></html>`);
+                printWindow.document.write(`<html><head><title>QR Stazione RadioTech</title><style>body{font-family:Arial,sans-serif;text-align:center;padding:30px}img{width:260px;margin-bottom:15px}h3{margin:8px 0}p{color:#555;margin:4px 0}code{display:inline-block;margin-top:10px;font-size:14px;background:#eee;padding:4px 8px;border-radius:4px}</style>    <link rel="stylesheet" href="/assets/operations-upgrade.css">
+</head><body>${$("antennaQrPrintArea").innerHTML}</body></html>`);
                 printWindow.document.close();
                 printWindow.focus();
                 printWindow.print();
@@ -2755,7 +2815,7 @@
                 $("loginPassword").value = "";
                 if (state.refreshTimer) clearInterval(state.refreshTimer);
                 state.refreshTimer = null;
-                showLogin("Sei uscito dal Control Center.");
+                showLogin("Sei uscito dal Centro operativo.");
                 toast("Sessione chiusa", "L'accesso è stato rimosso da questo dispositivo.");
             }
             $("logoutBtn")?.addEventListener("click", signOut);
@@ -2804,6 +2864,8 @@
                 companyHub = window.RadioTechCompanyHub({ apiFetch, state, escapeHtml, toast, switchView });
                 proSuite = window.RadioTechPro({ apiFetch, state, escapeHtml, toast, switchView });
                 proSecurity = window.RadioTechProSecurity({ apiFetch, toast, switchView });
+                window.RadioTechTelcoTools();
+                window.RadioTechOperations({apiFetch, state, escapeHtml, toast, loadOperators, loadInventory});
                 management = window.RadioTechManagement({ apiFetch, state, escapeHtml, switchView, loadOperators, loadReports });
                 const skip = document.createElement("a");
                 skip.href = "#mainContent"; skip.className = "skip-link"; skip.textContent = "Vai al contenuto";

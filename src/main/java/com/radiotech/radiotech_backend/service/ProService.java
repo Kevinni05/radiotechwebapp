@@ -16,19 +16,19 @@ public class ProService {
     private static final Set<Role> MANAGERS=Set.of(Role.ADMIN,Role.SUPER_ADMIN,Role.CHIEF_EXECUTIVE,Role.NETWORK_MANAGER);
     public record Change(long expectedVersion, String operationId, Map<String,Object> fields) {}
     public record Action(long expectedVersion, String operationId, String action, double quantity, String reason) {}
-    private record Actor(String tenant, String uid, boolean manager, String customer, List<String> permissions) {}
+    private record Actor(String tenant, String uid, boolean manager, String customer, List<String> permissions, boolean viewer) {}
     private Actor actor() {
         String tenant=TenantAccessPolicy.requireTenantAccess(SecurityContextAccessor.currentTenantId(),null), uid=SecurityContextAccessor.currentUid();
         Role role=SecurityContextAccessor.currentRole();
-        if (uid==null || (!MANAGERS.contains(role) && role!=Role.OPERATOR && role!=Role.CUSTOMER)) throw new SecurityException("Accesso non autorizzato.");
+        if (uid==null || (!MANAGERS.contains(role) && role!=Role.OPERATOR && role!=Role.CUSTOMER && role!=Role.VIEWER)) throw new SecurityException("Accesso non autorizzato.");
         var details=org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication().getDetails();
         String customer=role==Role.CUSTOMER&&details instanceof FirebaseAuthenticationDetails d?d.getCustomerId():null;
         if(role==Role.CUSTOMER) id(customer);
-        return new Actor(tenant,uid,MANAGERS.contains(role),customer,details instanceof FirebaseAuthenticationDetails d?d.getProPermissions():null);
+        return new Actor(tenant,uid,MANAGERS.contains(role)||role==Role.VIEWER,customer,details instanceof FirebaseAuthenticationDetails d?d.getProPermissions():null,role==Role.VIEWER);
     }
     private static boolean permitted(Actor a,String module,String operation){return a.permissions==null||a.permissions.contains(module+":"+operation);}
     private static void permission(Actor a,String module,String operation){if(!permitted(a,module,operation))throw new SecurityException("Permesso non assegnato per questa operazione.");}
-    public void requireModulePermission(String module,String operation){permission(actor(),module,operation);}
+    public void requireModulePermission(String module,String operation){var a=actor();if(a.viewer&&!operation.equals("READ"))throw new SecurityException("Account di sola lettura.");permission(a,module,operation);}
     private static void id(String id) { if(id==null || !id.matches("[A-Za-z0-9_-]{1,128}")) throw new IllegalArgumentException("Identificativo non valido."); }
     private static CollectionReference collection(Firestore db,String module) { ProCatalog.module(module); return db.collection("pro_"+module); }
     private static void scope(Map<String,Object> data,Actor actor) { if(data==null || !actor.tenant.equals(data.get("tenantId"))) throw new SecurityException("Risorsa non autorizzata."); }
@@ -49,7 +49,7 @@ public class ProService {
     }
     public List<ProCatalog.Module> catalog() {
         var a=actor(); return ProCatalog.MODULES.stream().filter(m->permitted(a,m.id(),"READ")).filter(m->a.customer!=null?Set.of("sites","requests","documents").contains(m.id()):a.manager||m.operator())
-            .map(m->a.customer!=null?new ProCatalog.Module(m.id(),m.title(),m.fields().stream().filter(f->!Set.of("operatorId","contractId","antennaId").contains(f.key())).toList(),List.of(),false,m.id().equals("requests")):new ProCatalog.Module(m.id(),m.title(),m.fields(),m.actions().stream().filter(action->permitted(a,m.id(),action)&&(a.manager||Set.of("SUBMIT","ACKNOWLEDGE","RESERVE","CONSUME","RETURN","REVOKE").contains(action))).toList(),m.operator(),m.writable()&&permitted(a,m.id(),"WRITE")&&(a.manager||!m.id().equals("documents")))).toList();
+            .map(m->a.customer!=null?new ProCatalog.Module(m.id(),m.title(),m.fields().stream().filter(f->!Set.of("operatorId","contractId","antennaId").contains(f.key())).toList(),List.of(),false,m.id().equals("requests")):new ProCatalog.Module(m.id(),m.title(),m.fields(),m.actions().stream().filter(action->!a.viewer&&permitted(a,m.id(),action)&&(a.manager||Set.of("SUBMIT","ACKNOWLEDGE","RESERVE","CONSUME","RETURN","REVOKE").contains(action))).toList(),m.operator(),m.writable()&&!a.viewer&&permitted(a,m.id(),"WRITE")&&(a.manager||!m.id().equals("documents")))).toList();
     }
     public Map<String,Object> list(String module) throws Exception {
         var a=actor(); var definition=ProCatalog.module(module);
@@ -142,6 +142,7 @@ public class ProService {
     }
     public Map<String,Object> save(String module,String recordId,Change change) throws Exception {
         var a=actor(); var definition=ProCatalog.module(module);
+        if(a.viewer)throw new SecurityException("Account di sola lettura.");
         permission(a,module,"WRITE");
         if(Set.of("analytics","audit","orders","deliveries","devices").contains(module)) throw new SecurityException("Sezione di sola lettura.");
         if(a.customer!=null&&!module.equals("requests")) throw new SecurityException("Operazione non autorizzata.");
@@ -182,6 +183,7 @@ public class ProService {
     }
     public Map<String,Object> action(String module,String recordId,Action command) throws Exception {
         var a=actor(); var definition=ProCatalog.module(module); id(recordId);
+        if(a.viewer)throw new SecurityException("Account di sola lettura.");
         if(a.customer!=null) throw new SecurityException("Azione riservata ai responsabili.");
         if(command==null) throw new IllegalArgumentException("Azione obbligatoria."); id(command.operationId);
         permission(a,module,command.action);

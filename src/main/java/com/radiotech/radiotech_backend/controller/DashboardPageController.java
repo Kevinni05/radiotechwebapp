@@ -33,7 +33,7 @@ public class DashboardPageController {
                 + "style-src 'self' 'nonce-" + nonce + "'; "
                 + "style-src-attr 'unsafe-inline'; "
                 + "img-src 'self' data: blob: https://*.tile.openstreetmap.org; "
-                + "font-src 'self' data:; connect-src 'self' https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://*.firebaseapp.com; frame-src https://*.firebaseapp.com");
+                + "font-src 'self' data:; connect-src 'self' https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://*.firebaseapp.com https://firebasestorage.googleapis.com https://firestore.googleapis.com; worker-src 'self'; frame-src https://*.firebaseapp.com");
         return "control-room.html";
     }
 }

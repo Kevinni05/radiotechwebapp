@@ -1,37 +1,36 @@
-# RadioTech — nuovo design della web app
+# RadioTech Signal
 
-Il restyling del 3 ottobre 2026 sostituisce il precedente foglio di stile integrato nella pagina con un sistema visivo esterno. Le funzionalità e gli identificatori dei controlli sono mantenuti: login, rete, operatori, incarichi, report, inventario, comunicazioni, incidenti, competenze, AI e squadra condividono la nuova impostazione.
+Direzione visiva per la web app e il portale clienti. Riferimento scelto dopo il confronto tra Raycast, Factory, Brex e Superhuman su Refero: [Raycast](https://styles.refero.design/style/3b6a17f0-3bdf-418c-a95e-0b89e5a8b2f8). È un adattamento originale per una console operativa, non una copia dei componenti o degli asset del sito di riferimento.
 
-## Direzione visiva
+## Linguaggio visivo
 
-Blu notte e grafite, superfici sobrie, bordi sottili, accenti azzurri e indicatori semantici verde/ambra/rosa. La palette è definita nelle variabili di `src/main/resources/static/assets/design-system.css`. Manrope è ospitato localmente, con la [licenza originale SIL OFL](https://github.com/google/fonts/blob/main/ofl/manrope/OFL.txt) conservata in `assets/fonts/OFL-Manrope.txt`; il browser non deve contattare servizi di font esterni.
+Una console scura, precisa e leggibile. Superfici antracite, comandi chiari, accento corallo discreto e grafica astratta del segnale. Le informazioni operative hanno precedenza sulle decorazioni. La grafica SVG è originale; il logo rimane quello ufficiale di RadioTech.
 
-Il login presenta un campo radio astratto animato e un modulo dedicato. La console usa una navigazione laterale con area scorrevole e identità separata, un'introduzione alla dashboard, una fascia di indicatori reali e accessi rapidi ai workspace. Tabelle, moduli, schede, dialoghi, chat, messaggi di stato e viste mobili hanno regole comuni.
+- Sfondo `#08090b`; pannelli `#121316`; superfici secondarie `#191a1e`.
+- Testo principale `#f4f4f5`; secondario `#ababb5`; bordi `#2b2c32`.
+- Corallo `#ff6363` per indicatore di navigazione, focus e grafica. Pulsanti principali chiari con testo scuro.
+- Stati funzionali distinti: verde, ambra, rosso e blu, sempre accompagnati da testo.
+- Inter variabile ospitato localmente, con licenza SIL OFL conservata accanto al font. Corpo 14 px, etichette 12 px, intestazioni adattive da 27 a 46 px; cifre tabulari per metriche.
+- Spaziatura basata su 4/8 px; pannelli 14 px, pulsanti 8 px; padding normalmente 24 px.
 
-## Movimento e accessibilità
+## Layout e interazioni
 
-- Comparsa progressiva delle schede durante lo scroll, con `IntersectionObserver`, opacità e spostamento breve. Il contenuto resta visibile quando l'animazione è disattivata o non supportata.
-- Transizioni fra viste, feedback sui pulsanti, barre di avanzamento e apertura dei dialoghi; il campo radio decorativo ruota lentamente nel login.
-- `prefers-reduced-motion` disattiva movimento e scroll animato, anche quando la preferenza cambia durante l'utilizzo.
-- Menu mobile con sfondo di separazione, pulsanti etichettati, `aria-expanded`, esclusione del contenuto sottostante dal focus, navigazione con Tab e chiusura con Escape.
-- Dialoghi etichettati, focus iniziale sui campi, ciclo di Tab e restituzione del focus alla chiusura. La sezione corrente della navigazione usa `aria-current`.
+Sidebar organizzata in Operazioni, Risorse, Intelligence e gestione, con Account e sistema separati. Barra superiore persistente, contenuto fluido e griglie con colonne `minmax(0,1fr)`. I campi hanno etichette visibili; note e footer del modulo occupano tutta la larghezza. Schede, modali, tabelle e stati vuoti condividono lo stesso tema.
 
-Le animazioni sono presentazione: non ritardano le scritture, non generano numeri intermedi e non cambiano lo stato operativo. Le illustrazioni del login sono decorative; non rappresentano telemetria live.
+Il cursore rimane quello di sistema. Animazioni leggere per lo sfondo e le transizioni; feedback breve dei pulsanti. `prefers-reduced-motion` disattiva le animazioni decorative. La grafica del segnale è decorativa, non contiene dati simulati e non intercetta i click. Sugli schermi piccoli la navigazione diventa un pannello richiudibile e i moduli usano una sola colonna.
 
-## Logo finale
+La variante glass usa superfici traslucide con bordi luminosi sottili e blur di 18 px, ridotto a 10 px sui box mobili. Lo sfondo combina gradienti viola, corallo e blu con una trama geometrica e un movimento di 28 secondi. In assenza di supporto per il blur, i pannelli conservano una superficie opaca leggibile. I box della stessa griglia hanno larghezze e altezze uguali; le coppie di pannelli usano colonne simmetriche e i contenuti lunghi determinano l'altezza necessaria, senza tagli o dimensioni fisse condivise fra pagine diverse.
 
-Il logo è stato creato **dopo il completamento e la verifica del restyling**, usando la skill `imagegen` e lo strumento integrato `image_gen`, senza CLI o chiavi API aggiuntive. Il simbolo combina una R geometrica con archi di segnale radio. Il nome RadioTech rimane testo HTML nella tipografia del prodotto.
+Il logo della console torna alla dashboard nella sessione corrente, chiude il menu mobile e torna all'inizio della pagina; quello del portale torna alla home del cliente senza uscire dall'account. Il copyright «© 2026 Kevin Cagnazzo e Anthony Piccinonno. Tutti i diritti riservati.» compare nel login e nei footer della console e del portale.
 
-File definitivo: `src/main/resources/static/assets/brand/radiotech-symbol-v1.png`, PNG RGBA trasparente, 1254 × 1254 px. L'originale generato è conservato nella directory Codex; una copia autonoma è inclusa nel progetto. Il simbolo è usato nel login desktop/mobile, nel menu laterale e come favicon. La resa è stata controllata su sfondo blu notte e a dimensione ridotta.
+## Implementazione
 
-Prompt finale inviato allo strumento:
+`design-system.css` conserva le regole strutturali responsive; `radiotech-theme.css` definisce il tema comune. `customer-portal.css` contiene soltanto la struttura del portale. Le icone sono SVG locali e il tema non richiede font, immagini o script di terze parti durante l'utilizzo.
 
-```text
-Use case: logo-brand. Asset type: final production brand symbol for RadioTech, an enterprise radio infrastructure and workforce management web application. Create one original elegant symbol only, no wordmark, no text. A precise geometric monogram suggesting an R integrated with a subtle radio signal: a broad engineered vertical stroke, a clean rounded upper bowl formed by two restrained concentric signal arcs, and a confident diagonal lower leg. Strong single silhouette with open negative space, meticulous optical balance, distinctive yet understated, readable at 24px. Flat vector-like artwork with razor-sharp contours, no sketching. Palette: pale porcelain blue #C4DDFB as the dominant fill, with a restrained secondary slate blue #8CB5E7. Intended to sit on a deep navy #0B1019 UI, but the entire canvas/background must be genuinely transparent. Square composition, one centered mark occupying about 80% of the canvas, generous equal safe margins. No enclosing square, no background plate, no mockup, no lettering, no tiny decoration, no 3D, no shadows, no metallic effects, no gradients, no lens flare, no watermark. Produce the finished high-quality transparent logo asset.
-```
+Verificare sempre tutte le sezioni da 320 a 1920 px, l'accessibilità da tastiera, i modali, testi lunghi, le preferenze di animazione e i flussi di gestione dopo una modifica strutturale.
 
-## File e verifiche
+## Verifica del rinnovo
 
-`design-system.css` definisce aspetto e responsive; `design-system.js` gestisce icone SVG coerenti, intestazioni dei workspace, animazioni e focus. `control-room.html` contiene il nuovo layout. Nessuna libreria di animazione o risorsa remota aggiuntiva è necessaria. La CSP e l'autenticazione rimangono attive.
+Per la variante glass sono stati verificati 27 percorsi: 26 test applicativi/responsive superati nella suite completa e il nuovo test di dimensioni, blur, logo-home, sessione preservata, tastiera, menu mobile e preferenza di movimento superato separatamente dopo la correzione del selettore del test (misura le schede reali della dashboard). Log `.dist/glass-web-tests.log` e `.dist/glass-home-tests.log`. Risorse e copyright confermati sul server locale 8080; pacchetto `bootJar` compilato correttamente.
 
-La suite Chromium comprende dodici percorsi: quelli applicativi esistenti più login e font locali, dashboard/accessi rapidi, movimento ridotto e focus/menu/dialoghi. Le API applicative sono simulate nei test browser; controllo HTTP non autenticato, template, risorse e CSP sono reali. Le immagini QA desktop/mobile sono in `build/reports/web/redesign-*.png`. Il riepilogo del rilascio e gli hash sono in [VERIFICATION.md](VERIFICATION.md).
+Il 6 ottobre 2026 la suite Chromium ha superato 26 test in 2,5 minuti: tutte le sezioni a sette larghezze da 320 a 1920 px, moduli Enterprise Pro e accessi, gestione operativa, tastiera e focus, animazioni ridotte e nuovo portale clienti con login, creazione richiesta e logout. Le API dei flussi browser sono simulate; template, font, SVG, risorse, protezione HTTP non autenticata e CSP sono serviti dal backend reale di test. Il server locale 8080 è stato verificato con tema disponibile, dashboard aggiornata e health UP. Log: `.dist/signal-web-tests.log`; schermate: `build/reports/web/redesign-login-desktop.png`, `build/reports/web/redesign-overview-desktop.png`, `.dist/signal-portal-login-desktop.png` e relative varianti mobili.

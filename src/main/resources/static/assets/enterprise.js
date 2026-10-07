@@ -24,10 +24,10 @@ window.RadioTechEnterprise = function ({ apiFetch, state, escapeHtml: esc, toast
         <div class="panel"><span>Incidenti aperti</span><strong id="enterpriseOpen">—</strong></div>
         <div class="panel"><span>Severità critica</span><strong id="enterpriseCritical">—</strong></div>
         <div class="panel"><span>Alert da leggere</span><strong id="enterpriseUnread">—</strong></div>
-        <div class="panel"><span>Task oltre scadenza</span><strong id="enterpriseOverdue">—</strong></div>
+        <div class="panel"><span>Incarichi oltre scadenza</span><strong id="enterpriseOverdue">—</strong></div>
       </div>
       <div class="panel enterprise-section">
-        <div class="panel-head"><div><h3>Centro operativo</h3><span>Incidenti, SLA e segnali di rischio del tenant</span></div>
+        <div class="panel-head"><div><h3>Centro operativo</h3><span>Incidenti, SLA e segnali di rischio dell’azienda</span></div>
         <div class="actions"><button class="btn" id="enterpriseRefresh">Aggiorna</button><button class="btn primary" id="enterpriseEvaluate" data-manager-only>Valuta SLA e rischi</button></div></div>
         <div class="panel-body"><p class="enterprise-status" id="enterpriseStatus" role="status" aria-live="polite"></p>
         <label for="enterpriseSearch">Cerca incidenti e alert</label><input id="enterpriseSearch" type="search" placeholder="Titolo, stato, asset o severità"></div>
@@ -57,7 +57,8 @@ window.RadioTechEnterprise = function ({ apiFetch, state, escapeHtml: esc, toast
             <button class="btn primary" type="submit">Salva competenza</button>
           </form></div></div>
       </div>`;
-    document.querySelector(".view").parentElement.append(section);
+    const container=document.querySelector(".view").parentElement;
+    container.insertBefore(section,container.querySelector(":scope > .footer"));
 
     async function busy(button, action) {
         if (button.disabled) return;
@@ -77,10 +78,10 @@ window.RadioTechEnterprise = function ({ apiFetch, state, escapeHtml: esc, toast
         $("enterpriseOverdue").textContent = state.tasks.filter(t => t.dueAt && new Date(t.dueAt) < new Date() && !["CLOSED", "CANCELLED", "COMPLETED", "APPROVED", "REPORT_SUBMITTED"].includes(t.status)).length;
         $("enterpriseIncidents").innerHTML = incidents.filter(matches).map(i => `
           <div class="task-row"><div><div class="task-title">${esc(i.title)}</div>
-          <div class="task-meta">${esc(i.severity)} · ${esc(i.status)} · ${esc(i.assetId || "Nessun asset")} · ${esc(date(i.updatedAt || i.createdAt))}</div>
+          <div class="task-meta">${esc(window.RadioTechItalian.label(i.severity))} · ${esc(window.RadioTechItalian.label(i.status))} · ${esc(i.assetId || "Nessun impianto")} · ${esc(date(i.updatedAt || i.createdAt))}</div>
           <p class="enterprise-summary">${esc(i.description || "")}</p>
           ${i.rootCause ? `<p class="enterprise-summary">Causa: ${esc(i.rootCause)}<br>Risoluzione: ${esc(i.resolution || "")}</p>` : ""}
-          </div>${canManage() && next[i.status] ? `<button class="mini-btn" data-incident-next="${esc(i.id)}">${esc(next[i.status])}</button>` : ""}</div>
+          </div>${canManage() && next[i.status] ? `<button class="mini-btn" data-incident-next="${esc(i.id)}">${esc(window.RadioTechItalian.label(next[i.status]))}</button>` : ""}</div>
         `).join("") || `<div class="enterprise-empty">${canManage() ? "Nessun incidente corrispondente." : "Registro incidenti riservato ai responsabili."}</div>`;
         $("enterpriseAlerts").innerHTML = alerts.filter(matches).map(a => `
           <div class="task-row"><div><div class="task-title">${esc(a.descrizione || a.description || a.title || "Alert operativo")}</div>

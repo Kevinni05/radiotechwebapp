@@ -1,0 +1,25 @@
+package com.radiotech.radiotech_backend.service;
+import com.google.auth.oauth2.*;
+import com.google.cloud.firestore.*;
+import com.google.firebase.cloud.FirestoreClient;
+import com.radiotech.radiotech_backend.controller.CalendarController;
+import com.radiotech.radiotech_backend.security.*;
+import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
+import java.util.*;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
+@EnabledIfEnvironmentVariable(named="FIRESTORE_EMULATOR_HOST",matches=".+")
+class EnterpriseUpgradeEmulatorTest {
+ String tenant="upgrade-"+UUID.randomUUID();
+ void auth(String uid){var a=new UsernamePasswordAuthenticationToken(uid,null,List.of(new SimpleGrantedAuthority("ROLE_ADMIN")));a.setDetails(new FirebaseAuthenticationDetails(uid,"fixture@example.test","Test",tenant));SecurityContextHolder.getContext().setAuthentication(a);}
+ Firestore db(){return FirestoreOptions.newBuilder().setProjectId("demo-radiotech").setHost(System.getenv("FIRESTORE_EMULATOR_HOST")).setCredentials(GoogleCredentials.create(new AccessToken("emulator-only",new Date(Long.MAX_VALUE)))).build().getService();}
+ @AfterEach void clear(){SecurityContextHolder.clearContext();}
+ @Test void calendarIsPrivateToOwnerAndPersistsReminder()throws Exception{auth("user-one");try(var db=db();var client=mockStatic(FirestoreClient.class)){client.when(FirestoreClient::getFirestore).thenReturn(db);var c=new CalendarController();c.save("2099-03-04",Map.of("note","Verifica impianto","reminderAt","2099-03-04T09:00:00Z","ownerUid","other"));assertEquals(1,c.list().size());assertEquals(true,c.list().getFirst().get("reminderPending"));auth("user-two");assertEquals(0,c.list().size());auth("user-one");c.save("2099-03-04",Map.of("note","Nota aggiornata"));assertEquals(1,c.list().size());assertNull(c.list().getFirst().get("reminderAt"));}}
+ @Test void lotReceiptsIssuesAndAdjustmentsKeepGlobalQuantityConsistent()throws Exception{auth("manager");try(var db=db();var client=mockStatic(FirestoreClient.class)){client.when(FirestoreClient::getFirestore).thenReturn(db);var service=new RicambioService(mock(AuditService.class));var item=service.createItem(Map.of("name","Cavo","sku",UUID.randomUUID().toString(),"warehouse","Deposito Nord","quantity",0));String id=item.get("id").toString();service.recordMovement(id,Map.of("type","RECEIPT","quantity",10,"lotCode","L1","lotExpiresOn","2099-12-31"));service.recordMovement(id,Map.of("type","ISSUE","quantity",3,"lotCode","L1"));service.recordMovement(id,Map.of("type","ADJUSTMENT","quantity",5,"lotCode","L1"));var doc=db.collection("inventory").document(id).get().get();assertEquals(5L,doc.getLong("quantity"));assertEquals(5L,((Map<?,?>)((Map<?,?>)doc.get("lots")).get("L1")).get("quantity"));assertThrows(Exception.class,()->service.recordMovement(id,Map.of("type","ISSUE","quantity",6,"lotCode","L1")));assertEquals(5L,db.collection("inventory").document(id).get().get().getLong("quantity"));}}
+ @Test void expiredLotsCannotBeIssuedOrConsumedByReport()throws Exception{auth("manager");try(var db=db();var client=mockStatic(FirestoreClient.class)){client.when(FirestoreClient::getFirestore).thenReturn(db);var service=new RicambioService(mock(AuditService.class));var item=service.createItem(Map.of("name","Materiale scaduto","sku",UUID.randomUUID().toString(),"quantity",0));String id=item.get("id").toString();service.recordMovement(id,Map.of("type","RECEIPT","quantity",4,"lotCode","OLD","lotExpiresOn","2000-01-01"));assertThrows(Exception.class,()->service.recordMovement(id,Map.of("type","ISSUE","quantity",1,"lotCode","OLD")));assertThrows(Exception.class,()->service.consume(List.of(Map.of("inventoryId",id,"quantity",1))));assertEquals(4L,db.collection("inventory").document(id).get().get().getLong("quantity"));}}
+ @Test void unlimitedQrStillAllowsOnlyOneLoginAndRefreshesAfterConsumption()throws Exception{auth("manager");try(var db=db();var client=mockStatic(FirestoreClient.class)){client.when(FirestoreClient::getFirestore).thenReturn(db);String id=UUID.randomUUID().toString();db.collection("operators").document(id).set(Map.of("tenantId",tenant,"fullName","Test","email","fixture@example.test","status","ATTIVO","qrCodeToken","AUTH_OP_"+UUID.randomUUID(),"qrExpiresAt","2099-01-01T00:00:00Z")).get();var service=new OperatorService();var unlimited=service.configureQrValidity(id,"UNLIMITED",null);assertNull(unlimited.getQrExpiresAt());String token=unlimited.getQrCodeToken();service.consumeQrToken(token);assertThrows(IllegalArgumentException.class,()->service.consumeQrToken(token));var refreshed=service.personalBadge(id);assertNotEquals(token,refreshed.getQrCodeToken());assertEquals(refreshed.getQrCodeToken(),service.personalBadge(id).getQrCodeToken());assertNull(refreshed.getQrExpiresAt());}}
+}

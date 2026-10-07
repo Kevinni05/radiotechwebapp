@@ -27,6 +27,35 @@ for ($testAttempt = 0; $testAttempt -lt 45; $testAttempt++) {
 }
 if (!$testUrl) { throw "Tunnel did not report a URL. Read $testLog" }
 $testUrl | Set-Content -LiteralPath (Join-Path $testTools 'test-url.txt')
+$testRuntimePath = Join-Path $testRoot '.dist/secrets/local-runtime.json'
+if (Test-Path -LiteralPath $testRuntimePath) {
+    $testRuntime = Get-Content -LiteralPath $testRuntimePath -Raw | ConvertFrom-Json
+    $testBackend = Get-CimInstance Win32_Process -Filter "ProcessId=$([int]$testRuntime.pid)"
+    $testListener = Get-NetTCPConnection -State Listen -LocalPort $Port -ErrorAction SilentlyContinue
+    $testExpectedJar = [IO.Path]::GetFullPath((Join-Path $testRoot 'build\libs\radiotech.jar'))
+    if ($Port -ne 8080 -or $testRuntime.workspace -ne $testRoot -or !$testBackend -or
+        $testListener.OwningProcess -ne [int]$testRuntime.pid -or
+        $testBackend.CommandLine -notmatch [regex]::Escape($testExpectedJar) -or
+        $testBackend.Name -ne 'java.exe' -or !(Test-Path -LiteralPath $testRuntime.serviceAccountPath)) {
+        throw 'Il backend attivo non coincide con quello registrato da start-local.ps1. Nessun backend è stato arrestato.'
+    }
+    Write-Output 'Aggiornamento del backend con il nuovo indirizzo HTTPS (CORS e QR)...'
+    Stop-Process -Id ([int]$testRuntime.pid)
+    & (Join-Path $PSScriptRoot 'start-local.ps1') -ServiceAccountPath $testRuntime.serviceAccountPath -PublicBaseUrl $testUrl
+    $testReady = $false
+    for ($testReadyAttempt = 0; $testReadyAttempt -lt 45; $testReadyAttempt++) {
+        try {
+            $testReadyResponse = Invoke-RestMethod -Uri "http://127.0.0.1:$Port/api/v1/health" -TimeoutSec 2
+            if ($testReadyResponse.status -eq 'UP') { $testReady = $true; break }
+        } catch { }
+        Start-Sleep -Seconds 1
+    }
+    if (!$testReady) { throw 'Il backend non è pronto. Controlla .dist/local-backend.log.' }
+    $testCors = Invoke-WebRequest -Uri "http://127.0.0.1:$Port/api/v1/auth/login" -Method Post -Headers @{ Origin = $testUrl } -ContentType 'application/json' -Body '{"email":"","password":""}' -SkipHttpErrorCheck -TimeoutSec 15
+    if ($testCors.StatusCode -ne 401) { throw 'Il nuovo indirizzo HTTPS non ha superato la verifica del login.' }
+} else {
+    Write-Warning 'Backend avviato fuori da start-local.ps1: configura RADIOTECH_PUBLIC_BASE_URL e RADIOTECH_CORS_ORIGINS con questo nuovo link e riavvia il backend prima del login.'
+}
 Write-Output "Web: $testUrl"
 Write-Output "Customer portal: $testUrl/portal"
 Write-Output "Mobile backend: $testUrl"

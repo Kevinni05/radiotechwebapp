@@ -22,6 +22,8 @@
   };
   const navIcons = { dashboard: 'grid', antennas: 'antenna', operations: 'briefcase', operators:'people', reports:'check', planning:'grid', workload:'briefcase', supplies:'box', tools: 'wave', notifications: 'bell', inventory: 'box', enterprise: 'shield', ai: 'spark', people: 'people', profile: 'user', system: 'status' };
   const navLabels = { dashboard: 'Panoramica', antennas: 'Infrastruttura', operations: 'Incarichi', operators:'Operatori', reports:'Centro report', planning:'Agenda interventi', workload:'Carico della squadra', supplies:'Approvvigionamenti', tools: 'Strumenti RF', notifications: 'Comunicazioni', inventory: 'Inventario', enterprise: 'Rischi e competenze', ai: 'AI e previsioni', people: 'Squadra e sicurezza', profile: 'Profilo aziendale', system: 'Stato del sistema' };
+  Object.assign(navIcons, { pro: 'grid', access: 'shield' });
+  Object.assign(navLabels, { pro: 'Enterprise Pro', access: 'Sicurezza e accessi' });
   const svg = name => `<svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">${paths[name] || paths.grid}</svg>`;
   const reduced = window.matchMedia('(prefers-reduced-motion: reduce)');
 
@@ -43,7 +45,22 @@
       });
     }, { threshold: 0, rootMargin: '0px 0px -18px 0px' }) : null;
 
+    function organizeNavigation() {
+      const nav=sidebar.querySelector('.nav');
+      const groups=[['Operazioni',['dashboard','antennas','operations','planning','reports','operators','workload']],['Risorse',['inventory','supplies','notifications','tools']],['Analisi e gestione',['enterprise','people','ai','pro','access']]];
+      const signature=[...nav.querySelectorAll('button[data-view]')].map(button=>button.dataset.view).sort().join(',');
+      if(nav.dataset.grouped===signature)return;
+      nav.dataset.grouped=signature;
+      nav.querySelectorAll('.nav-group-label').forEach(label=>label.remove());
+      for(const [title,views] of groups) {
+        const buttons=views.map(view=>nav.querySelector(`button[data-view="${view}"]`)).filter(Boolean);
+        if(!buttons.length)continue;
+        const label=document.createElement('div');label.className='nav-group-label';label.textContent=title;
+        nav.append(label,...buttons);
+      }
+    }
     function paintIcons() {
+      organizeNavigation();
       document.querySelectorAll('[data-icon]:not([data-icon-ready])').forEach(element => {
         element.innerHTML = svg(element.dataset.icon);
         element.dataset.iconReady = 'true';
@@ -71,7 +88,7 @@
     function prepareViews() {
       const headers = {
         enterprise: ['Prevenzione e continuità','Il controllo che anticipa.','Incidenti, priorità operative e competenze: coordina le decisioni con una visione condivisa.'],
-        ai: ['Intelligence aziendale','Dai dati alle decisioni.','Indicatori spiegabili, pianificazione preventiva e un assistente per il tuo lavoro quotidiano.'],
+        ai: ['Analisi aziendale','Dai dati alle decisioni.','Indicatori spiegabili, pianificazione preventiva e un assistente per il tuo lavoro quotidiano.'],
         people: ['Persone al centro','Una squadra, più consapevole.','Disponibilità, pause e segnalazioni. Uno spazio condiviso per lavorare con attenzione.']
       };
       document.querySelectorAll('.view:not([data-designed-head])').forEach(view => {
@@ -117,6 +134,12 @@
     function closeNavigation() {
       sidebar.classList.remove('open'); syncNavigation(); toggle.focus({ preventScroll:true });
     }
+    document.getElementById('brandHome').addEventListener('click',event=>{
+      event.preventDefault();
+      sidebar.querySelector('[data-view="dashboard"]').click();
+      main.focus({preventScroll:true});
+      window.scrollTo({top:0,behavior:reduced.matches?'instant':'smooth'});
+    });
     document.getElementById('sidebarClose').addEventListener('click',closeNavigation);
     scrim.addEventListener('click',closeNavigation);
     mobile.addEventListener('change',syncNavigation);
@@ -145,6 +168,7 @@
       if (event.key === 'Escape' && openBefore) closeNavigation();
       const root = activeModal || (openBefore ? sidebar : null);
       if (event.key !== 'Tab' || !root) return;
+      if(document.querySelector('dialog[open]'))return;
       const controls = [...root.querySelectorAll('button,a[href],input:not([type=hidden]),select,textarea,[tabindex="0"]')].filter(element => !element.disabled && element.getClientRects().length);
       const first = controls[0], last = controls.at(-1);
       if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
@@ -168,4 +192,15 @@
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded',initialize,{once:true});
   else initialize();
+})();
+
+(() => {
+  document.addEventListener('click', event => {
+    const button = event.target.closest('button, a.btn');
+    if (!button || button.disabled || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    button.classList.remove('press-glow');
+    void button.offsetWidth;
+    button.classList.add('press-glow');
+    window.setTimeout(() => button.classList.remove('press-glow'), 700);
+  });
 })();

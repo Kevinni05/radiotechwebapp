@@ -161,6 +161,7 @@ public class NotificationService {
                                 .whereEqualTo("tenantId", currentTenant())
                                 .orderBy("createdAt", com.google.cloud.firestore.Query.Direction.DESCENDING).limit(100)
                                 .get().get().getDocuments()) {
+                        if (java.util.Set.of("CALENDAR_REMINDER","BADGE_UPDATED").contains(java.util.Objects.toString(doc.getString("type"), "")) && !java.util.Objects.equals(SecurityContextAccessor.currentUid(),doc.getString("ownerUid"))) continue;
                         Map<String, Object> data = new java.util.LinkedHashMap<>(doc.getData());
                         data.put("id", doc.getId());
                         result.add(data);
@@ -247,7 +248,7 @@ public class NotificationService {
                         tx.update(ref,Map.of("deliveryStatus","SENDING","lease",lease,"leaseUntil",Instant.now().plusSeconds(120).toString()));return true;}).get();
                 if(!claimed)return;var doc=ref.get().get();var tokens=new ArrayList<String>();String target=doc.getString("target");
                 if("BROADCAST".equals(target)){for(var op:operatorService.getAllOperators())if(op.getFcmTokens()!=null)tokens.addAll(op.getFcmTokens());}
-                else{var op=operatorService.getById(target);if(op!=null&&op.getFcmTokens()!=null)tokens.addAll(op.getFcmTokens());}
+                else if(!target.startsWith("UID:")){var op=operatorService.getById(target);if(op!=null&&op.getFcmTokens()!=null)tokens.addAll(op.getFcmTokens());}
                 var payload=new java.util.LinkedHashMap<String,String>();payload.put("notificationId",id);if(doc.getString("taskId")!=null)payload.put("taskId",doc.getString("taskId"));if(doc.getString("type")!=null)payload.put("type",doc.getString("type"));
                 try{int delivered=sendNotification(tokens.stream().filter(t->t!=null&&!t.isBlank()).distinct().toList(),doc.getString("title"),doc.getString("message"),payload);
                         db.runTransaction(tx->{var current=tx.get(ref).get();if(lease.equals(current.getString("lease")))tx.update(ref,Map.of("deliveryStatus",tokens.isEmpty()?"NO_TOKENS":"SENT","delivered",delivered,"deliveryAttemptAt",Instant.now().toString()));return true;}).get();
@@ -298,12 +299,12 @@ public class NotificationService {
 
                         List<String> batch = tokens.subList(start, end);
 
-                        MulticastMessage message = MulticastMessage.builder()
-                                        .setNotification(notification)
-                                        .setAndroidConfig(androidConfig)
-                                        .putAllData(data == null ? Map.of() : data)
-                                        .addAllTokens(batch)
-                                        .build();
+                        var builder = MulticastMessage.builder().putAllData(data == null ? Map.of() : data).addAllTokens(batch);
+                        if (data != null && "BADGE_UPDATED".equals(data.get("type"))) {
+                            builder.setAndroidConfig(AndroidConfig.builder().setPriority(AndroidConfig.Priority.HIGH).build());
+                            builder.setApnsConfig(com.google.firebase.messaging.ApnsConfig.builder().putHeader("apns-push-type","background").putHeader("apns-priority","5").setAps(com.google.firebase.messaging.Aps.builder().setContentAvailable(true).build()).build());
+                        } else builder.setNotification(notification).setAndroidConfig(androidConfig);
+                        MulticastMessage message = builder.build();
 
                         BatchResponse response = FirebaseMessaging
                                         .getInstance()
@@ -359,8 +360,7 @@ public class NotificationService {
                                          * La pulizia viene gestita separatamente.
                                          */
                                         log.info(
-                                                        "Token FCM non valido: "
-                                                                        + invalidToken);
+                                                        "Token FCM non valido rilevato; pulizia richiesta.");
                                 }
                         }
 
