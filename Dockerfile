@@ -8,7 +8,10 @@ RUN ./gradlew bootJar --no-daemon --console=plain
 
 FROM eclipse-temurin:21-jre-jammy
 RUN apt-get update && apt-get install -y --no-install-recommends curl && rm -rf /var/lib/apt/lists/*
-RUN groupadd --gid 10001 radiotech && useradd --uid 10001 --gid radiotech --no-create-home radiotech
+RUN groupadd --gid 10001 radiotech \
+    && useradd --uid 10001 --gid radiotech --no-create-home radiotech \
+    && (getent group 1000 >/dev/null || groupadd --gid 1000 rendersecrets) \
+    && usermod -a -G 1000 radiotech
 WORKDIR /app
 COPY --from=build --chown=radiotech:radiotech /workspace/build/libs/radiotech.jar app.jar
 USER 10001:10001
