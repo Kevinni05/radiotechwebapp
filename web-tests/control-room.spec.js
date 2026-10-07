@@ -621,8 +621,8 @@ test('overview shortcuts, scroll reveals and reduced motion remain usable', asyn
   await expect(page.locator('#view-ai')).toHaveClass(/active/);
   await expect(page.locator('#aiRiskCount')).toHaveText('1');
   await page.emulateMedia({ reducedMotion: 'reduce' });
-  expect(await page.evaluate(() => getComputedStyle(document.documentElement).scrollBehavior)).toBe('auto');
-  expect(await page.locator('#view-ai .panel').first().evaluate(node => getComputedStyle(node).opacity)).toBe('1');
+  await expect.poll(() => page.evaluate(() => getComputedStyle(document.documentElement).scrollBehavior)).toBe('auto');
+  await expect(page.locator('#view-ai .panel').first()).toHaveCSS('opacity','1');
   await page.setViewportSize({ width: 390, height: 844 });
   await page.locator('#mobileMenu').click();
   await page.locator('[data-view="dashboard"]').click();
