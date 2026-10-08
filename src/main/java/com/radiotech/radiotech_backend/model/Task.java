@@ -7,6 +7,7 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
+@com.google.cloud.firestore.annotation.IgnoreExtraProperties
 public class Task {
 
     private String id;

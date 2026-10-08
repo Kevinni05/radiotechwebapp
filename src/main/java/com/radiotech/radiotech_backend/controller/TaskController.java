@@ -275,6 +275,9 @@ public class TaskController {
         }
 
         private Permission resolvePermissionFor(com.radiotech.radiotech_backend.model.TaskStatus status) {
+                if (status == com.radiotech.radiotech_backend.model.TaskStatus.CANCELLED) {
+                        return Permission.TASK_ASSIGN;
+                }
                 if (status == null) {
                         return Permission.TASK_START;
                 }

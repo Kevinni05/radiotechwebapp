@@ -16,9 +16,9 @@ class LocalAttachmentServiceTest {
   assertThrows(IllegalArgumentException.class,()->files.save("tenant","tech","op-1","photo.txt","different".getBytes()));
   Files.write(folder.resolve(id+".bin"),"tampered".getBytes());assertThrows(IllegalStateException.class,()->files.read(id,"tenant","tech",false));
  }
- @Test void productionSelectsFirebaseStorageAndRejectsTraversal()throws Exception{
+ @Test void productionSelectsPersistentFirestoreAndRejectsTraversal()throws Exception{
   var env=new MockEnvironment().withProperty("radiotech.local-files.directory",folder.toString());env.setActiveProfiles("production");var files=new LocalAttachmentService(env);
-  assertFalse(files.enabled());assertEquals("FIREBASE_STORAGE",files.storageBackend());
+  assertFalse(files.enabled());assertEquals("FIRESTORE",files.storageBackend());
   var testFiles=new LocalAttachmentService(new MockEnvironment().withProperty("radiotech.local-files.directory",folder.toString()));
   assertThrows(IllegalArgumentException.class,()->testFiles.read("../secrets","t","u",true));
  }

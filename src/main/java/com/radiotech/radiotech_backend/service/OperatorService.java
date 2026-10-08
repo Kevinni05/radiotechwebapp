@@ -1309,8 +1309,22 @@ public class OperatorService {
                 String uid = existing.getString("firebaseUid");
                 if (!isBlank(uid) && uid.equals(SecurityContextAccessor.currentUid())) throw new IllegalArgumentException("Non puoi eliminare il tuo account attivo.");
                 if (java.util.Set.of("ADMIN", "MANAGER", "CAPO").contains(java.util.Objects.requireNonNullElse(existing.getString("role"), "OPERATOR"))) throw new IllegalArgumentException("Gli account di amministrazione non sono eliminabili da Gestione operatori.");
-                for (var task : db.collection("tasks").whereEqualTo("operatorId", id).get().get().getDocuments()) {
-                    if (existing.getString("tenantId").equals(task.getString("tenantId")) && !java.util.Set.of("COMPLETED", "CLOSED", "APPROVED", "CANCELLED").contains(java.util.Objects.requireNonNullElse(task.getString("status"), "ASSIGNED"))) throw new IllegalArgumentException("Riassegna o chiudi gli incarichi attivi prima di eliminare l’operatore.");
+                for (var task : db.collection("tasks").whereEqualTo("tenantId", existing.getString("tenantId")).get().get().getDocuments()) {
+                    boolean assigned = id.equals(task.getString("operatorId"))
+                            || (!isBlank(uid) && (uid.equals(task.getString("operatorId"))
+                            || uid.equals(task.getString("operatorFirebaseUid"))
+                            || uid.equals(task.getString("operator_uid"))))
+                            || id.equals(task.getString("operator_uid"));
+                    var status = com.radiotech.radiotech_backend.model.TaskStatus.parse(task.getString("status"));
+                    // A submitted report is historical work awaiting a manager's review.
+                    // It must remain readable, but does not require an active operator account.
+                    boolean finished = status != null && (status.isTerminal()
+                            || java.util.Set.of(com.radiotech.radiotech_backend.model.TaskStatus.COMPLETED,
+                            com.radiotech.radiotech_backend.model.TaskStatus.APPROVED,
+                            com.radiotech.radiotech_backend.model.TaskStatus.REPORT_SUBMITTED).contains(status));
+                    if (assigned && !finished) throw new IllegalArgumentException(
+                            "Annulla l’incarico «" + java.util.Objects.toString(task.get("title"), task.getId())
+                            + "» (" + task.getId() + ") nella sezione Incarichi prima di eliminare l’operatore.");
                 }
                 if (!isBlank(uid)) {
                     // A Firebase identity may not be removed through a foreign tenant record.

@@ -33,7 +33,7 @@ public enum TaskStatus {
             case "ACCEPTED", "ACCETTATO" -> ACCEPTED;
             case "EN_ROUTE", "IN_TRANSITO", "ROUTE" -> EN_ROUTE;
             case "CHECKED_IN", "CHECK_IN", "CHECKEDIN" -> CHECKED_IN;
-            case "IN_PROGRESS", "IN_CORSO" -> IN_PROGRESS;
+            case "IN_PROGRESS", "IN_CORSO", "IN_LAVORAZIONE" -> IN_PROGRESS;
             case "WAITING", "IN_ATTESA" -> WAITING;
             case "COMPLETED", "COMPLETATO" -> COMPLETED;
             case "REPORT_SUBMITTED", "REPORT", "SUBMITTED" -> REPORT_SUBMITTED;

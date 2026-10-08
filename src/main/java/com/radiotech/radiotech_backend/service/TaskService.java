@@ -70,18 +70,21 @@ public class TaskService {
 
                 ApiFuture<QuerySnapshot> future = db.collection(COLLECTION)
                                 .whereEqualTo("tenantId", requireCurrentTenant())
-                                .orderBy(
-                                                "createdAt",
-                                                Query.Direction.DESCENDING)
                                 .get();
 
                 List<QueryDocumentSnapshot> documents = future.get().getDocuments();
+                var profiles = new java.util.HashMap<String, QueryDocumentSnapshot>();
+                for (var profile : db.collection("operators").whereEqualTo("tenantId", requireCurrentTenant())
+                                .get().get().getDocuments()) {
+                        profiles.put(profile.getId(), profile);
+                        if (!isBlank(profile.getString("firebaseUid"))) profiles.put(profile.getString("firebaseUid"), profile);
+                }
 
                 List<Task> tasks = new ArrayList<>();
 
                 for (QueryDocumentSnapshot document : documents) {
 
-                        Task task = document.toObject(Task.class);
+                        Task task = mapDocument(document);
 
                         if (task == null) {
                                 continue;
@@ -89,10 +92,20 @@ public class TaskService {
 
                         task.setId(document.getId());
                         normalizeLegacyOperator(task);
+                        var profile = profiles.get(task.getOperatorId());
+                        if (profile == null) profile = profiles.get(task.getOperatorFirebaseUid());
+                        if (profile != null) {
+                                task.setOperatorId(profile.getId());
+                                task.setOperatorFirebaseUid(profile.getString("firebaseUid"));
+                                if (isBlank(task.getOperatorName())) task.setOperatorName(profile.getString("fullName"));
+                        }
 
                         tasks.add(task);
                 }
 
+                tasks.sort(java.util.Comparator.comparing(
+                                (Task task) -> java.util.Objects.toString(task.getCreatedAt(), "")).reversed()
+                                .thenComparing(Task::getId));
                 return tasks;
         }
 
@@ -117,7 +130,10 @@ public class TaskService {
                                         "Task non trovato: " + id);
                 }
 
-                Task task = document.toObject(Task.class);
+                if (!requireCurrentTenant().equals(document.getString("tenantId"))) {
+                        throw new IllegalArgumentException("Task non trovato.");
+                }
+                Task task = mapDocument(document);
 
                 if (task == null) {
 
@@ -250,6 +266,7 @@ public class TaskService {
 
                 Task task = getById(id);
                 if (!operatorId.equals(task.getOperatorId())
+                                && !firebaseUid.equals(task.getOperatorId())
                                 && !firebaseUid.equals(task.getOperatorFirebaseUid())) {
                         throw new SecurityException("Il task non è assegnato all'operatore autenticato.");
                 }
@@ -277,7 +294,7 @@ public class TaskService {
                                         || !tenantId.equals(currentDocument.getString("tenantId"))) {
                                 throw new IllegalArgumentException("Task non trovato.");
                         }
-                        if (!TaskStatus.EN_ROUTE.name().equals(currentDocument.getString("status"))) {
+                        if (TaskStatus.parse(currentDocument.getString("status")) != TaskStatus.EN_ROUTE) {
                                 throw new IllegalArgumentException("Il task è cambiato durante il check-in.");
                         }
                         transaction.update(taskDocument,
@@ -363,6 +380,7 @@ public class TaskService {
                         throw new SecurityException("Operatore o task non autenticato.");
                 }
                 if (!java.util.Objects.equals(operatorId, task.getOperatorId())
+                                && !firebaseUid.equals(task.getOperatorId())
                                 && !firebaseUid.equals(task.getOperatorFirebaseUid())) {
                         throw new SecurityException("Il task non è assegnato all'operatore autenticato.");
                 }
@@ -517,37 +535,24 @@ public class TaskService {
         public List<Task> getByOperator(
                         String operatorId)
                         throws Exception {
-
                 validateId(operatorId);
+                var profile = FirestoreClient.getFirestore().collection("operators")
+                                .document(operatorId).get().get();
+                String uid = profile.exists() && requireCurrentTenant().equals(profile.getString("tenantId"))
+                                ? profile.getString("firebaseUid") : null;
+                return getByOperator(operatorId, uid);
+        }
 
-                Firestore db = FirestoreClient.getFirestore();
-
-                ApiFuture<QuerySnapshot> future = db.collection(COLLECTION)
-                                .whereEqualTo("tenantId", requireCurrentTenant())
-                                .whereEqualTo(
-                                                "operatorId",
-                                                operatorId)
-                                .get();
-
-                List<QueryDocumentSnapshot> documents = future.get().getDocuments();
-
-                List<Task> tasks = new ArrayList<>();
-
-                for (QueryDocumentSnapshot document : documents) {
-
-                        Task task = document.toObject(Task.class);
-
-                        if (task == null) {
-                                continue;
-                        }
-
-                        task.setId(document.getId());
-                        normalizeLegacyOperator(task);
-
-                        tasks.add(task);
-                }
-
-                return tasks;
+        public List<Task> getByOperator(String operatorId, String firebaseUid) throws Exception {
+                validateId(operatorId);
+                var references = new java.util.HashSet<String>();
+                references.add(operatorId.trim());
+                if (!isBlank(firebaseUid)) references.add(firebaseUid.trim());
+                // A tenant-only query also includes historical tasks without createdAt
+                // and avoids requiring new composite indexes during a deployment.
+                return getAllTasks().stream().filter(task -> references.contains(task.getOperatorId())
+                                || references.contains(task.getOperatorFirebaseUid())
+                                || references.contains(task.getOperator_uid())).toList();
         }
 
         // ============================================================
@@ -575,7 +580,7 @@ public class TaskService {
 
                 for (QueryDocumentSnapshot document : documents) {
 
-                        Task task = document.toObject(Task.class);
+                        Task task = mapDocument(document);
 
                         if (task == null) {
                                 continue;
@@ -687,6 +692,26 @@ public class TaskService {
                 if (task.getOperatorId() == null || task.getOperatorId().isBlank()) {
                         task.setOperatorId(task.getOperator_uid());
                 }
+                if (isBlank(task.getOperatorFirebaseUid()) && !isBlank(task.getOperator_uid())) {
+                        task.setOperatorFirebaseUid(task.getOperator_uid());
+                }
+                TaskStatus status = TaskStatus.parse(task.getStatus());
+                if (status != null) task.setStatus(status.name());
+        }
+
+        private Task mapDocument(DocumentSnapshot document) {
+                var data = new java.util.LinkedHashMap<String, Object>(document.getData());
+                for (String field : List.of("createdAt", "updatedAt", "completedAt", "dueAt", "checkedInAt", "checkedOutAt")) {
+                        Object value = data.get(field);
+                        if (value instanceof com.google.cloud.Timestamp timestamp) {
+                                data.put(field, Instant.ofEpochSecond(timestamp.getSeconds(), timestamp.getNanos()).toString());
+                        }
+                }
+                var gson = new com.google.gson.Gson();
+                Task task = gson.fromJson(gson.toJson(data), Task.class);
+                task.setId(document.getId());
+                normalizeLegacyOperator(task);
+                return task;
         }
 
         private void validateId(String id) {

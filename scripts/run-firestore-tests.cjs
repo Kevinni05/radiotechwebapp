@@ -13,6 +13,8 @@ const tests = [
   'com.radiotech.radiotech_backend.service.MaintenanceReportFirestoreEmulatorTest',
   'com.radiotech.radiotech_backend.service.ManutenzioneServiceAlertTest',
   'com.radiotech.radiotech_backend.service.OperatorFieldWorkflowFirestoreEmulatorTest',
+  'com.radiotech.radiotech_backend.service.OperatorDataCompatibilityEmulatorTest',
+  'com.radiotech.radiotech_backend.service.FirestoreAttachmentServiceEmulatorTest',
   'com.radiotech.radiotech_backend.service.IncidentServiceEmulatorTest',
   'com.radiotech.radiotech_backend.service.OperatorServiceTenantMutationEmulatorTest',
   'com.radiotech.radiotech_backend.service.OperatorServiceQrTenantEmulatorTest',

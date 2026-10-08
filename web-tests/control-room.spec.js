@@ -411,6 +411,30 @@ async function session(page, role = 'ADMIN', records = {}) {
   await expect(page.locator('#app')).toHaveClass(/ready/);
 }
 
+test('all assignments remain visible beyond fifty and an active task can be cancelled', async ({page}) => {
+  const tasks = Array.from({length: 55}, (_, index) => ({id: `task-${index}`, title: `Intervento ${index}`, operatorId: 'o1', status: 'IN_PROGRESS'}));
+  const changes = [];
+  await session(page, 'ADMIN', {respond(path, method, request) {
+    if (path === '/tasks' && method === 'GET') return {data: tasks};
+    if (path === '/tasks/task-54/status' && method === 'PATCH') {
+      changes.push(request.postDataJSON()); tasks[54].status = 'CANCELLED'; return tasks[54];
+    }
+  }});
+  await page.locator('[data-view="operations"]').click();
+  await expect(page.locator('#tasksList .task-row')).toHaveCount(55);
+  page.once('dialog', dialog => dialog.accept());
+  await page.locator('[data-task-cancel="task-54"]').click();
+  await expect(page.locator('[data-task-cancel="task-54"]')).toHaveCount(0);
+  expect(changes).toEqual([{status: 'CANCELLED'}]);
+  await expect(page.locator('#tasksList .task-row').last()).toContainText('Annullato');
+});
+
+test('a viewer cannot cancel an active assignment', async ({page}) => {
+  await session(page, 'VIEWER');
+  await page.locator('[data-view="operations"]').click();
+  await expect(page.locator('[data-task-cancel="t1"]')).toBeHidden();
+});
+
 test('root serves the login and protects unauthenticated API requests', async ({ page, request }) => {
   const response = await page.goto('/');
   expect(response.status()).toBe(200);

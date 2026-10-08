@@ -1928,7 +1928,22 @@
                 if (!$('tasksList')) return;
                 const query = ($('taskSearch')?.value || '').trim().toLowerCase();
                 const list = state.tasks.filter(t => !query || [t.title, t.description, t.operatorName, t.operatorId, t.status, t.antennaId].join(' ').toLowerCase().includes(query));
-                $('tasksList').innerHTML = list.length ? list.slice(0, 50).map(t => `<div class="task-row"><div><div class="task-title">${escapeHtml(t.title || t.id)}</div><div class="task-meta">${escapeHtml(t.operatorName || t.operatorId || t.operator_uid || "Non assegnato")} · ${escapeHtml(t.antennaId || "—")} · ${t.dueAt ? `scade ${escapeHtml(new Date(t.dueAt).toLocaleString('it-IT'))}` : 'senza scadenza'}</div></div><span class="badge ${badgeClass(t.status)}">${escapeHtml(formatStatus(t.status))}</span></div>`).join('') : '<div class="empty">Nessun incarico.</div>';
+                $('tasksList').innerHTML = list.length ? list.map(t => `<div class="task-row"><div><div class="task-title">${escapeHtml(t.title || t.id)}</div><div class="task-meta">${escapeHtml(t.operatorName || t.operatorId || t.operator_uid || "Non assegnato")} · ${escapeHtml(t.antennaId || "—")} · ${t.dueAt ? `scade ${escapeHtml(new Date(t.dueAt).toLocaleString('it-IT'))}` : 'senza scadenza'} · ID ${escapeHtml(t.id)}</div></div><div class="actions"><span class="badge ${badgeClass(t.status)}">${escapeHtml(formatStatus(t.status))}</span>${!["COMPLETED", "REPORT_SUBMITTED", "APPROVED", "CLOSED", "CANCELLED"].includes(t.status) ? `<button class="mini-btn" data-task-cancel="${escapeHtml(t.id)}">Annulla incarico</button>` : ''}</div></div>`).join('') : '<div class="empty">Nessun incarico.</div>';
+                $('tasksList').querySelectorAll('[data-task-cancel]').forEach(button => {
+                    button.hidden = !["ADMIN", "SUPER_ADMIN", "CHIEF_EXECUTIVE", "CAPO", "NETWORK_MANAGER", "ENGINEER"].includes(state.authRole || state.user?.role);
+                    button.addEventListener('click', async () => {
+                        const task = state.tasks.find(t => t.id === button.dataset.taskCancel);
+                        if (!task || !confirm(`Annullare l’incarico «${task.title || task.id}»? Resterà visibile nello storico.`)) return;
+                        button.disabled = true;
+                        try {
+                            await apiFetch(`/api/v1/tasks/${encodeURIComponent(task.id)}/status`, {method: 'PATCH', body: JSON.stringify({status: 'CANCELLED'})});
+                            await Promise.all([loadTasks(), loadStats()]);
+                            window.dispatchEvent(new Event('radiotech:tasks-changed'));
+                            toast('Incarico annullato', 'L’incarico non blocca più la rimozione dell’operatore.');
+                        } catch (error) { toast('Annullamento fallito', error.message, 'error'); }
+                        finally { button.disabled = false; }
+                    });
+                });
             }
             async function createTask() {
                 const button = $("createTaskBtn");
@@ -1986,7 +2001,7 @@
                 const note = approve ? 'Report approvato dalla centrale.' : (prompt('Motivo del rifiuto:') || '');
                 if (!approve && !note.trim()) return;
                 buttons.forEach(b => { b.disabled = true; });
-                try { await apiFetch(`/api/v1/reports/${encodeURIComponent(id)}/${approve ? 'approve' : 'reject'}`, { method: 'POST', body: JSON.stringify({ note }) }); await Promise.all([loadReports(), loadStats()]); toast(approve ? 'Report approvato' : 'Report rifiutato', approve ? 'Materiali aggiornati e incarico completato.' : 'Il report è stato restituito all’operatore.'); } catch (e) { toast('Revisione fallita', e.message, 'error'); }
+                try { await apiFetch(`/api/v1/reports/${encodeURIComponent(id)}/${approve ? 'approve' : 'reject'}`, { method: 'POST', body: JSON.stringify({ note }) }); await Promise.all([loadReports(), loadTasks(), loadStats()]); window.dispatchEvent(new Event('radiotech:tasks-changed')); toast(approve ? 'Report approvato' : 'Report rifiutato', approve ? 'Materiali aggiornati e incarico completato.' : 'L’operatore può correggere e inviare nuovamente il rapporto dagli incarichi attivi.'); } catch (e) { toast('Revisione fallita', e.message, 'error'); }
                 finally { buttons.forEach(b => { b.disabled = false; }); }
             }
 

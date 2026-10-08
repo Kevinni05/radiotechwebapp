@@ -196,7 +196,7 @@ public class OperatorMobileController {
             if (operator == null) {
                 return ResponseEntity.ok(List.of());
             }
-            return ResponseEntity.ok(taskService.getByOperator(operator.getId()));
+            return ResponseEntity.ok(taskService.getByOperator(operator.getId(), uid));
         } catch (Exception e) {
             return server();
         }
@@ -350,12 +350,8 @@ public class OperatorMobileController {
     @GetMapping("/me/reports")
     public ResponseEntity<?> myReports(@RequestAttribute("firebaseUid") String uid) {
         try {
-            var reports = new java.util.ArrayList<>(reportService.getByOperator(uid));
             Operator own = operatorService.getByFirebaseUid(uid);
-            if (own != null) for (var report : reportService.getByOperator(own.getId()))
-                if (reports.stream().noneMatch(r -> java.util.Objects.equals(r.getId(),report.getId()))) reports.add(report);
-            reports.sort(java.util.Comparator.comparing((MaintenanceReport r)->java.util.Objects.toString(r.getSubmittedAt(), "")).reversed());
-            return ResponseEntity.ok(reports);
+            return ResponseEntity.ok(reportService.getByOperator(own == null ? uid : own.getId(), uid));
         } catch (Exception e) {
             return server();
         }

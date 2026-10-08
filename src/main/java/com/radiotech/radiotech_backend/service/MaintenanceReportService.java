@@ -45,7 +45,8 @@ public class MaintenanceReportService {
     private static final String INVENTORY_COMPLETE = "COMPLETE";
     private static final Duration REVIEW_LEASE_DURATION = Duration.ofMinutes(2);
     private static final String IDEMPOTENCY_COLLECTION = "apiIdempotencyKeys";
-    private static final Gson REQUEST_HASH_GSON = new GsonBuilder().serializeNulls().create();
+    private static final Gson REQUEST_HASH_GSON = new GsonBuilder().serializeNulls()
+            .setObjectToNumberStrategy(com.google.gson.ToNumberPolicy.LONG_OR_DOUBLE).create();
 
     private record SubmissionResult(String reportId, boolean created, String requestHash) {
     }
@@ -89,7 +90,7 @@ public class MaintenanceReportService {
     public List<MaintenanceReport> getAll() throws Exception {
         QuerySnapshot snapshot = FirestoreClient.getFirestore().collection(COLLECTION)
                 .whereEqualTo("tenantId", currentTenant())
-                .orderBy("submittedAt", Query.Direction.DESCENDING).get().get();
+                .get().get();
         return map(snapshot);
     }
 
@@ -103,23 +104,25 @@ public class MaintenanceReportService {
             throw new IllegalArgumentException("operatorId obbligatorio.");
         }
 
-        String value = operatorRef.trim();
-        List<MaintenanceReport> reports = new ArrayList<>(query("operatorId", value));
+        var profile = FirestoreClient.getFirestore().collection("operators")
+                .document(operatorRef.trim()).get().get();
+        String uid = profile.exists() && currentTenant().equals(profile.getString("tenantId"))
+                ? profile.getString("firebaseUid") : null;
+        return getByOperator(operatorRef, uid);
+    }
 
-        var additional = new ArrayList<>(query("operatorFirebaseUid", value));
-        additional.addAll(query("operator_uid",value));
-        for (MaintenanceReport report : additional) {
-            if (reports.stream().noneMatch(existing -> existing.getId().equals(report.getId()))) {
-                reports.add(report);
-            }
-        }
-
-        reports.sort((left, right) -> nullSafe(right.getSubmittedAt()).compareTo(nullSafe(left.getSubmittedAt())));
-        return reports;
+    public List<MaintenanceReport> getByOperator(String operatorRef, String firebaseUid) throws Exception {
+        if (blank(operatorRef)) throw new IllegalArgumentException("operatorId obbligatorio.");
+        var references = new java.util.HashSet<String>();
+        references.add(operatorRef.trim());
+        if (!blank(firebaseUid)) references.add(firebaseUid.trim());
+        return getAll().stream().filter(report -> references.contains(report.getOperatorId())
+                || references.contains(report.getOperatorFirebaseUid())).toList();
     }
 
     public List<MaintenanceReport> getByTask(String taskId) throws Exception {
-        return query("taskId", taskId);
+        if (blank(taskId)) throw new IllegalArgumentException("taskId obbligatorio.");
+        return getAll().stream().filter(report -> taskId.trim().equals(report.getTaskId())).toList();
     }
 
     public MaintenanceReport getById(String id) throws Exception {
@@ -129,9 +132,7 @@ public class MaintenanceReportService {
         if (!doc.exists())
             throw new IllegalArgumentException("Report non trovato: " + id);
         requireDocumentTenant(doc);
-        MaintenanceReport report = doc.toObject(MaintenanceReport.class);
-        report.setId(doc.getId());
-        return report;
+        return mapDocument(doc);
     }
 
     public MaintenanceReport submit(MaintenanceReport report, String firebaseUid) throws Exception {
@@ -156,12 +157,14 @@ public class MaintenanceReportService {
         Firestore db = FirestoreClient.getFirestore();
 
         String authenticatedUid = firebaseUid.trim();
+        Operator operator = operatorService.getByFirebaseUid(authenticatedUid);
 
         Task linkedTask = null;
         if (!blank(report.getTaskId())) {
             linkedTask = taskService.getById(report.getTaskId());
             boolean assigned = authenticatedUid.equals(linkedTask.getOperatorFirebaseUid())
-                    || authenticatedUid.equals(linkedTask.getOperatorId());
+                    || authenticatedUid.equals(linkedTask.getOperatorId())
+                    || operator != null && operator.getId().equals(linkedTask.getOperatorId());
             if (!assigned) {
                 throw new SecurityException("Il task non è assegnato all'operatore autenticato.");
             }
@@ -176,9 +179,7 @@ public class MaintenanceReportService {
                             && !authenticatedUid.equals(linkedTask.getCheckedOutBy());
             if (checkoutRequired) {
                 taskService.validateCheckOutLocation(linkedTask, authenticatedUid,
-                        authenticatedUid.equals(linkedTask.getOperatorFirebaseUid())
-                                ? linkedTask.getOperatorId()
-                                : authenticatedUid,
+                        operator != null ? operator.getId() : linkedTask.getOperatorId(),
                         report.getLatitude(), report.getLongitude());
             }
             if (blank(report.getAntennaId())) {
@@ -199,7 +200,6 @@ public class MaintenanceReportService {
         report.setTaskTitle(linkedTask == null ? null : linkedTask.getTitle());
         String requestHash = reportRequestHash(report);
 
-        Operator operator = operatorService.getByFirebaseUid(authenticatedUid);
         validateAttachmentReferences(report.getAttachments(), tenantId, authenticatedUid);
 
         report.setOperatorFirebaseUid(authenticatedUid);
@@ -517,12 +517,19 @@ public class MaintenanceReportService {
                 if (!SUBMITTED.equals(snapshot.getString("status"))) {
                     throw new IllegalArgumentException("Il report non è in stato SUBMITTED.");
                 }
+                String taskId = snapshot.getString("taskId");
+                DocumentSnapshot task = blank(taskId) ? null
+                        : transaction.get(db.collection("tasks").document(taskId)).get();
                 String now = Instant.now().toString();
                 transaction.update(reportReference,
                         "status", REJECTED,
                         "reviewedAt", now,
                         "reviewedBy", reviewedBy,
                         "reviewNote", reviewNote);
+                if (task != null && task.exists() && tenantId.equals(task.getString("tenantId"))
+                        && TaskStatus.parse(task.getString("status")) == TaskStatus.REPORT_SUBMITTED) {
+                    transaction.update(task.getReference(), "status", TaskStatus.COMPLETED.name(), "updatedAt", now);
+                }
                 return null;
             }));
             auditService.record("REPORT_REJECTED", tenantId, reviewerUid,
@@ -680,10 +687,24 @@ public class MaintenanceReportService {
     private List<MaintenanceReport> map(QuerySnapshot snapshot) {
         List<MaintenanceReport> result = new ArrayList<>();
         for (QueryDocumentSnapshot doc : snapshot.getDocuments()) {
-            MaintenanceReport report = doc.toObject(MaintenanceReport.class);
-            if (report == null) {
-                continue;
+            result.add(mapDocument(doc));
+        }
+        result.sort(java.util.Comparator.comparing(
+                (MaintenanceReport r) -> nullSafe(r.getSubmittedAt())).reversed()
+                .thenComparing(MaintenanceReport::getId));
+        return result;
+    }
+
+    private MaintenanceReport mapDocument(DocumentSnapshot doc) {
+            Map<String, Object> data = new LinkedHashMap<>(doc.getData());
+            for (String field : List.of("startedAt", "completedAt", "submittedAt", "reviewedAt", "approvalLeaseUntil")) {
+                Object value = data.get(field);
+                if (value instanceof com.google.cloud.Timestamp timestamp) {
+                    data.put(field, Instant.ofEpochSecond(timestamp.getSeconds(), timestamp.getNanos()).toString());
+                }
             }
+            MaintenanceReport report = REQUEST_HASH_GSON.fromJson(
+                    REQUEST_HASH_GSON.toJson(data), MaintenanceReport.class);
             if (blank(report.getAntennaId())) report.setAntennaId(doc.getString("antenna_id"));
             if (blank(report.getOperatorNotes())) report.setOperatorNotes(doc.getString("notes"));
             if (blank(report.getOperatorFirebaseUid())) report.setOperatorFirebaseUid(doc.getString("operator_uid"));
@@ -700,9 +721,9 @@ public class MaintenanceReportService {
             if (report.getOperatorFirebaseUid() == null) {
                 report.setOperatorFirebaseUid(readString(doc, "operatorFirebaseUid", doc.getString("operator_uid")));
             }
-            result.add(report);
-        }
-        return result;
+            if (blank(report.getTaskId())) report.setTaskId(readString(doc, "task_id", null));
+            if (blank(report.getOperatorId())) report.setOperatorId(readString(doc, "operator_id", null));
+            return report;
     }
 
     private String readString(DocumentSnapshot snapshot, String field, String fallback) {

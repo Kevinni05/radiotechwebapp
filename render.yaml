@@ -19,6 +19,8 @@ services:
         value: gestionale-radio
       - key: FIREBASE_STORAGE_BUCKET
         value: gestionale-radio.firebasestorage.app
+      - key: RADIOTECH_ATTACHMENT_BACKEND
+        value: FIRESTORE
       - key: FIREBASE_SERVICE_ACCOUNT_PATH
         value: /etc/secrets/firebase-service-account.json
       - key: RADIOTECH_FIREBASE_WEB_API_KEY

@@ -313,5 +313,11 @@
             ]
         }
     ],
-    "fieldOverrides": []
+    "fieldOverrides": [
+        {
+            "collectionGroup": "chunks",
+            "fieldPath": "data",
+            "indexes": []
+        }
+    ]
 }

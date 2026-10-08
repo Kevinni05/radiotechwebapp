@@ -240,3 +240,13 @@ test('Workforce records cannot be read or modified directly even by a manager', 
         await assertFails(setDoc(doc(database, `${collection}/private-record`), { tenantId: 'tenant-a', readiness: 'READY' }));
     }
 });
+
+test('Persistent report files and chunks require the authenticated backend for every role', async () => {
+    for (const role of ['ADMIN', 'OPERATOR', 'VIEWER']) {
+        const database = environment.authenticatedContext('user-a', { role, tenantId: 'tenant-a' }).firestore();
+        for (const path of ['reportFiles/private-file', 'reportFiles/private-file/chunks/0']) {
+            await assertFails(getDoc(doc(database, path)));
+            await assertFails(setDoc(doc(database, path), { tenantId: 'tenant-a', data: 'private bytes' }));
+        }
+    }
+});

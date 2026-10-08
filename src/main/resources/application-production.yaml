@@ -34,6 +34,10 @@ springdoc:
   swagger-ui:
     enabled: false
 
+radiotech:
+  attachments:
+    backend: ${RADIOTECH_ATTACHMENT_BACKEND:FIRESTORE}
+
 management:
   endpoints:
     web:
