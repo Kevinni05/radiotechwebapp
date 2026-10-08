@@ -21,7 +21,7 @@ class LocalAttachmentPermissionTest {
         SecurityContextHolder.getContext().setAuthentication(auth);
     }
     @Test void operatorCanConfigureUploadAndReadOnlyOwnFiles() throws Exception {
-        authenticate("OPERATOR"); var files=mock(LocalAttachmentService.class); when(files.enabled()).thenReturn(true);
+        authenticate("OPERATOR"); var files=mock(LocalAttachmentService.class); when(files.enabled()).thenReturn(true); when(files.storageBackend()).thenReturn("LOCAL_FILESYSTEM");
         var controller=new LocalAttachmentController(files); assertEquals("LOCAL",controller.config().get("mode"));
         var request=new MockHttpServletRequest();request.setContent(new byte[]{1,2,3});
         controller.upload("report-key","report.pdf",request);
@@ -31,7 +31,7 @@ class LocalAttachmentPermissionTest {
         verify(files).read("file-id","tenant-a","operator-a",false);
     }
     @Test void viewerCanReadButCannotUploadAndAnonymousHasNoAccess() {
-        var controller=new LocalAttachmentController(mock(LocalAttachmentService.class));authenticate("VIEWER");
+        var files=mock(LocalAttachmentService.class); when(files.storageBackend()).thenReturn("LOCAL_FILESYSTEM"); var controller=new LocalAttachmentController(files);authenticate("VIEWER");
         assertDoesNotThrow(controller::config);
         assertThrows(SecurityException.class,()->controller.upload("key","report.pdf",new MockHttpServletRequest()));
         SecurityContextHolder.clearContext();assertThrows(SecurityException.class,controller::config);
