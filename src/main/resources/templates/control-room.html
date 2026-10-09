@@ -5,9 +5,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#08090b">
-    <meta name="description" content="RadioTech — infrastruttura, operazioni e persone in una console aziendale.">
-    <title>RadioTech · Gestione operativa</title>
-    <link rel="icon" href="/assets/brand/radiotech-symbol-v1.png" type="image/png">
+    <meta name="description" th:content="${brandName + ' — infrastruttura, operazioni e persone in una console aziendale.'}" content="RadioTech — infrastruttura, operazioni e persone in una console aziendale.">
+    <title th:text="${brandName + ' · ' + brandSubtitle}">RadioTech · Gestione operativa</title>
+    <link rel="icon" th:href="${brandLogoPath}" href="/assets/brand/radiotech-symbol-v1.png" type="image/png">
 
     <!-- Leaflet: CSS -->
     <link rel="stylesheet" href="/assets/leaflet/leaflet.css" crossorigin="anonymous">
@@ -31,9 +31,9 @@
         <div class="login-shell">
             <div class="login-visual">
                 <div class="login-brand">
-                    <div class="brand-mark has-logo"><img src="/assets/brand/radiotech-symbol-v1.png" width="46" height="46" alt="" decoding="async"></div>
+                    <div class="brand-mark has-logo"><img th:src="${brandLogoPath}" src="/assets/brand/radiotech-symbol-v1.png" width="46" height="46" alt="" decoding="async"></div>
                     <div>
-                        <strong>RadioTech</strong>
+                        <strong th:text="${brandName}">RadioTech</strong>
                         <span>Gestione operativa</span>
                     </div>
                 </div>
@@ -42,7 +42,7 @@
                     <img src="/assets/brand/radiotech-signal-field.svg" alt="" width="720" height="600" decoding="async">
                 </div>
                 <div class="login-copy">
-                    <div class="eyebrow">RadioTech · Centro operativo</div>
+                    <div class="eyebrow" th:text="${brandName + ' · Centro operativo'}">RadioTech · Centro operativo</div>
                     <h1>Il segnale è chiaro.<br><span>Il controllo è tuo.</span></h1>
                     <p>
                         Infrastruttura, interventi e persone. Tutto il necessario
@@ -57,7 +57,7 @@
 
             <div class="login-panel">
                 <form class="login-form" id="loginForm">
-                    <div class="login-brand login-mobile-brand" style="display:none"><div class="brand-mark has-logo"><img src="/assets/brand/radiotech-symbol-v1.png" width="46" height="46" alt="" decoding="async"></div><div><strong>RadioTech</strong><span>Gestione operativa</span></div></div>
+                    <div class="login-brand login-mobile-brand" style="display:none"><div class="brand-mark has-logo"><img th:src="${brandLogoPath}" src="/assets/brand/radiotech-symbol-v1.png" width="46" height="46" alt="" decoding="async"></div><div><strong th:text="${brandName}">RadioTech</strong><span>Gestione operativa</span></div></div>
                     <div class="eyebrow">Accesso riservato</div>
                     <h2>Il tuo centro operativo.</h2>
                     <p>Il tuo spazio di lavoro per guidare la rete e la squadra. Accedi con il tuo account aziendale.</p>
@@ -101,10 +101,10 @@
         <button type="button" class="nav-scrim" id="navScrim" aria-label="Chiudi navigazione" tabindex="-1" hidden></button>
         <aside class="sidebar" id="sidebar" aria-label="Navigazione principale">
             <button type="button" class="icon-btn sidebar-close" id="sidebarClose" aria-label="Chiudi navigazione" data-icon="close">×</button>
-            <a class="brand brand-home" id="brandHome" href="/dashboard" aria-label="RadioTech: torna alla dashboard">
-                <div class="brand-mark has-logo"><img src="/assets/brand/radiotech-symbol-v1.png" width="46" height="46" alt="" decoding="async"></div>
+            <a class="brand brand-home" id="brandHome" href="/dashboard" th:attr="aria-label=${brandName + ': torna alla dashboard'}" aria-label="RadioTech: torna alla dashboard">
+                <div class="brand-mark has-logo"><img th:src="${brandLogoPath}" src="/assets/brand/radiotech-symbol-v1.png" width="46" height="46" alt="" decoding="async"></div>
                 <div>
-                    <strong>RadioTech</strong>
+                    <strong th:text="${brandName}">RadioTech</strong>
                     <span>Gestione operativa</span>
                 </div>
             </a>
@@ -143,7 +143,7 @@
                 <div style="display:flex;align-items:center;gap:9px;min-width:0">
                     <button class="icon-btn mobile-menu" id="mobileMenu" aria-label="Apri navigazione" aria-controls="sidebar" aria-expanded="false" data-icon="menu">☰</button>
                     <div>
-                        <div class="workspace-label">RadioTech / Spazio operativo</div><h1 id="pageTitle">Panoramica</h1>
+                        <div class="workspace-label" th:text="${brandName + ' / Spazio operativo'}">RadioTech / Spazio operativo</div><h1 id="pageTitle">Panoramica</h1>
                         <p id="pageSubtitle">Monitoraggio infrastruttura radio e operazioni tecniche</p>
                     </div>
                 </div>
@@ -888,10 +888,10 @@
                     </div>
 
                 </section>
-                <footer class="footer app-footer" aria-label="RadioTech — informazioni e navigazione">
+                <footer class="footer app-footer" th:attr="aria-label=${brandName + ' — informazioni e navigazione'}" aria-label="RadioTech — informazioni e navigazione">
                     <div class="footer-grid">
                         <div class="footer-identity">
-                            <button type="button" class="footer-brand" data-footer-view="dashboard" aria-label="RadioTech: torna alla panoramica"><img src="/assets/brand/radiotech-symbol-v1.png" width="42" height="42" alt=""><span><strong>RadioTech</strong><small>Gestione operativa</small></span></button>
+                            <button type="button" class="footer-brand" data-footer-view="dashboard" th:attr="aria-label=${brandName + ': torna alla panoramica'}" aria-label="RadioTech: torna alla panoramica"><img th:src="${brandLogoPath}" src="/assets/brand/radiotech-symbol-v1.png" width="42" height="42" alt=""><span><strong th:text="${brandName}">RadioTech</strong><small th:text="${brandSubtitle}">Gestione operativa</small></span></button>
                             <p>Infrastrutture, persone e interventi.<br>Un unico centro per la tua rete.</p>
                             <button type="button" class="footer-service" data-footer-view="system"><span class="footer-status-dot" aria-hidden="true"></span><span id="footerServiceStatus" role="status">Verifica del servizio in corso</span><span aria-hidden="true">↗</span></button>
                         </div>
@@ -982,7 +982,7 @@
     <div class="modal-backdrop" id="badgeModal">
         <div class="modal" id="badgePrintArea">
             <div class="modal-head">
-                <h3>Badge RadioTech</h3><button class="icon-btn" id="closeBadgeModal">×</button>
+                <h3 th:text="${'Badge ' + brandName}">Badge RadioTech</h3><button class="icon-btn" id="closeBadgeModal">×</button>
             </div>
             <div class="modal-body" style="text-align:center"><img id="badgeQr" alt="QR login operatore"
                     style="width:220px;height:220px;background:#fff;padding:10px">
