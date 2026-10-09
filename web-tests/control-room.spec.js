@@ -54,7 +54,7 @@ test('Signal customer portal preserves login, requests and logout on small scree
   await expect(page.locator('#proTitle')).toHaveText('Richieste di assistenza');await expect(page.locator('.portal-login')).toBeHidden();
   await page.locator('#proNew').click();await page.locator('#proField-name').fill('Verifica collegamento');await page.locator('#proField-notes').fill('Descrizione della richiesta del cliente.');
   await page.locator('#proForm [type="submit"]').click();await expect(page.locator('#proRecords')).toContainText('Verifica collegamento');
-  await page.locator('#portalBrandHome').click();await expect(page.locator('#portalApp')).toBeVisible();await expect(page.locator('.footer')).toContainText('Kevin Cagnazzo e Anthony Piccinonno');
+  await page.locator('#portalBrandHome').click();await expect(page.locator('#portalApp')).toBeVisible();await expect(page.locator('.footer')).toContainText('RadioTech');
   expect(calls).toHaveLength(1);expect(calls[0].operationId).toBeTruthy();
   for(const width of [320,768,1440]){
     await page.setViewportSize({width,height:1000});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
