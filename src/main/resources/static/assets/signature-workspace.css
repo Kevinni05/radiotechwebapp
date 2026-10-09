@@ -1,0 +1,111 @@
+/* Signature workspace components. Theme colors remain owned by radiotech-theme. */
+#app .signature-topbar {
+  position: sticky; top: 12px; z-index: 80;
+  display: grid; grid-template-columns: minmax(140px,1fr) minmax(200px,380px) minmax(0,1fr);
+  align-items: center; gap: var(--ui-space-5); min-height: 72px;
+  margin: 12px clamp(16px,2.1vw,36px) 0; padding: 12px 18px;
+  border: 1px solid var(--glass-border); border-radius: var(--ui-radius-md);
+}
+#app .signature-topbar .workspace-context { display: flex; align-items: center; gap: 10px; min-width: 0; }
+#app .signature-topbar .workspace-heading-copy { min-width: 0; }
+#app .signature-topbar .workspace-label { display: block; font-size: 10px; letter-spacing: .04em; line-height: 1.4; }
+#app .signature-topbar h1 { font-size: 16px; margin: 2px 0 0; max-width: none; line-height: 1.35; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.workspace-search { width: 100%; min-height: 40px; display: flex; align-items: center; gap: 10px; padding: 8px 12px; border: 1px solid var(--border); border-radius: 8px; color: var(--muted); background: var(--panel-2); text-align: left; font: inherit; font-size: 12px; }
+.workspace-search:hover { border-color: var(--border-strong); color: var(--text); }
+.workspace-search svg { width: 17px; height: 17px; flex-shrink: 0; }
+.workspace-search-label { flex: 1; }
+.workspace-search kbd { flex-shrink: 0; padding: 3px 5px; border: 1px solid var(--border); border-radius: 4px; color: var(--muted); font: inherit; font-size: 10px; }
+#app .signature-topbar .top-actions { display: flex; align-items: center; flex-wrap: nowrap; gap: 7px; justify-self: end; }
+#app .signature-topbar .icon-btn { min-height: 36px; width: 36px; padding: 0; }
+#app .signature-topbar #notificationBell { display: inline-flex; }
+.workspace-menu-anchor { position: relative; }
+.workspace-account { display: flex; align-items: center; gap: 10px; min-height: 40px; max-width: 220px; border: 0; border-left: 1px solid var(--border); background: transparent; color: var(--text); padding: 0 0 0 12px; text-align: left; font: inherit; }
+.workspace-account .avatar { width: 34px; height: 34px; flex: 0 0 34px; font-size: 11px; }
+.workspace-account-copy { min-width: 0; display: grid; gap: 2px; }
+.workspace-account-copy strong { font-size: 12px; font-weight: 550; max-width: 130px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.workspace-account-copy small { font-size: 10px; color: var(--muted); max-width: 130px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.workspace-menu { position: absolute; right: 0; top: calc(100% + 12px); width: 245px; max-width: calc(100vw - 32px); padding: 8px; display: grid; gap: 6px; background: var(--panel-solid); color: var(--text); border: 1px solid var(--glass-border); border-radius: 12px; box-shadow: var(--shadow); }
+.workspace-menu[hidden] { display: none; }
+#app .workspace-menu .btn { display: flex; width: 100%; min-height: 40px; margin: 0; padding: 10px 12px; font-size: 12px; justify-content: flex-start; white-space: normal; }
+.workspace-menu-heading { display: grid; gap: 5px; padding: 8px 12px; font-size: 11px; color: var(--muted); overflow-wrap: anywhere; }
+.workspace-menu-heading strong { color: var(--text); font-size: 12px; }
+.workspace-command-dialog,.workspace-notes-dialog { padding: 24px; width: min(560px,calc(100vw - 32px)); max-height: calc(100dvh - 32px); border: 1px solid var(--glass-border); border-radius: 14px; background: var(--panel-solid); color: var(--text); box-shadow: var(--shadow); }
+.workspace-command-dialog::backdrop,.workspace-notes-dialog::backdrop { background: #040507b0; }
+.workspace-command-dialog { margin: min(16vh,120px) auto auto; }
+.workspace-command-head { display: flex; gap: 16px; align-items: flex-start; margin-bottom: 18px; }
+.workspace-command-head > div { flex: 1; min-width: 0; }
+.workspace-command-head h2,.workspace-notes-dialog h2 { font-size: 19px; margin: 0 0 8px; }
+.workspace-command-head p,.workspace-notes-dialog p { color: var(--muted); font-size: 12px; line-height: 1.6; margin: 0; }
+.workspace-command-dialog input { width: 100%; min-height: 44px; }
+.workspace-command-results { margin: 12px -8px 0; max-height: min(45vh,360px); overflow-y: auto; }
+.workspace-command-result { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 12px; width: 100%; border: 1px solid transparent; border-radius: 8px; background: transparent; color: var(--text); font: inherit; font-size: 13px; text-align: left; }
+.workspace-command-result:hover,.workspace-command-result:focus-visible { background: var(--panel-2); border-color: var(--border); }
+.workspace-command-result small,.workspace-command-help { color: var(--muted); font-size: 10px; }
+.workspace-command-help { padding-top: 16px; margin-top: 12px; border-top: 1px solid var(--border); }
+.workspace-notes-dialog .actions { justify-content: flex-end; margin-top: 24px; }
+#app .dashboard-tools { display: grid; grid-template-columns: minmax(0,.8fr) minmax(0,1.2fr); gap: var(--ui-space-5); margin-bottom: var(--ui-space-5); align-items: start; }
+#app .dashboard-tools .workspace-links { display: grid; grid-template-columns: 1fr; margin: 0; gap: 10px; }
+#app .dashboard-tools .workspace-link { min-height: 64px; padding: 14px 18px; }
+#app .session-notes .panel-head { padding: 16px 20px; }
+#app .session-notes .panel-body { padding: 16px 20px; }
+#app .session-notes textarea { width: 100%; min-height: 88px; max-height: 240px; font: inherit; font-size: 13px; line-height: 1.6; resize: vertical; }
+.session-notes-meta { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin: 8px 0; font-size: 11px; color: var(--muted); }
+#sessionNotesStatus[data-error="true"] { color: var(--red); }
+.session-notes .field-help { font-size: 11px; margin: 0 0 6px; }
+.session-notes #sessionNotesUpdated { font-size: 10px; }
+#app #view-dashboard .overview-head { min-height: 145px; padding: 24px 28px; align-items: center; }
+#app #view-dashboard .overview-head h2 { font-size: clamp(27px,2.5vw,36px); }
+#app #view-dashboard .overview-head .overview-art { width: 34%; opacity: .65; }
+#app #view-dashboard .dashboard-network { grid-template-columns: minmax(0,1.25fr) minmax(0,1fr); align-items: start; }
+#app #view-dashboard .dashboard-network > .panel { height: auto; align-self: start; }
+#app #view-dashboard .map-shell { height: 320px; min-height: 0; flex: 0 0 auto; }
+#app #view-dashboard .dashboard-network { margin-bottom: var(--ui-space-5); }
+#app #view-dashboard .dashboard-network .task-list { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 8px; }
+#app #view-dashboard .dashboard-network .task-row { min-height: 56px; padding: 10px 12px; gap: 8px; }
+#app #view-dashboard .dashboard-network .task-row > div:first-child { flex: 1 1 auto; }
+#app .operations-actions { display: grid; grid-template-columns: minmax(0,.95fr) minmax(0,1.05fr); align-items: start; gap: var(--ui-space-5); grid-column: 1/-1; }
+@media (max-width: 1280px) {
+  #app .signature-topbar { grid-template-columns: minmax(120px,1fr) minmax(170px,290px) minmax(0,1fr); gap: 12px; padding-inline: 14px; }
+  .workspace-account-copy { display: none; }
+  .workspace-account { padding-left: 9px; gap: 6px; }
+}
+@media (max-width: 980px) {
+  #app .signature-topbar { margin-inline: 16px; top: 8px; margin-top: 8px; }
+  #app .signature-topbar .workspace-context .mobile-menu { display: inline-flex; }
+  #app #view-dashboard .dashboard-network,#app .operations-actions { grid-template-columns: 1fr; }
+}
+@media (max-width: 700px) {
+  #app .signature-topbar { grid-template-columns: minmax(0,1fr) 36px auto; gap: 8px; min-height: 64px; padding: 10px; margin-inline: 12px; }
+  #app .signature-topbar .workspace-label { display: none; }
+  #app .signature-topbar h1 { font-size: 13px; margin: 0; }
+  .workspace-search { min-height: 36px; justify-content: center; padding: 0; }
+  .workspace-search-label,.workspace-search kbd { display: none; }
+  .workspace-account > span:last-child { display: none; }
+  #app .signature-topbar .top-actions { gap: 4px; }
+  #app .signature-topbar #refreshBtn { display: none; }
+  .workspace-account { border-left: 0; padding-left: 0; }
+  #app .dashboard-tools { grid-template-columns: 1fr; }
+  #app #view-dashboard .overview-head { min-height: 120px; padding: 20px; gap: 12px; }
+  #app #view-dashboard .overview-head > div:first-child { max-width: 100%; }
+  #app #view-dashboard .overview-head .overview-art { display: none; }
+  #app #view-dashboard .overview-head h2 { font-size: 27px; }
+  #app #view-dashboard .map-shell { height: 280px; }
+  #app #view-dashboard .health-card { flex-wrap: wrap; }
+  #app #view-dashboard .health-card strong { font-size: 40px; white-space: nowrap; }
+  #app #view-dashboard .calendar-day { flex: 0 0 70px; min-width: 70px; }
+  #app #view-reports .management-filters { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); }
+  #app #view-reports .management-filters > .field:first-child { grid-column: 1/-1; }
+  #app #view-reports .management-filters > .field:has(#reportStatusFilter) { grid-column: 1; grid-row: 2; }
+  #app #view-reports .management-filters > .field:has(#reportOperatorFilter) { grid-column: 2; grid-row: 2; }
+  #app #view-reports .management-filters > .field:has(#reportDateFrom) { grid-column: 1; grid-row: 3; }
+  #app #view-reports .management-filters > .field:has(#reportDateTo) { grid-column: 2; grid-row: 3; }
+  .workspace-command-dialog,.workspace-notes-dialog { padding: 18px; }
+}
+@media (max-width: 375px) {
+  #app .signature-topbar { margin-inline: 8px; padding-inline: 8px; gap: 5px; }
+  #app .signature-topbar .icon-btn { width: 32px; min-height: 34px; }
+  #app .signature-topbar .workspace-context { gap: 5px; }
+  .workspace-account .avatar { width: 30px; height: 30px; flex-basis: 30px; }
+}
+@media (prefers-reduced-motion: reduce) { .workspace-search,.workspace-account,.workspace-command-result { transition: none; } }
+@media print { .signature-topbar,.dashboard-tools,.workspace-command-dialog,.workspace-notes-dialog { display: none !important; } }

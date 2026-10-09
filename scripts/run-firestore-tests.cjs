@@ -3,6 +3,7 @@ const { spawn } = require('node:child_process');
 
 const tests = [
   'com.radiotech.radiotech_backend.service.ReportMaterialReviewEmulatorTest',
+  'com.radiotech.radiotech_backend.service.MaintenanceReportRemovalEmulatorTest',
   'com.radiotech.radiotech_backend.service.OperationalResetEmulatorTest',
   'com.radiotech.radiotech_backend.service.ArchiveQueriesEmulatorTest',
   'com.radiotech.radiotech_backend.service.EnterpriseUpgradeEmulatorTest',

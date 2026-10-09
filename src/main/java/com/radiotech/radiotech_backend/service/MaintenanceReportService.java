@@ -10,6 +10,7 @@ import com.radiotech.radiotech_backend.model.Operator;
 import com.radiotech.radiotech_backend.model.Task;
 import com.radiotech.radiotech_backend.model.TaskStatus;
 import com.radiotech.radiotech_backend.security.SecurityContextAccessor;
+import com.radiotech.radiotech_backend.security.Permission;
 import com.radiotech.radiotech_backend.security.GeoFencePolicy;
 import com.radiotech.radiotech_backend.security.TenantAccessPolicy;
 import org.springframework.stereotype.Service;
@@ -132,12 +133,12 @@ public class MaintenanceReportService {
     public ArchiveQueries.Page<MaintenanceReport> getPage(int limit, String cursor, String operatorId, String firebaseUid, String status) throws Exception {
         Query query = FirestoreClient.getFirestore().collection(COLLECTION).whereEqualTo("tenantId", currentTenant());
         if (operatorId != null) query = ArchiveQueries.operator(query, ArchiveQueries.identities(operatorId, firebaseUid));
-        return ArchiveQueries.page(filterStatus(query, status), limit, cursor, this::mapDocument);
+        return activePage(filterStatus(query, status), limit, cursor);
     }
 
     public long count(String status) throws Exception {
-        return filterStatus(FirestoreClient.getFirestore().collection(COLLECTION)
-                .whereEqualTo("tenantId", currentTenant()), status).count().get().get().getCount();
+        return activeCount(filterStatus(FirestoreClient.getFirestore().collection(COLLECTION)
+                .whereEqualTo("tenantId", currentTenant()), status));
     }
 
     private Query filterStatus(Query query, String status) {
@@ -149,9 +150,15 @@ public class MaintenanceReportService {
     }
 
     public long countByOperator(String operatorId, String firebaseUid) throws Exception {
-        return ArchiveQueries.operator(FirestoreClient.getFirestore().collection(COLLECTION)
-                .whereEqualTo("tenantId", currentTenant()), ArchiveQueries.identities(operatorId, firebaseUid))
-                .count().get().get().getCount();
+        return activeCount(ArchiveQueries.operator(FirestoreClient.getFirestore().collection(COLLECTION)
+                .whereEqualTo("tenantId", currentTenant()), ArchiveQueries.identities(operatorId, firebaseUid)));
+    }
+
+    private long activeCount(Query query) throws Exception {
+        // Keep legacy documents with no removedAt field, without downloading the whole archive.
+        var all = query.count().get();
+        var removed = query.whereGreaterThan("removedAt", "").count().get();
+        return Math.max(0, all.get().getCount() - removed.get().getCount());
     }
 
     public MaintenanceReport getById(String id) throws Exception {
@@ -162,6 +169,65 @@ public class MaintenanceReportService {
             throw new IllegalArgumentException("Report non trovato: " + id);
         requireDocumentTenant(doc);
         return mapDocument(doc);
+    }
+
+    /** Preserve the original report and its signed artifacts; audit and removal commit atomically. */
+    public void remove(String id, String actorUid) throws Exception {
+        if (!TenantAccessPolicy.canAccess(SecurityContextAccessor.currentRole(), Permission.REPORT_DELETE))
+            throw new SecurityException("Permessi insufficienti per rimuovere il report.");
+        String tenantId = currentTenant();
+        if (blank(actorUid) || !actorUid.equals(SecurityContextAccessor.currentUid()))
+            throw new SecurityException("Identità non autorizzata.");
+        if (blank(id) || id.contains("/")) throw new IllegalArgumentException("Report ID non valido.");
+        Firestore db = FirestoreClient.getFirestore();
+        DocumentReference reference = db.collection(COLLECTION).document(id);
+        // The audit reference is fixed for all retries of this transaction and operation.
+        DocumentReference audit = db.collection("auditLogs").document();
+        awaitTransaction(db.runTransaction(transaction -> {
+            DocumentSnapshot snapshot = transaction.get(reference).get();
+            if (!snapshot.exists() || !tenantId.equals(snapshot.getString("tenantId")))
+                throw new IllegalArgumentException("Report non trovato.");
+            if (!isActive(snapshot)) return null; // Idempotent; retain the first actor and timestamp.
+            String now = Instant.now().toString();
+            transaction.update(reference, "removedAt", now, "removedBy", actorUid);
+            Map<String, Object> entry = new LinkedHashMap<>();
+            entry.put("action", "REPORT_REMOVED");
+            entry.put("tenantId", tenantId);
+            entry.put("actor", actorUid);
+            entry.put("resource", "MAINTENANCE_REPORT");
+            entry.put("resourceId", id);
+            entry.put("result", "SUCCESS");
+            entry.put("timestamp", now);
+            entry.put("before", Map.of("status", nullSafe(snapshot.getString("status"))));
+            entry.put("after", Map.of("removedAt", now, "removedBy", actorUid,
+                    "retained", true, "status", nullSafe(snapshot.getString("status"))));
+            transaction.set(audit, entry);
+            return null;
+        }));
+    }
+
+    private boolean isActive(DocumentSnapshot document) {
+        return document.get("removedAt") == null;
+    }
+
+    private void requireActive(DocumentSnapshot document) {
+        if (!isActive(document)) throw new IllegalArgumentException("Il report è stato rimosso dall'elenco.");
+    }
+
+    /** Scan indexed batches so legacy reports lacking a removal field remain visible. */
+    private ArchiveQueries.Page<MaintenanceReport> activePage(Query query, int limit, String cursor) throws Exception {
+        var visible = new ArrayList<MaintenanceReport>();
+        String scannedCursor = cursor;
+        boolean hasMore;
+        int batches = 0;
+        do {
+            // Request exactly the remaining capacity to avoid skipping visible items at the boundary.
+            var batch = ArchiveQueries.page(query, limit - visible.size(), scannedCursor, this::mapDocument);
+            visible.addAll(batch.items().stream().filter(report -> report.getRemovedAt() == null).toList());
+            scannedCursor = batch.nextCursor();
+            hasMore = batch.hasMore();
+        } while (visible.size() < limit && hasMore && ++batches < 10);
+        return new ArchiveQueries.Page<>(visible, scannedCursor, hasMore);
     }
 
     public MaintenanceReport submit(MaintenanceReport report, String firebaseUid) throws Exception {
@@ -550,6 +616,7 @@ public class MaintenanceReportService {
                         || !TenantAccessPolicy.canAccessTenant(tenantId, snapshot.getString("tenantId"))) {
                     throw new IllegalArgumentException("Report non trovato.");
                 }
+                requireActive(snapshot);
                 if (!SUBMITTED.equals(snapshot.getString("status"))) {
                     throw new IllegalArgumentException("Il report non è in stato SUBMITTED.");
                 }
@@ -622,6 +689,9 @@ public class MaintenanceReportService {
             }
 
             String status = snapshot.getString("status");
+            // Removal must not strand a previously claimed approval or its inventory ledger.
+            // Only an existing pending workflow can be resumed after removal.
+            if (!APPROVAL_PENDING.equals(status)) requireActive(snapshot);
             if (APPROVED.equals(status)) {
                 if (INVENTORY_COMPLETE.equals(snapshot.getString("inventoryConsumptionStatus"))) {
                     return new ReviewClaim(null, null, true, null);
@@ -755,7 +825,7 @@ public class MaintenanceReportService {
     private List<MaintenanceReport> map(QuerySnapshot snapshot) {
         List<MaintenanceReport> result = new ArrayList<>();
         for (QueryDocumentSnapshot doc : snapshot.getDocuments()) {
-            result.add(mapDocument(doc));
+            if (isActive(doc)) result.add(mapDocument(doc));
         }
         result.sort(java.util.Comparator.comparing(
                 (MaintenanceReport r) -> nullSafe(r.getSubmittedAt())).reversed()

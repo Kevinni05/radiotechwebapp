@@ -1,23 +1,37 @@
-.portal-main { width: min(1200px,100%); margin: 0 auto; padding: 32px; }
-.portal-header { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding-bottom: 26px; border-bottom: 1px solid var(--border); margin-bottom: 40px; }
-.portal-header .brand { padding: 0; }
+/* Portal geometry lives here; enterprise-layout supplies only spacing tokens. */
+.portal-main { width: min(100%,1240px); margin: 0 auto; padding: clamp(16px,3vw,40px); }
+.portal-main, .portal-main * { box-sizing: border-box; min-width: 0; }
+.portal-header { display: flex; align-items: center; justify-content: space-between; gap: var(--ui-space-5); padding-bottom: var(--ui-space-6); border-bottom: 1px solid var(--border); margin-bottom: var(--ui-space-8); }
+.portal-header .brand { padding: 0; gap: var(--ui-space-3); }
 .portal-header > span { color: var(--muted); font-size: 12px; }
-.portal-welcome h1 { font-size: clamp(30px,4vw,44px); font-weight: 500; letter-spacing: -.04em; margin: 12px 0; }
+.portal-welcome { max-width: 780px; }
+.portal-welcome h1 { font-size: clamp(30px,4vw,44px); font-weight: 500; letter-spacing: -.04em; line-height: 1.16; margin: 12px 0; }
 .portal-welcome > p { color: var(--muted); font-size: 14px; line-height: 1.7; max-width: 560px; }
-.portal-login { display: grid; grid-template-columns: minmax(0,1.15fr) minmax(0,1fr); max-width: 960px; margin: 36px 0; border: 1px solid var(--border); border-radius: 16px; overflow: hidden; background: var(--panel); }
-.portal-login-art { display: grid; place-items: center; background: radial-gradient(ellipse,#ff63631a,transparent 70%),#101115; border-right: 1px solid var(--border); }
-.portal-login-art img { width: 100%; height: auto; max-height: 480px; }
-#portalLogin { padding: 36px; display: grid; gap: 20px; align-content: center; }
+.portal-login { display: grid; grid-template-columns: minmax(0,1.05fr) minmax(0,1fr); width: min(100%,960px); align-items: stretch; margin: var(--ui-space-8) 0; border: 1px solid var(--border); border-radius: 16px; overflow: hidden; background: var(--panel); }
+.portal-login-art { display: grid; place-items: center; min-height: 330px; overflow: hidden; background: radial-gradient(ellipse,#ff63631a,transparent 70%),#101115; border-right: 1px solid var(--border); }
+.portal-login-art img { width: 100%; height: auto; max-height: 440px; object-fit: contain; }
+#portalLogin { padding: clamp(24px,3vw,40px); display: grid; gap: var(--ui-space-5); align-content: center; }
 #portalLogin h2 { font-size: 23px; margin: 0; }
-#portalLogin label { display: grid; gap: 8px; font-size: 12px; }
+#portalLogin label { display: grid; gap: var(--ui-space-2); font-size: 12px; }
 #portalLogin input { width: 100%; }
+#portalLogin :is(input,button) { min-height: 44px; }
 #portalLogin .btn { width: 100%; margin-top: 6px; }
 #portalStatus { color: #ffb1b8; line-height: 1.7; overflow-wrap: anywhere; }
-.portal-main:has(#portalApp:not([hidden])) .portal-login { display: none; }
-.portal-main:has(#portalApp:not([hidden])) .portal-welcome { display: none; }
-.portal-app-head { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: 24px; }
+#portalStatus:empty { display: none; }
+.portal-main:has(#portalApp:not([hidden])) :is(.portal-login,.portal-welcome) { display: none; }
+.portal-app-head { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: var(--ui-space-4); margin-bottom: var(--ui-space-6); }
+.portal-app-head .nav { display: flex; flex-wrap: wrap; gap: var(--ui-space-2); }
 .portal-app-head .nav button { width: auto; color: var(--text); background: #1e1f26; border-color: var(--border); }
 .portal-app-head .nav button.active { border-color: #ff838350; }
 .portal-main .pro-workspace { margin-bottom: 30px; }
-.portal-main .pro-field { min-width: 0; }
-@media (max-width: 700px) { .portal-main { padding: 24px 16px; }.portal-header { margin-bottom: 28px; }.portal-header > span { display: none; }.portal-login { grid-template-columns: 1fr; }.portal-login-art { display: none; }#portalLogin { padding: 28px 24px; }.portal-app-head { flex-wrap: wrap; } }
+.portal-main .footer { display: flex; flex-wrap: wrap; gap: var(--ui-space-3) var(--ui-space-6); }
+.portal-main .footer > * { overflow-wrap: anywhere; }
+@media (max-width: 700px) {
+  .portal-header { margin-bottom: var(--ui-space-6); }
+  .portal-header > span { display: none; }
+  .portal-login { grid-template-columns: minmax(0,1fr); }
+  .portal-login-art { display: none; }
+  #portalLogin { padding: var(--ui-space-6); }
+  .portal-app-head .nav { flex: 1 1 100%; }
+  .portal-app-head .nav button { min-height: 44px; }
+}

@@ -6,3 +6,7 @@
 .report-material-review label{display:block;margin-bottom:8px;overflow-wrap:anywhere}
 .report-material-review select{width:100%;max-width:100%;min-width:0;background:#1c2940;color:inherit;padding:12px;border:1px solid #50627b;border-radius:10px;font:inherit}
 .report-material-review .actions{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:12px}
+
+.report-delete-dialog dl{display:grid;grid-template-columns:auto minmax(0,1fr);gap:8px 16px}.report-delete-dialog dd{margin:0;overflow-wrap:anywhere}.report-delete-dialog .report-delete-name{overflow-wrap:anywhere}.report-delete-dialog [data-delete-error]{overflow-wrap:anywhere}
+.report-delete-dialog{background:var(--panel-solid);color:var(--text);border-color:var(--glass-border)}
+.report-delete-dialog::backdrop{background:#040507b0}

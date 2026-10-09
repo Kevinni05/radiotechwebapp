@@ -18,6 +18,7 @@ public enum Permission {
     REPORT_CREATE,
     REPORT_READ,
     REPORT_APPROVE,
+    REPORT_DELETE,
     ALERT_CREATE,
     ALERT_READ,
     ALERT_ACK,
