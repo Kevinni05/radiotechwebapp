@@ -41,9 +41,9 @@ jobs:
     steps:
       - name: Check RadioTech API and Firestore
         env:
-          API_ORIGIN: ${{ vars.PUBLIC_API_ORIGIN }}
+          API_ORIGIN: ${{ vars.PUBLIC_API_ORIGIN || 'https://radiotechwebapp.onrender.com' }}
         run: |
-          test -n "$API_ORIGIN" || { echo "PUBLIC_API_ORIGIN repository variable is required"; exit 1; }
+          test -n "$API_ORIGIN" || { echo "PUBLIC_API_ORIGIN or reference URL is required"; exit 1; }
           curl --silent --show-error --fail-with-body --retry 3 --retry-all-errors --retry-delay 10 --max-time 75 "$API_ORIGIN/api/v1/health" -o api-health.json
           curl --silent --show-error --fail-with-body --retry 3 --retry-all-errors --retry-delay 10 --max-time 75 "$API_ORIGIN/api/v1/health/firebase" -o firestore-health.json
           node - <<'NODE'
