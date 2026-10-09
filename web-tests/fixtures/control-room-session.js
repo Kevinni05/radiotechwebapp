@@ -75,4 +75,3 @@ export async function session(page, role = 'ADMIN', records = {}) {
   await page.goto('/dashboard');
   await expect(page.locator('#app')).toHaveClass(/ready/);
 }
-
