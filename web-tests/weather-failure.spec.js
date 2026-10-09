@@ -15,7 +15,7 @@ test('weather shows backend failure details and refresh recovers without reloadi
   await page.route('**/api/v1/weather?*',route=>route.fulfill({json:{temperature_2m:24,weather_code:0,daily:{},observedAt:new Date().toISOString()}}));
   await page.locator('#refreshWeather').click();
   await expect(page.locator('#liveWeather')).toContainText('24 °C');
-  await expect(page.locator('#weatherSource')).toHaveText(/Aggiornato/);
+  await expect(page.locator('#weatherSource')).toHaveText(/Previsione/);
   await page.setViewportSize({width:320,height:720});
   await expect.poll(()=>page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
 });

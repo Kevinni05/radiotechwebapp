@@ -22,6 +22,7 @@
     <link rel="stylesheet" href="/assets/environment-console.css">
     <link rel="stylesheet" href="/assets/enterprise-layout.css">
     <link rel="stylesheet" href="/assets/signature-workspace.css">
+    <link rel="stylesheet" href="/assets/company-personalization.css">
 </head>
 
 <body th:attr="data-brand-name=${brandName},data-brand-subtitle=${brandSubtitle}">
@@ -61,17 +62,17 @@
                 <form class="login-form" id="loginForm">
                     <div class="login-brand login-mobile-brand" style="display:none"><div class="brand-mark has-logo"><img th:src="${brandLogoPath}" src="/assets/brand/radiotech-symbol-v1.png" width="46" height="46" alt="" decoding="async"></div><div><strong th:text="${brandName}">RadioTech</strong><span th:text="${brandSubtitle}">Gestione operativa</span></div></div>
                     <div class="eyebrow">Accesso riservato</div>
-                    <h2>Il tuo centro operativo.</h2>
+                    <h2 data-copy-key="copy-1">Il tuo centro operativo.</h2>
                     <p>Il tuo spazio di lavoro per guidare la rete e la squadra. Accedi con il tuo account aziendale.</p>
 
                     <div class="field">
-                        <label for="loginEmail">Email</label>
+                        <label for="loginEmail" data-copy-key="copy-2">Email</label>
                         <input id="loginEmail" type="email" autocomplete="username" placeholder="nome@azienda.it"
                             required>
                     </div>
 
                     <div class="field">
-                        <label for="loginPassword">Password</label>
+                        <label for="loginPassword" data-copy-key="copy-3">Password</label>
                         <div class="password-wrap">
                             <input id="loginPassword" type="password" autocomplete="current-password"
                                 placeholder="••••••••" required>
@@ -125,6 +126,7 @@
             <nav class="nav">
                 <button data-view="profile"><span class="nav-icon">♙</span> Profilo del Capo</button>
                 <button data-view="system"><span class="nav-icon">⚙</span> Stato sistema</button>
+                <button data-view="branding" id="brandingNav"><span class="nav-icon">◈</span> Personalizzazione</button>
             </nav>
 
             </div><div class="sidebar-bottom">
@@ -148,6 +150,17 @@
                 </div>
                 <button class="workspace-search" id="workspaceSearchBtn" type="button" aria-label="Cerca sezioni e azioni" aria-haspopup="dialog" aria-controls="workspaceCommandDialog"><span data-icon="search" aria-hidden="true">⌕</span><span class="workspace-search-label">Cerca sezioni e azioni</span><kbd id="workspaceShortcut">Ctrl K</kbd></button>
                 <div class="top-actions">
+                    <div class="workspace-menu-anchor theme-anchor">
+                        <button class="btn" id="themeMenuBtn" type="button" aria-expanded="false" aria-controls="themeMenu">◐ <span>Tema</span></button>
+                        <div class="workspace-menu theme-menu" id="themeMenu" hidden aria-label="Tema e accessibilità">
+                            <span class="workspace-menu-heading">Aspetto personale</span>
+                            <div class="theme-modes" role="group" aria-label="Modalità tema"><button type="button" class="btn" data-mode="dark">Scuro</button><button type="button" class="btn" data-mode="light">Chiaro</button><button type="button" class="btn" data-mode="system">Sistema</button></div>
+                            <label class="preference-check"><input type="checkbox" id="highContrast"> Contrasto elevato</label>
+                            <label class="preference-check"><input type="checkbox" id="reduceMotion"> Riduci animazioni</label>
+                            <label class="preference-check"><input type="checkbox" id="readableFont"> Testo più leggibile</label>
+                            <label class="field" for="textScale">Dimensione testo<select id="textScale"><option value="100" data-copy-key="copy-5">Standard</option><option value="112" data-copy-key="copy-6">Grande</option><option value="125" data-copy-key="copy-7">Molto grande</option></select></label>
+                        </div>
+                    </div>
                     <button class="icon-btn notification-btn" id="notificationBell" type="button" title="Notifiche" aria-label="Apri notifiche"><span data-icon="bell" aria-hidden="true">✦</span><span class="notification-count hidden" id="notificationCount">0</span></button>
                     <button class="icon-btn" id="refreshBtn" type="button" title="Aggiorna" aria-label="Aggiorna dati" data-icon="refresh">↻</button>
                     <div class="workspace-menu-anchor">
@@ -161,8 +174,8 @@
                 </div>
             </header>
             <dialog class="workspace-command-dialog" id="workspaceCommandDialog" aria-labelledby="workspaceCommandTitle">
-                <div class="workspace-command-head"><div><h2 id="workspaceCommandTitle">Trova nel workspace</h2><p>Sezioni e azioni disponibili per il tuo ruolo.</p></div><button class="icon-btn" id="workspaceCommandClose" type="button" aria-label="Chiudi ricerca">×</button></div>
-                <label class="sr-only" for="workspaceCommandInput">Cerca sezioni e azioni autorizzate</label><input id="workspaceCommandInput" type="search" placeholder="Cerca una sezione o un’azione…" autocomplete="off" aria-controls="workspaceCommandResults">
+                <div class="workspace-command-head"><div><h2 id="workspaceCommandTitle" data-copy-key="copy-8">Trova nel workspace</h2><p>Sezioni e azioni disponibili per il tuo ruolo.</p></div><button class="icon-btn" id="workspaceCommandClose" type="button" aria-label="Chiudi ricerca">×</button></div>
+                <label class="sr-only" for="workspaceCommandInput" data-copy-key="copy-9">Cerca sezioni e azioni autorizzate</label><input id="workspaceCommandInput" type="search" placeholder="Cerca una sezione o un’azione…" autocomplete="off" aria-controls="workspaceCommandResults">
                 <div class="workspace-command-results" id="workspaceCommandResults" aria-live="polite"></div><div class="workspace-command-help">↑ ↓ per scegliere · Invio per aprire · Esc per chiudere</div>
             </dialog>
 
@@ -172,7 +185,7 @@
                 <section class="view active" id="view-dashboard">
                     <div class="section-head overview-head">
                         <div><span class="section-kicker">La tua visione operativa</span>
-                            <h2>La rete, sotto controllo.</h2>
+                            <h2 data-copy-key="copy-10">La rete, sotto controllo.</h2>
                             <p>Dalle infrastrutture alla squadra: una visione d’insieme per decidere dove intervenire.</p>
                         </div>
                         <div class="update-stamp">Aggiornamento <span id="lastUpdate">—</span></div>
@@ -218,14 +231,14 @@
                         <button class="workspace-link" type="button" data-workspace-link="ai"><span data-icon="spark"></span><span><strong>Analisi aziendale</strong><small>Analisi e assistente AI</small></span><span class="link-arrow" data-icon="arrow"></span></button>
                     </div>
                     <section class="panel session-notes" aria-labelledby="sessionNotesTitle">
-                        <div class="panel-head"><div><h3 id="sessionNotesTitle">Note rapide</h3><span>Appunti della sessione di questa scheda</span></div><button class="mini-btn" id="sessionNotesClear" type="button" disabled>Svuota</button></div>
-                        <div class="panel-body"><label class="sr-only" for="sessionNotesEditor">Note rapide operative</label><textarea id="sessionNotesEditor" maxlength="8000" rows="3" placeholder="Annota una priorità o un promemoria per il prossimo intervento…" aria-describedby="sessionNotesHint" disabled></textarea><div class="session-notes-meta"><span id="sessionNotesStatus" role="status">Accedi per usare le note.</span><button class="mini-btn" id="sessionNotesRetry" type="button" hidden>Riprova</button><span id="sessionNotesCount">0 / 8000</span></div><p class="field-help" id="sessionNotesHint">Solo in questa scheda. Evita credenziali e informazioni sensibili.</p><span class="subtle" id="sessionNotesUpdated">Nessuna modifica</span></div>
+                        <div class="panel-head"><div><h3 id="sessionNotesTitle" data-copy-key="copy-11">Note rapide</h3><span>Appunti della sessione di questa scheda</span></div><button class="mini-btn" id="sessionNotesClear" type="button" disabled>Svuota</button></div>
+                        <div class="panel-body"><label class="sr-only" for="sessionNotesEditor" data-copy-key="copy-12">Note rapide operative</label><textarea id="sessionNotesEditor" maxlength="8000" rows="3" placeholder="Annota una priorità o un promemoria per il prossimo intervento…" aria-describedby="sessionNotesHint" disabled></textarea><div class="session-notes-meta"><span id="sessionNotesStatus" role="status">Accedi per usare le note.</span><button class="mini-btn" id="sessionNotesRetry" type="button" hidden>Riprova</button><span id="sessionNotesCount">0 / 8000</span></div><p class="field-help" id="sessionNotesHint">Solo in questa scheda. Evita credenziali e informazioni sensibili.</p><span class="subtle" id="sessionNotesUpdated">Nessuna modifica</span></div>
                     </section></div>
                     <div class="grid-2 dashboard-network">
                         <div class="panel">
                             <div class="panel-head">
                                 <div>
-                                    <h3>La rete sul territorio</h3>
+                                    <h3 data-copy-key="copy-13">La rete sul territorio</h3>
                                     <span>Posizione e stato operativo delle antenne</span>
                                 </div>
                                 <button class="mini-btn" id="centerMapBtn">Centra</button>
@@ -250,7 +263,7 @@
                         <div class="panel">
                             <div class="panel-head">
                                 <div>
-                                    <h3>Stato operativo della rete</h3>
+                                    <h3 data-copy-key="copy-14">Stato operativo della rete</h3>
                                     <span>Antenne operative sul totale</span>
                                 </div>
                                 <span id="availabilityLabel">—</span>
@@ -317,17 +330,17 @@
                 <section class="view" id="view-antennas">
                     <div class="section-head">
                         <div>
-                            <h2>Gestione antenne</h2>
+                            <h2 data-copy-key="copy-15">Gestione antenne</h2>
                             <p>Controlla e modifica l'infrastruttura direttamente dal Centro operativo.</p>
                         </div>
                         <div class="toolbar">
                             <input class="search" id="antennaSearch" aria-label="Cerca antenna" type="search" placeholder="Cerca antenna...">
                             <select id="antennaStatusFilter" aria-label="Filtra stato antenna">
-                                <option value="">Tutti gli stati</option>
-                                <option value="ATTIVA">Attiva</option>
-                                <option value="MANUTENZIONE">Manutenzione</option>
-                                <option value="OFFLINE">Non connessa</option>
-                                <option value="CRITICA">Critica</option>
+                                <option value="" data-copy-key="copy-16">Tutti gli stati</option>
+                                <option value="ATTIVA" data-copy-key="copy-17">Attiva</option>
+                                <option value="MANUTENZIONE" data-copy-key="copy-18">Manutenzione</option>
+                                <option value="OFFLINE" data-copy-key="copy-19">Non connessa</option>
+                                <option value="CRITICA" data-copy-key="copy-20">Critica</option>
                             </select>
                             <button class="btn primary" id="newAntennaBtn">+ Nuova antenna</button>
                         </div>
@@ -336,7 +349,7 @@
                     <div class="panel">
                         <div class="panel-head">
                             <div>
-                                <h3>Elenco antenne</h3><span id="antennaCountLabel">—</span>
+                                <h3 data-copy-key="copy-21">Elenco antenne</h3><span id="antennaCountLabel">—</span>
                             </div>
                             <button class="mini-btn" id="reloadAntennasBtn">Aggiorna</button>
                         </div>
@@ -370,14 +383,14 @@
                 <section class="view" id="view-operations">
                     <div class="section-head">
                         <div>
-                            <h2>Operatività</h2>
+                            <h2 data-copy-key="copy-22">Operatività</h2>
                             <p>Incarichi e indicatori chiave della squadra tecnica.</p>
                         </div>
                     </div>
                     <div class="panel" style="margin-bottom:18px">
                         <div class="panel-head">
                             <div>
-                                <h3>Gestione operatori</h3><span>Crea account, consulta la squadra e assegna ruoli applicativi</span>
+                                <h3 data-copy-key="copy-23">Gestione operatori</h3><span>Crea account, consulta la squadra e assegna ruoli applicativi</span>
                             </div>
                             <div class="toolbar"><button class="mini-btn"
                                     id="operatorsRefreshBtn">Aggiorna</button><button class="btn primary"
@@ -387,9 +400,9 @@
                             <div class="toolbar" style="margin-bottom:14px">
                                 <input id="operatorSearch" aria-label="Cerca operatore" type="search" placeholder="Cerca per nome o email">
                                 <select id="operatorRoleFilter" aria-label="Filtra per ruolo">
-                                    <option value="">Tutti i ruoli</option>
-                                    <option value="OPERATOR">Operatore</option>
-                                    <option value="VIEWER">Sola lettura</option>
+                                    <option value="" data-copy-key="copy-24">Tutti i ruoli</option>
+                                    <option value="OPERATOR" data-copy-key="copy-25">Operatore</option>
+                                    <option value="VIEWER" data-copy-key="copy-26">Sola lettura</option>
                                 </select>
                                 <span class="subtle" id="operatorsSummary">Caricamento…</span>
                             </div>
@@ -420,14 +433,14 @@
                     <div class="panel" style="margin-bottom:18px">
                         <div class="panel-head">
                             <div>
-                                <h3>Collega account Firebase</h3>
+                                <h3 data-copy-key="copy-27">Collega account Firebase</h3>
                                 <span>Associa un utente Firebase esistente al tenant e alla squadra</span>
                             </div>
                         </div>
                         <div class="panel-body">
                             <div class="toolbar">
-                                <label class="sr-only" for="syncOperatorEmail">Email account Firebase</label><input id="syncOperatorEmail" type="email" placeholder="Email account Firebase">
-                                <label class="sr-only" for="syncOperatorName">Nome operatore</label><input id="syncOperatorName" placeholder="Nome operatore (facoltativo)">
+                                <label class="sr-only" for="syncOperatorEmail" data-copy-key="copy-28">Email account Firebase</label><input id="syncOperatorEmail" type="email" placeholder="Email account Firebase">
+                                <label class="sr-only" for="syncOperatorName" data-copy-key="copy-29">Nome operatore</label><input id="syncOperatorName" placeholder="Nome operatore (facoltativo)">
                                 <button class="btn" id="syncOperatorBtn" type="button">Sincronizza operatore</button>
                             </div>
                         </div>
@@ -435,7 +448,7 @@
                     <div class="panel" style="margin-bottom:18px">
                         <div class="panel-head">
                             <div>
-                                <h3>Report manutenzione</h3><span>Report inviati dagli operatori tramite app
+                                <h3 data-copy-key="copy-30">Report manutenzione</h3><span>Report inviati dagli operatori tramite app
                                     mobile</span>
                             </div><button class="mini-btn" id="reportsRefreshBtn">Aggiorna</button>
                         </div>
@@ -448,27 +461,27 @@
                     <div class="panel" style="margin-bottom:18px">
                         <div class="panel-head">
                             <div>
-                                <h3>Assegna incarico</h3><span>Invio operativo diretto all'app mobile dell'operatore</span>
+                                <h3 data-copy-key="copy-31">Assegna incarico</h3><span>Invio operativo diretto all'app mobile dell'operatore</span>
                             </div>
                         </div>
                         <div class="panel-body">
                             <div class="form-grid">
-                                <div class="field"><label for="taskTitle">Titolo</label><input id="taskTitle" maxlength="160"></div>
-                                <div class="field"><label for="taskPriority">Priorità</label><select id="taskPriority">
-                                        <option value="LOW">Bassa</option>
-                                        <option value="MEDIUM" selected>Media</option>
-                                        <option value="HIGH">Alta</option>
-                                        <option value="CRITICAL">Critica</option>
+                                <div class="field"><label for="taskTitle" data-copy-key="copy-32">Titolo</label><input id="taskTitle" maxlength="160"></div>
+                                <div class="field"><label for="taskPriority" data-copy-key="copy-33">Priorità</label><select id="taskPriority">
+                                        <option value="LOW" data-copy-key="copy-34">Bassa</option>
+                                        <option value="MEDIUM" selected data-copy-key="copy-35">Media</option>
+                                        <option value="HIGH" data-copy-key="copy-36">Alta</option>
+                                        <option value="CRITICAL" data-copy-key="copy-37">Critica</option>
                                     </select></div>
-                                <div class="field"><label for="taskOperator">Operatore</label><select id="taskOperator">
-                                        <option value="">Seleziona operatore</option>
+                                <div class="field"><label for="taskOperator" data-copy-key="copy-38">Operatore</label><select id="taskOperator">
+                                        <option value="" data-copy-key="copy-39">Seleziona operatore</option>
                                     </select></div>
-                                <div class="field"><label for="taskAntenna">Antenna</label><select id="taskAntenna">
-                                        <option value="">Seleziona antenna</option>
+                                <div class="field"><label for="taskAntenna" data-copy-key="copy-40">Antenna</label><select id="taskAntenna">
+                                        <option value="" data-copy-key="copy-41">Seleziona antenna</option>
                                     </select></div>
-                                <div class="field"><label for="taskDueAt">Scadenza</label><input id="taskDueAt" type="datetime-local">
+                                <div class="field"><label for="taskDueAt" data-copy-key="copy-42">Scadenza</label><input id="taskDueAt" type="datetime-local">
                                 </div>
-                                <div class="field" style="grid-column:1/-1"><label for="taskDescription">Descrizione</label><textarea
+                                <div class="field" style="grid-column:1/-1"><label for="taskDescription" data-copy-key="copy-43">Descrizione</label><textarea
                                         id="taskDescription" maxlength="2000"></textarea></div>
                             </div><button class="btn primary" id="createTaskBtn">Assegna incarico</button>
                         </div>
@@ -476,7 +489,7 @@
                     <div class="panel">
                         <div class="panel-head">
                             <div>
-                                <h3>Incarichi operativi</h3><span>Stato sincronizzato con gli operatori</span>
+                                <h3 data-copy-key="copy-44">Incarichi operativi</h3><span>Stato sincronizzato con gli operatori</span>
                             </div><input class="search" id="taskSearch" type="search" placeholder="Cerca negli incarichi caricati...">
                         </div>
                         <div class="panel-body" id="tasksList">
@@ -490,7 +503,7 @@
                         <div class="panel">
                             <div class="panel-head">
                                 <div>
-                                    <h3>Incarichi</h3><span>Distribuzione degli stati</span>
+                                    <h3 data-copy-key="copy-45">Incarichi</h3><span>Distribuzione degli stati</span>
                                 </div>
                             </div>
                             <div class="panel-body">
@@ -526,7 +539,7 @@
                         <div class="panel">
                             <div class="panel-head">
                                 <div>
-                                    <h3>Network KPI</h3><span>Indicatori operativi</span>
+                                    <h3 data-copy-key="copy-46">Network KPI</h3><span>Indicatori operativi</span>
                                 </div>
                             </div>
                             <div class="panel-body">
@@ -560,7 +573,7 @@
                 <section class="view" id="view-notifications">
                     <div class="section-head">
                         <div>
-                            <h2>Centro notifiche</h2>
+                            <h2 data-copy-key="copy-47">Centro notifiche</h2>
                             <p>Invia comunicazioni operative a tutti i dipendenti oppure a una persona specifica.</p>
                         </div>
                         <button class="btn primary" id="newNotificationBtn">+ Nuova notifica</button>
@@ -570,37 +583,37 @@
                         <div class="panel notification-compose-panel">
                             <div class="panel-head">
                                 <div>
-                                    <h3>Invia comunicazione</h3><span>Messaggi alla squadra. Assegna gli incarichi dalla sezione Operazioni.</span>
+                                    <h3 data-copy-key="copy-48">Invia comunicazione</h3><span>Messaggi alla squadra. Assegna gli incarichi dalla sezione Operazioni.</span>
                                 </div>
                             </div>
                             <div class="panel-body notification-compose-body">
                                 <div class="field">
-                                    <label for="notificationTarget">Destinatari</label>
+                                    <label for="notificationTarget" data-copy-key="copy-49">Destinatari</label>
                                     <select id="notificationTarget">
-                                        <option value="ALL">Tutti i dipendenti</option>
-                                        <option value="SELECTED">Dipendenti selezionati</option>
+                                        <option value="ALL" data-copy-key="copy-50">Tutti i dipendenti</option>
+                                        <option value="SELECTED" data-copy-key="copy-51">Dipendenti selezionati</option>
                                     </select>
                                 </div>
 
                                 <div id="recipientBox" class="recipient-list hidden"></div>
 
                                 <div class="field">
-                                    <label for="notificationTitle">Titolo</label>
+                                    <label for="notificationTitle" data-copy-key="copy-52">Titolo</label>
                                     <input id="notificationTitle" maxlength="120" placeholder="Comunicazione alla squadra">
                                 </div>
 
                                 <div class="field">
-                                    <label for="notificationMessage">Messaggio</label>
+                                    <label for="notificationMessage" data-copy-key="copy-53">Messaggio</label>
                                     <textarea id="notificationMessage" maxlength="1000"
                                         placeholder="Scrivi qui la comunicazione..."></textarea>
                                 </div>
 
                                 <div class="toolbar notification-compose-actions">
-                                    <div class="notification-priority-field"><label for="notificationPriority">Priorità</label>
+                                    <div class="notification-priority-field"><label for="notificationPriority" data-copy-key="copy-54">Priorità</label>
                                     <select id="notificationPriority">
-                                        <option value="NORMAL">Priorità normale</option>
-                                        <option value="HIGH">Alta priorità</option>
-                                        <option value="URGENT">Urgente</option>
+                                        <option value="NORMAL" data-copy-key="copy-55">Priorità normale</option>
+                                        <option value="HIGH" data-copy-key="copy-56">Alta priorità</option>
+                                        <option value="URGENT" data-copy-key="copy-57">Urgente</option>
                                     </select></div>
                                     <button class="btn primary" id="sendNotificationBtn">Invia notifica</button>
                                 </div>
@@ -610,7 +623,7 @@
                         <div class="panel notification-history-panel">
                             <div class="panel-head">
                                 <div>
-                                    <h3>Attività recenti</h3><span>Ultime comunicazioni inviate</span>
+                                    <h3 data-copy-key="copy-58">Attività recenti</h3><span>Ultime comunicazioni inviate</span>
                                 </div>
                                 <button class="mini-btn" id="reloadNotificationsBtn">Aggiorna</button>
                             </div>
@@ -625,7 +638,7 @@
                 <section class="view" id="view-tools">
                     <div class="section-head">
                         <div>
-                            <h2>TelcoTools</h2>
+                            <h2 data-copy-key="copy-59">TelcoTools</h2>
                             <p>Calcolatori RF e radio con unità e formule esplicite.</p>
                         </div>
                     </div>
@@ -633,28 +646,28 @@
                         <div class="panel">
                             <div class="panel-head">
                                 <div>
-                                    <h3>Bilancio del collegamento</h3><span>FSPL, EIRP e potenza ricevuta</span>
+                                    <h3 data-copy-key="copy-60">Bilancio del collegamento</h3><span>FSPL, EIRP e potenza ricevuta</span>
                                 </div>
                             </div>
                             <div class="panel-body">
                                 <div class="form-grid">
-                                    <div class="field"><label for="tbFreq">Frequenza MHz</label><input id="tbFreq" type="number"
+                                    <div class="field"><label for="tbFreq" data-copy-key="copy-61">Frequenza MHz</label><input id="tbFreq" type="number"
                                             min="0" step="any"></div>
-                                    <div class="field"><label for="tbDist">Distanza km</label><input id="tbDist" type="number"
+                                    <div class="field"><label for="tbDist" data-copy-key="copy-62">Distanza km</label><input id="tbDist" type="number"
                                             min="0" step="any"></div>
-                                    <div class="field"><label for="tbTx">TX dBm</label><input id="tbTx" type="number" step="any">
+                                    <div class="field"><label for="tbTx" data-copy-key="copy-63">TX dBm</label><input id="tbTx" type="number" step="any">
                                     </div>
-                                    <div class="field"><label for="tbGt">TX Gain dBi</label><input id="tbGt" type="number"
+                                    <div class="field"><label for="tbGt" data-copy-key="copy-64">TX Gain dBi</label><input id="tbGt" type="number"
                                             step="any"></div>
-                                    <div class="field"><label for="tbGr">RX Gain dBi</label><input id="tbGr" type="number"
+                                    <div class="field"><label for="tbGr" data-copy-key="copy-65">RX Gain dBi</label><input id="tbGr" type="number"
                                             step="any"></div>
-                                    <div class="field"><label for="tbLt">TX loss dB</label><input id="tbLt" type="number" min="0"
+                                    <div class="field"><label for="tbLt" data-copy-key="copy-66">TX loss dB</label><input id="tbLt" type="number" min="0"
                                             step="any" value="0"></div>
-                                    <div class="field"><label for="tbLr">RX loss dB</label><input id="tbLr" type="number" min="0"
+                                    <div class="field"><label for="tbLr" data-copy-key="copy-67">RX loss dB</label><input id="tbLr" type="number" min="0"
                                             step="any" value="0"></div>
-                                    <div class="field"><label for="tbLo">Altre perdite dB</label><input id="tbLo" type="number"
+                                    <div class="field"><label for="tbLo" data-copy-key="copy-68">Altre perdite dB</label><input id="tbLo" type="number"
                                             min="0" step="any" value="0"></div>
-                                    <div class="field"><label for="tbSens">Sensibilità RX dBm</label><input id="tbSens" type="number"
+                                    <div class="field"><label for="tbSens" data-copy-key="copy-69">Sensibilità RX dBm</label><input id="tbSens" type="number"
                                             step="any"></div>
                                 </div><button class="btn primary" id="tbLinkBtn">Calcola</button>
                                 <div class="panel" style="margin-top:16px">
@@ -665,20 +678,20 @@
                         <div class="panel">
                             <div class="panel-head">
                                 <div>
-                                    <h3>Conversioni RF</h3><span>Potenza, wavelength, VSWR, SNR, Fresnel</span>
+                                    <h3 data-copy-key="copy-70">Conversioni RF</h3><span>Potenza, wavelength, VSWR, SNR, Fresnel</span>
                                 </div>
                             </div>
                             <div class="panel-body">
                                 <div class="form-grid">
-                                    <div class="field"><label for="tbDbm">dBm</label><input id="tbDbm" type="number" step="any">
+                                    <div class="field"><label for="tbDbm" data-copy-key="copy-71">dBm</label><input id="tbDbm" type="number" step="any">
                                     </div>
-                                    <div class="field"><label for="tbW">W</label><input id="tbW" type="number" step="any"></div>
+                                    <div class="field"><label for="tbW" data-copy-key="copy-72">W</label><input id="tbW" type="number" step="any"></div>
                                 </div>
                                 <button class="btn" id="tbPowerBtn">Converti potenza</button>
                                 <div id="tbPowerResult" role="status" aria-live="polite" aria-atomic="true" class="subtle" style="margin-top:12px"></div>
                                 <hr style="border:0;border-top:1px solid var(--border);margin:22px 0">
                                 <div class="form-grid">
-                                    <div class="field"><label for="tbVswr">VSWR</label><input id="tbVswr" type="number" min="1"
+                                    <div class="field"><label for="tbVswr" data-copy-key="copy-73">VSWR</label><input id="tbVswr" type="number" min="1"
                                             step="any"></div>
                                 </div><button class="btn" id="tbVswrBtn">Calcola VSWR</button>
                                 <div id="tbVswrResult" role="status" aria-live="polite" aria-atomic="true" class="subtle" style="margin-top:12px"></div>
@@ -691,7 +704,7 @@
                 <section class="view" id="view-inventory">
                     <div class="section-head">
                         <div>
-                            <h2>Magazzino</h2>
+                            <h2 data-copy-key="copy-74">Magazzino</h2>
                             <p>Scorte, valorizzazione, movimenti tracciati e riordino.</p>
                         </div>
                         <div class="toolbar">
@@ -710,16 +723,16 @@
                     <div class="panel">
                         <div class="panel-head">
                             <div>
-                                <h3>Articoli e disponibilità</h3><span id="inventoryStatus">Sincronizzazione...</span>
+                                <h3 data-copy-key="copy-75">Articoli e disponibilità</h3><span id="inventoryStatus">Sincronizzazione...</span>
                             </div>
                         </div>
                         <div class="panel-body">
                             <div class="toolbar" style="margin-bottom:14px">
                                 <input id="inventorySearch" aria-label="Cerca articolo inventario" type="search" placeholder="Cerca nome, SKU, barcode, posizione">
-                                <select id="inventoryCategoryFilter" aria-label="Categoria magazzino"><option value="">Tutte le categorie</option></select>
+                                <select id="inventoryCategoryFilter" aria-label="Categoria magazzino"><option value="" data-copy-key="copy-76">Tutte le categorie</option></select>
                                 <select id="inventoryStockFilter" aria-label="Stato scorte">
-                                    <option value="ACTIVE">Articoli attivi</option><option value="ALL">Tutti gli articoli</option>
-                                    <option value="LOW">Sotto scorta</option><option value="ARCHIVED">Archiviati</option>
+                                    <option value="ACTIVE" data-copy-key="copy-77">Articoli attivi</option><option value="ALL" data-copy-key="copy-78">Tutti gli articoli</option>
+                                    <option value="LOW" data-copy-key="copy-79">Sotto scorta</option><option value="ARCHIVED" data-copy-key="copy-80">Archiviati</option>
                                 </select>
                             </div>
                             <div class="table-wrap" tabindex="0" role="region" aria-label="Elenco articoli">
@@ -736,7 +749,7 @@
                 <section class="view" id="view-profile">
                     <div class="section-head">
                         <div>
-                            <h2>Profilo del Capo</h2>
+                            <h2 data-copy-key="copy-81">Profilo del Capo</h2>
                             <p>Identità, contatti, ruolo e impostazioni del responsabile.</p>
                         </div>
                         <button class="btn primary" id="editProfileBtn">Modifica profilo</button>
@@ -754,15 +767,15 @@
                         </div>
 
                         <div class="profile-grid">
-                            <div class="profile-field"><label>Nome completo</label><strong
+                            <div class="profile-field"><label data-copy-key="copy-83">Nome completo</label><strong
                                     id="profileFullName">—</strong></div>
-                            <div class="profile-field"><label>Email</label><strong id="profileEmail">—</strong></div>
-                            <div class="profile-field"><label>Telefono</label><strong id="profilePhone">—</strong></div>
-                            <div class="profile-field"><label>Ruolo</label><strong id="profileRoleField">—</strong>
+                            <div class="profile-field"><label data-copy-key="copy-84">Email</label><strong id="profileEmail">—</strong></div>
+                            <div class="profile-field"><label data-copy-key="copy-85">Telefono</label><strong id="profilePhone">—</strong></div>
+                            <div class="profile-field"><label data-copy-key="copy-86">Ruolo</label><strong id="profileRoleField">—</strong>
                             </div>
-                            <div class="profile-field"><label>UID Firebase</label><strong id="profileUid">—</strong>
+                            <div class="profile-field"><label data-copy-key="copy-87">UID Firebase</label><strong id="profileUid">—</strong>
                             </div>
-                            <div class="profile-field"><label>Ultimo accesso</label><strong
+                            <div class="profile-field"><label data-copy-key="copy-88">Ultimo accesso</label><strong
                                     id="profileLastLogin">—</strong></div>
                         </div>
                     </div>
@@ -772,21 +785,21 @@
                 <section class="view" id="view-system">
                     <div class="section-head">
                         <div>
-                            <h2>Stato sistema</h2>
+                            <h2 data-copy-key="copy-89">Stato sistema</h2>
                             <p>Controllo del collegamento tra interfaccia, server e database.</p>
                         </div>
                         <button class="btn" id="systemRefreshBtn">Verifica ora</button>
                     </div>
 
                     <div class="panel" style="margin-bottom:18px">
-                        <div class="panel-head"><div><h3>Archivio, quote e backup</h3><span>Utilizzo e avvisi operativi</span></div><button class="mini-btn" id="operationsHealthRefresh">Aggiorna monitoraggio</button></div>
+                        <div class="panel-head"><div><h3 data-copy-key="copy-90">Archivio, quote e backup</h3><span>Utilizzo e avvisi operativi</span></div><button class="mini-btn" id="operationsHealthRefresh">Aggiorna monitoraggio</button></div>
                         <div class="panel-body" id="operationsHealth" aria-live="polite">Apri questa sezione per verificare il monitoraggio.</div>
                     </div>
                     <div class="grid-equal">
                         <div class="panel">
                             <div class="panel-head">
                                 <div>
-                                    <h3>Servizi</h3><span>Monitoraggio servizi</span>
+                                    <h3 data-copy-key="copy-91">Servizi</h3><span>Monitoraggio servizi</span>
                                 </div>
                             </div>
                             <div class="panel-body">
@@ -817,7 +830,7 @@
                         <div class="panel">
                             <div class="panel-head">
                                 <div>
-                                    <h3>Sessione</h3><span>Autenticazione del Capo</span>
+                                    <h3 data-copy-key="copy-92">Sessione</h3><span>Autenticazione del Capo</span>
                                 </div>
                             </div>
                             <div class="panel-body">
@@ -850,7 +863,7 @@
                     <div class="panel" style="margin-top:18px">
                         <div class="panel-head">
                             <div>
-                                <h3>Audit operativo</h3><span>Ultime modifiche e transizioni registrate</span>
+                                <h3 data-copy-key="copy-93">Audit operativo</h3><span>Ultime modifiche e transizioni registrate</span>
                             </div><div class="actions"><button class="mini-btn" id="auditRefreshBtn">Aggiorna</button><button class="mini-btn" id="auditToggle" aria-expanded="true" aria-controls="auditList" aria-label="Comprimi audit operativo">⌃</button></div>
                         </div>
                         <div class="panel-body" id="auditList">
@@ -861,7 +874,7 @@
                     <div class="panel" style="margin-top:18px">
                         <div class="panel-head">
                             <div>
-                                <h3>Centro di controllo API</h3><span>Servizi della panoramica</span>
+                                <h3 data-copy-key="copy-94">Centro di controllo API</h3><span>Servizi della panoramica</span>
                             </div>
                         </div>
                         <div class="panel-body">
@@ -908,11 +921,11 @@
                             <p>Infrastrutture, persone e interventi. <br>Un unico centro per la tua rete.</p>
                             <button type="button" class="footer-service" data-footer-view="system"><span class="footer-status-dot" aria-hidden="true"></span><span id="footerServiceStatus" role="status">Verifica del servizio in corso</span><span aria-hidden="true">↗</span></button>
                         </div>
-                        <nav class="footer-group" aria-label="Operazioni"><h3>Operazioni</h3><button type="button" data-footer-view="antennas">Antenne e rete</button><button type="button" data-footer-view="operations">Incarichi</button><button type="button" data-footer-view="planning">Agenda interventi</button><button type="button" data-footer-view="reports">Centro report</button></nav>
-                        <nav class="footer-group" aria-label="Gestione"><h3>Gestione</h3><button type="button" data-footer-view="operators">Operatori</button><button type="button" data-footer-view="inventory">Magazzino</button><button type="button" data-footer-view="pro">Enterprise Pro</button><button type="button" data-footer-view="tools">TelcoTools</button></nav>
-                        <nav class="footer-group" aria-label="Account e sistema"><h3>Account e sistema</h3><button type="button" data-footer-view="profile">Profilo</button><button type="button" data-footer-view="notifications">Notifiche</button><button type="button" data-footer-view="access">Sicurezza e accessi</button><button type="button" data-footer-view="system">Stato del sistema</button></nav>
+                        <nav class="footer-group" aria-label="Operazioni"><h3 data-copy-key="copy-95">Operazioni</h3><button type="button" data-footer-view="antennas">Antenne e rete</button><button type="button" data-footer-view="operations">Incarichi</button><button type="button" data-footer-view="planning">Agenda interventi</button><button type="button" data-footer-view="reports">Centro report</button></nav>
+                        <nav class="footer-group" aria-label="Gestione"><h3 data-copy-key="copy-96">Gestione</h3><button type="button" data-footer-view="operators">Operatori</button><button type="button" data-footer-view="inventory">Magazzino</button><button type="button" data-footer-view="pro">Enterprise Pro</button><button type="button" data-footer-view="tools">TelcoTools</button></nav>
+                        <nav class="footer-group" aria-label="Account e sistema"><h3 data-copy-key="copy-97">Account e sistema</h3><button type="button" data-footer-view="profile">Profilo</button><button type="button" data-footer-view="notifications">Notifiche</button><button type="button" data-footer-view="access">Sicurezza e accessi</button><button type="button" data-footer-view="system">Stato del sistema</button></nav>
                     </div>
-                    <div class="footer-bottom"><span>© <span id="footerYear">2026</span> Kevin Cagnazzo e Anthony Piccinonno.<br>Tutti i diritti riservati.</span><span class="footer-sync">Ultimo aggiornamento <time id="footerLastUpdate">—</time></span><button type="button" id="footerBackTop">Torna in alto <span aria-hidden="true">↑</span></button></div>
+                    <div class="footer-bottom"><span id="footerCopyright">© <span id="footerYear">2026</span> Kevin Cagnazzo e Anthony Piccinonno.<br>Tutti i diritti riservati.</span><span class="footer-sync">Ultimo aggiornamento <time id="footerLastUpdate">—</time></span><button type="button" id="footerBackTop">Torna in alto <span aria-hidden="true">↑</span></button></div>
                 </footer>
             </div>
         </main>
@@ -922,32 +935,32 @@
     <div class="modal-backdrop" id="antennaModal">
         <div class="modal">
             <div class="modal-head">
-                <h3 id="antennaModalTitle">Nuova antenna</h3>
+                <h3 id="antennaModalTitle" data-copy-key="copy-98">Nuova antenna</h3>
                 <button class="icon-btn" id="closeAntennaModal">×</button>
             </div>
             <form id="antennaForm">
                 <div class="modal-body">
                     <input type="hidden" id="antennaId">
                     <div class="form-grid">
-                        <div class="field"><label for="antennaName">Nome</label><input id="antennaName" required
+                        <div class="field"><label for="antennaName" data-copy-key="copy-99">Nome</label><input id="antennaName" required
                                 placeholder="ANT-ROMA-001"></div>
-                        <div class="field"><label for="antennaStatus">Stato</label>
+                        <div class="field"><label for="antennaStatus" data-copy-key="copy-100">Stato</label>
                             <select id="antennaStatus">
-                                <option value="ATTIVA">ATTIVA</option>
-                                <option value="MANUTENZIONE">MANUTENZIONE</option>
-                                <option value="OFFLINE">OFFLINE</option>
+                                <option value="ATTIVA" data-copy-key="copy-101">ATTIVA</option>
+                                <option value="MANUTENZIONE" data-copy-key="copy-102">MANUTENZIONE</option>
+                                <option value="OFFLINE" data-copy-key="copy-103">OFFLINE</option>
                             </select>
                         </div>
-                        <div class="field"><label for="antennaLat">Latitudine</label><input id="antennaLat" type="number" step="any"
+                        <div class="field"><label for="antennaLat" data-copy-key="copy-104">Latitudine</label><input id="antennaLat" type="number" step="any"
                                 required></div>
-                        <div class="field"><label for="antennaLng">Longitudine</label><input id="antennaLng" type="number" step="any"
+                        <div class="field"><label for="antennaLng" data-copy-key="copy-105">Longitudine</label><input id="antennaLng" type="number" step="any"
                                 required></div>
-                        <div class="field"><label for="antennaFreq">Frequenza</label><input id="antennaFreq" type="number" step="any">
+                        <div class="field"><label for="antennaFreq" data-copy-key="copy-106">Frequenza</label><input id="antennaFreq" type="number" step="any">
                         </div>
-                        <div class="field"><label for="antennaPower">Potenza</label><input id="antennaPower" type="number" step="any">
+                        <div class="field"><label for="antennaPower" data-copy-key="copy-107">Potenza</label><input id="antennaPower" type="number" step="any">
                         </div>
-                        <div class="field"><label for="antennaRos">ROS</label><input id="antennaRos" type="number" step="any"></div>
-                        <div class="field"><label for="antennaTemp">Temperatura</label><input id="antennaTemp" type="number" step="any">
+                        <div class="field"><label for="antennaRos" data-copy-key="copy-108">ROS</label><input id="antennaRos" type="number" step="any"></div>
+                        <div class="field"><label for="antennaTemp" data-copy-key="copy-109">Temperatura</label><input id="antennaTemp" type="number" step="any">
                         </div>
                     </div>
                 </div>
@@ -963,23 +976,23 @@
     <div class="modal-backdrop" id="operatorModal">
         <div class="modal">
             <div class="modal-head">
-                <h3>Nuovo operatore e credenziali</h3><button class="icon-btn" id="closeOperatorModal">×</button>
+                <h3 data-copy-key="copy-110">Nuovo operatore e credenziali</h3><button class="icon-btn" id="closeOperatorModal">×</button>
             </div>
             <form id="operatorForm">
                 <div class="modal-body">
                     <div class="form-grid">
-                        <div class="field"><label for="operatorFullName">Nome e cognome</label><input id="operatorFullName" required
+                        <div class="field"><label for="operatorFullName" data-copy-key="copy-111">Nome e cognome</label><input id="operatorFullName" required
                                 maxlength="120"></div>
-                        <div class="field"><label for="operatorEmail">Email</label><input id="operatorEmail" type="email"
+                        <div class="field"><label for="operatorEmail" data-copy-key="copy-112">Email</label><input id="operatorEmail" type="email"
                                 placeholder="Generata automaticamente"></div>
-                        <div class="field"><label for="operatorPhone">Telefono</label><input id="operatorPhone" type="tel"></div>
-                        <div class="field"><label for="operatorLevel">Livello</label><select id="operatorLevel">
-                                <option>JUNIOR</option>
-                                <option selected>TECNICO</option>
-                                <option>SENIOR</option>
+                        <div class="field"><label for="operatorPhone" data-copy-key="copy-113">Telefono</label><input id="operatorPhone" type="tel"></div>
+                        <div class="field"><label for="operatorLevel" data-copy-key="copy-114">Livello</label><select id="operatorLevel">
+                                <option data-copy-key="copy-115">JUNIOR</option>
+                                <option selected data-copy-key="copy-116">TECNICO</option>
+                                <option data-copy-key="copy-117">SENIOR</option>
                             </select></div>
-                        <div class="field"><label for="operatorShift">Turno</label><input id="operatorShift" value="GIORNALIERO"></div>
-                        <div class="field"><label for="operatorPassword">Password temporanea</label><input id="operatorPassword" type="text"
+                        <div class="field"><label for="operatorShift" data-copy-key="copy-118">Turno</label><input id="operatorShift" value="GIORNALIERO"></div>
+                        <div class="field"><label for="operatorPassword" data-copy-key="copy-119">Password temporanea</label><input id="operatorPassword" type="text"
                                 minlength="6" placeholder="Generata dal server"></div>
                     </div>
                     <div class="subtle" id="operatorCredentialsResult"></div>
@@ -995,7 +1008,7 @@
     <div class="modal-backdrop" id="badgeModal">
         <div class="modal" id="badgePrintArea">
             <div class="modal-head">
-                <h3 th:text="'Badge ' + ${brandName}">Badge RadioTech</h3><button class="icon-btn" id="closeBadgeModal">×</button>
+                <h3 th:text="'Badge ' + ${brandName}" data-copy-key="copy-120">Badge RadioTech</h3><button class="icon-btn" id="closeBadgeModal">×</button>
             </div>
             <div class="modal-body" style="text-align:center"><img id="badgeQr" alt="QR login operatore"
                     style="width:220px;height:220px;background:#fff;padding:10px">
@@ -1011,7 +1024,7 @@
     <div class="modal-backdrop" id="antennaQrModal">
         <div class="modal" id="antennaQrPrintArea">
             <div class="modal-head">
-                <h3>QR Code Antenna / Stazione</h3><button class="icon-btn" id="closeAntennaQrModal">×</button>
+                <h3 data-copy-key="copy-121">QR Code Antenna / Stazione</h3><button class="icon-btn" id="closeAntennaQrModal">×</button>
             </div>
             <div class="modal-body" style="text-align:center">
                 <img id="antennaQrImage" alt="QR code antenna"
@@ -1035,24 +1048,24 @@
     <!-- INVENTORY ITEM MODAL -->
     <div class="modal-backdrop" id="inventoryItemModal">
         <div class="modal">
-            <div class="modal-head"><h3 id="inventoryItemModalTitle">Nuovo articolo</h3><button class="icon-btn" type="button" data-close-modal="inventoryItemModal">×</button></div>
+            <div class="modal-head"><h3 id="inventoryItemModalTitle" data-copy-key="copy-122">Nuovo articolo</h3><button class="icon-btn" type="button" data-close-modal="inventoryItemModal">×</button></div>
             <form id="inventoryItemForm">
                 <div class="modal-body">
                     <input type="hidden" id="inventoryItemId">
                     <div class="form-grid">
-                        <div class="field"><label for="inventorySku">SKU *</label><input id="inventorySku" required maxlength="80" autocomplete="off"></div>
-                        <div class="field"><label for="inventoryName">Nome articolo *</label><input id="inventoryName" required maxlength="160"></div>
-                        <div class="field"><label for="inventoryCategory">Categoria</label><input id="inventoryCategory" maxlength="80" placeholder="Antenne, cavi, ricambi..."></div>
-                        <div class="field"><label for="inventoryUnit">Unità di misura</label><input id="inventoryUnit" maxlength="20" value="pz" placeholder="pz, m, kg..."></div>
-                        <div class="field"><label for="inventoryBarcode">Barcode / EAN</label><input id="inventoryBarcode" maxlength="100"></div>
-                        <div class="field"><label for="inventoryLocation">Ubicazione</label><input id="inventoryLocation" maxlength="120" placeholder="Scaffale A · Ripiano 2"></div>
-<div class="field"><label for="inventoryWarehouse">Deposito</label><input id="inventoryWarehouse" maxlength="80"></div><div class="field"><label for="inventoryAisle">Corsia</label><input id="inventoryAisle" maxlength="80"></div><div class="field"><label for="inventoryRack">Scaffale</label><input id="inventoryRack" maxlength="80"></div><div class="field"><label for="inventoryBin">Ripiano / vano</label><input id="inventoryBin" maxlength="80"></div>
-                        <div class="field"><label for="inventorySupplier">Fornitore</label><input id="inventorySupplier" maxlength="160"></div>
-                        <div class="field"><label for="inventoryUnitCost">Costo unitario (€)</label><input id="inventoryUnitCost" type="number" min="0" step="0.01" value="0"></div>
-                        <div class="field"><label for="inventoryMinimum">Soglia minima</label><input id="inventoryMinimum" type="number" min="0" step="1" value="0" required></div>
-                        <div class="field"><label for="inventoryReorder">Quantità suggerita riordino</label><input id="inventoryReorder" type="number" min="0" step="1" value="1"></div>
-                        <div class="field" id="inventoryInitialQuantityField"><label for="inventoryInitialQuantity">Quantità iniziale</label><input id="inventoryInitialQuantity" type="number" min="0" step="1" value="0"></div>
-                        <div class="field full"><label for="inventoryDescription">Descrizione / note</label><textarea id="inventoryDescription" rows="3" maxlength="1000"></textarea></div>
+                        <div class="field"><label for="inventorySku" data-copy-key="copy-123">SKU *</label><input id="inventorySku" required maxlength="80" autocomplete="off"></div>
+                        <div class="field"><label for="inventoryName" data-copy-key="copy-124">Nome articolo *</label><input id="inventoryName" required maxlength="160"></div>
+                        <div class="field"><label for="inventoryCategory" data-copy-key="copy-125">Categoria</label><input id="inventoryCategory" maxlength="80" placeholder="Antenne, cavi, ricambi..."></div>
+                        <div class="field"><label for="inventoryUnit" data-copy-key="copy-126">Unità di misura</label><input id="inventoryUnit" maxlength="20" value="pz" placeholder="pz, m, kg..."></div>
+                        <div class="field"><label for="inventoryBarcode" data-copy-key="copy-127">Barcode / EAN</label><input id="inventoryBarcode" maxlength="100"></div>
+                        <div class="field"><label for="inventoryLocation" data-copy-key="copy-128">Ubicazione</label><input id="inventoryLocation" maxlength="120" placeholder="Scaffale A · Ripiano 2"></div>
+<div class="field"><label for="inventoryWarehouse" data-copy-key="copy-129">Deposito</label><input id="inventoryWarehouse" maxlength="80"></div><div class="field"><label for="inventoryAisle" data-copy-key="copy-130">Corsia</label><input id="inventoryAisle" maxlength="80"></div><div class="field"><label for="inventoryRack" data-copy-key="copy-131">Scaffale</label><input id="inventoryRack" maxlength="80"></div><div class="field"><label for="inventoryBin" data-copy-key="copy-132">Ripiano / vano</label><input id="inventoryBin" maxlength="80"></div>
+                        <div class="field"><label for="inventorySupplier" data-copy-key="copy-133">Fornitore</label><input id="inventorySupplier" maxlength="160"></div>
+                        <div class="field"><label for="inventoryUnitCost" data-copy-key="copy-134">Costo unitario (€)</label><input id="inventoryUnitCost" type="number" min="0" step="0.01" value="0"></div>
+                        <div class="field"><label for="inventoryMinimum" data-copy-key="copy-135">Soglia minima</label><input id="inventoryMinimum" type="number" min="0" step="1" value="0" required></div>
+                        <div class="field"><label for="inventoryReorder" data-copy-key="copy-136">Quantità suggerita riordino</label><input id="inventoryReorder" type="number" min="0" step="1" value="1"></div>
+                        <div class="field" id="inventoryInitialQuantityField"><label for="inventoryInitialQuantity" data-copy-key="copy-137">Quantità iniziale</label><input id="inventoryInitialQuantity" type="number" min="0" step="1" value="0"></div>
+                        <div class="field full"><label for="inventoryDescription" data-copy-key="copy-138">Descrizione / note</label><textarea id="inventoryDescription" rows="3" maxlength="1000"></textarea></div>
                     </div>
                     <div class="subtle" id="inventoryItemFormStatus"></div>
                 </div>
@@ -1064,16 +1077,16 @@
     <!-- INVENTORY MOVEMENT MODAL -->
     <div class="modal-backdrop" id="inventoryMovementModal">
         <div class="modal">
-            <div class="modal-head"><h3 id="inventoryMovementTitle">Movimenta scorta</h3><button class="icon-btn" type="button" data-close-modal="inventoryMovementModal">×</button></div>
+            <div class="modal-head"><h3 id="inventoryMovementTitle" data-copy-key="copy-139">Movimenta scorta</h3><button class="icon-btn" type="button" data-close-modal="inventoryMovementModal">×</button></div>
             <form id="inventoryMovementForm">
                 <div class="modal-body">
                     <input type="hidden" id="inventoryMovementItemId">
                     <div class="subtle" id="inventoryMovementItemName" style="margin-bottom:14px"></div>
                     <div class="form-grid">
-                        <div class="field"><label for="inventoryMovementType">Operazione</label><select id="inventoryMovementType"><option value="RECEIPT">Carico da fornitore</option><option value="ISSUE">Scarico / prelievo</option><option value="ADJUSTMENT">Inventario fisico (imposta quantità reale)</option></select></div>
-                        <div class="field"><label for="inventoryMovementQuantity" id="inventoryMovementQuantityLabel">Quantità</label><input id="inventoryMovementQuantity" type="number" min="0" step="1" required></div>
-                        <div class="field"><label for="inventoryMovementLot">Codice lotto</label><input id="inventoryMovementLot" maxlength="100" pattern="[A-Za-z0-9._-]+" placeholder="Lascia vuoto per scorta non assegnata"></div><div class="field"><label for="inventoryMovementLotExpiry">Scadenza lotto (facoltativa)</label><input id="inventoryMovementLotExpiry" type="date"></div><div class="field full"><label for="inventoryMovementReference">Documento / riferimento</label><input id="inventoryMovementReference" maxlength="100" placeholder="Ordine, DDT, task..." /></div>
-                        <div class="field full"><label for="inventoryMovementNote">Causale / note</label><textarea id="inventoryMovementNote" rows="3" maxlength="500"></textarea></div>
+                        <div class="field"><label for="inventoryMovementType" data-copy-key="copy-140">Operazione</label><select id="inventoryMovementType"><option value="RECEIPT" data-copy-key="copy-141">Carico da fornitore</option><option value="ISSUE" data-copy-key="copy-142">Scarico / prelievo</option><option value="ADJUSTMENT" data-copy-key="copy-143">Inventario fisico (imposta quantità reale)</option></select></div>
+                        <div class="field"><label for="inventoryMovementQuantity" id="inventoryMovementQuantityLabel" data-copy-key="copy-144">Quantità</label><input id="inventoryMovementQuantity" type="number" min="0" step="1" required></div>
+                        <div class="field"><label for="inventoryMovementLot" data-copy-key="copy-145">Codice lotto</label><input id="inventoryMovementLot" maxlength="100" pattern="[A-Za-z0-9._-]+" placeholder="Lascia vuoto per scorta non assegnata"></div><div class="field"><label for="inventoryMovementLotExpiry" data-copy-key="copy-146">Scadenza lotto (facoltativa)</label><input id="inventoryMovementLotExpiry" type="date"></div><div class="field full"><label for="inventoryMovementReference" data-copy-key="copy-147">Documento / riferimento</label><input id="inventoryMovementReference" maxlength="100" placeholder="Ordine, DDT, task..." /></div>
+                        <div class="field full"><label for="inventoryMovementNote" data-copy-key="copy-148">Causale / note</label><textarea id="inventoryMovementNote" rows="3" maxlength="500"></textarea></div>
                     </div>
                 </div>
                 <div class="modal-foot"><button class="btn" type="button" data-close-modal="inventoryMovementModal">Annulla</button><button class="btn primary" type="submit">Registra movimento</button></div>
@@ -1084,7 +1097,7 @@
     <!-- INVENTORY MOVEMENT HISTORY MODAL -->
     <div class="modal-backdrop" id="inventoryMovementsHistoryModal">
         <div class="modal">
-            <div class="modal-head"><h3>Registro movimenti magazzino</h3><button class="icon-btn" type="button" data-close-modal="inventoryMovementsHistoryModal">×</button></div>
+            <div class="modal-head"><h3 data-copy-key="copy-149">Registro movimenti magazzino</h3><button class="icon-btn" type="button" data-close-modal="inventoryMovementsHistoryModal">×</button></div>
             <div class="modal-body"><div class="table-wrap"><table><thead><tr><th>Data</th><th>Articolo</th><th>Operazione</th><th>Quantità</th><th>Esito</th><th>Riferimento / causale</th></tr></thead><tbody id="inventoryMovementsBody"><tr><td colspan="6"><div class="empty">Caricamento movimenti...</div></td></tr></tbody></table></div></div>
             <div class="modal-foot"><button class="btn" type="button" data-close-modal="inventoryMovementsHistoryModal">Chiudi</button></div>
         </div>
@@ -1094,15 +1107,16 @@
     <div class="modal-backdrop" id="profileModal">
         <div class="modal">
             <div class="modal-head">
-                <h3>Modifica profilo del Capo</h3>
+                <h3 data-copy-key="copy-150">Modifica profilo del Capo</h3>
                 <button class="icon-btn" id="closeProfileModal">×</button>
             </div>
             <form id="profileForm">
                 <div class="modal-body">
                     <div class="form-grid">
-                        <div class="field"><label for="editProfileName">Nome completo</label><input id="editProfileName"></div>
-                        <div class="field"><label for="editProfilePhone">Telefono</label><input id="editProfilePhone" type="tel"></div>
-                        <div class="field full"><label for="editProfileCompany">Azienda</label><input id="editProfileCompany"></div>
+                        <div class="field"><label for="editProfileName" data-copy-key="copy-151">Nome completo</label><input id="editProfileName"></div>
+                        <div class="field"><label for="editProfilePhone" data-copy-key="copy-152">Telefono</label><input id="editProfilePhone" type="tel"></div>
+                        <div class="field full"><label for="editProfileCompany" data-copy-key="copy-153">Azienda</label><input id="editProfileCompany"></div>
+                        <div class="field full"><label for="profilePhotoFile" data-copy-key="copy-154">Foto profilo</label><input id="profilePhotoFile" type="file" accept="image/png,image/jpeg,image/webp"><p class="field-help">Ritaglia il volto, regola lo zoom e salva la foto nel tuo profilo.</p><div class="actions"><button type="button" class="btn" id="profilePhotoRemove">Rimuovi foto</button><span id="profilePhotoStatus" role="status"></span></div></div>
                     </div>
                 </div>
                 <div class="modal-foot">
@@ -1125,6 +1139,7 @@
     <script src="/assets/auth-client.js" defer></script>
     <script src="/assets/report-attachments.js"></script>
     <script src="/assets/signature-workspace.js"></script>
+    <script src="/assets/company-personalization.js"></script>
     <script src="/assets/italian.js"></script>
     <script src="/assets/operations-upgrade.js" defer></script>
     <script src="/assets/telco-tools.js" defer></script>
@@ -1536,6 +1551,7 @@
                 setText("miniEmail", email);
 
                 setText("profileAvatar", avatar);
+                window.RadioTechPersonalization?.syncProfile(state.user);
                 setText("profileName", name);
                 setText("profileFullName", name);
                 setText("profileEmail", email);
@@ -1574,7 +1590,8 @@
                 const payload = {
                     fullName: $("editProfileName").value.trim(),
                     phone: $("editProfilePhone").value.trim(),
-                    company: $("editProfileCompany").value.trim()
+                    company: $("editProfileCompany").value.trim(),
+                    photoUrl: window.RadioTechPersonalization?.profilePhoto() ?? state.user?.photoUrl ?? ""
                 };
 
                 try {
@@ -1600,6 +1617,7 @@
                 $("editProfileName").value = u.name || u.displayName || u.fullName || "";
                 $("editProfilePhone").value = u.phone || u.telefono || "";
                 $("editProfileCompany").value = u.company || "";
+                window.RadioTechPersonalization?.resetProfile(u);
                 openModal("profileModal");
             }
 
@@ -2735,6 +2753,7 @@
                     operations: ["Operatività", "Incarichi e indicatori della squadra"],
                     notifications: ["Centro notifiche", "Comunicazioni operative ai dipendenti"],
                     inventory: ["Inventario", "Materiali e componenti disponibili"],
+                    branding: ["Personalizzazione", "Identità aziendale, colori ed etichette del prodotto"],
                     profile: ["Profilo del Capo", "Identità e impostazioni del responsabile"],
                     system: ["Stato sistema", "Backend, Firestore e sessione"],
                     tools: ["TelcoTools", "Calcolo e verifica dei collegamenti radio"],
@@ -3052,6 +3071,7 @@
                 window.RadioTechOperations({apiFetch, state, escapeHtml, toast, loadOperators, loadInventory});
                 management = window.RadioTechManagement({ apiFetch, state, escapeHtml, switchView, loadOperators, loadReports });
                 signatureWorkspace = window.RadioTechSignatureWorkspace({state, switchView, initials});
+                setTimeout(() => window.RadioTechPersonalization.init({apiFetch,state,switchView,toast}), 0);
                 const skip = document.createElement("a");
                 skip.href = "#mainContent"; skip.className = "skip-link"; skip.textContent = "Vai al contenuto";
                 document.body.prepend(skip);

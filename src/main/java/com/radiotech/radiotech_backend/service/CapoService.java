@@ -237,7 +237,11 @@ public class CapoService {
                 }
 
                 if (photoUrl != null) {
-
+                        if (photoUrl.length() > 350000 || (!photoUrl.isBlank()
+                                && !photoUrl.matches("^data:image/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$")
+                                && !photoUrl.startsWith("/api/v1/") && !photoUrl.equals(existing.getPhotoUrl()))) {
+                                throw new IllegalArgumentException("Foto profilo non valida. Usa PNG, JPEG o WebP fino a 250 KB.");
+                        }
                         existing.setPhotoUrl(
                                         photoUrl.trim());
                 }

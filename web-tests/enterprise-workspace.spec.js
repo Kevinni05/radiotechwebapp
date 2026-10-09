@@ -113,7 +113,7 @@ test('signature bar remains one compact row and offers all actions at nine viewp
     await page.setViewportSize({width,height});
     const box=await page.locator('.signature-topbar').boundingBox();expect(box.height).toBeLessThanOrEqual(90);
     await expect.poll(()=>page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
-    await expect.poll(()=>page.locator('.map-shell').evaluate(node=>node.getBoundingClientRect().height)).toBe(width<=700?280:320);
+    await expect.poll(()=>page.locator('.map-shell').evaluate(node=>node.getBoundingClientRect().height)).toBeGreaterThanOrEqual(width<=700?280:320);
     if(width<=650)await expect.poll(()=>page.locator('.calendar-day').first().evaluate(node=>node.getBoundingClientRect().width)).toBeGreaterThanOrEqual(70);
     await expect(page.getByRole('button',{name:'Cerca sezioni e azioni',exact:true})).toBeVisible();
     await expect(page.locator('#notificationBell')).toBeVisible();

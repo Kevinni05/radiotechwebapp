@@ -61,7 +61,7 @@ class WeatherFailureTest {
 
     @Test void invalidForecastIsRejectedInsteadOfCachedAsSuccess() throws Exception {
         provider.expect(anything()).andRespond(withSuccess("{\"current\":{}}", MediaType.APPLICATION_JSON));
-        provider.expect(anything()).andRespond(withSuccess("{\"current\":{\"temperature_2m\":24}}", MediaType.APPLICATION_JSON));
+        provider.expect(anything()).andRespond(withSuccess(WeatherControllerTest.forecast(), MediaType.APPLICATION_JSON));
         var mvc = web();
         mvc.perform(get("/api/v1/weather").param("latitude", "40").param("longitude", "18"))
                 .andExpect(status().isServiceUnavailable()).andExpect(jsonPath("$.message", containsString("dati non validi")));
@@ -77,4 +77,19 @@ class WeatherFailureTest {
                 .andExpect(status().isServiceUnavailable()).andExpect(jsonPath("$.message", containsString("Limite")));
         provider.verify();
     }
+    @Test void rateLimitUsesStaleDataAndDoesNotRepeatUpstreamRequests() throws Exception {
+        web();
+        provider.expect(anything()).andRespond(withSuccess(WeatherControllerTest.forecast(), MediaType.APPLICATION_JSON));
+        provider.expect(anything()).andRespond(withStatus(HttpStatus.TOO_MANY_REQUESTS));
+        controller.current(40,18);
+        @SuppressWarnings("unchecked") var cache=(java.util.Map<String,Object>)ReflectionTestUtils.getField(controller,"cache");
+        var entry=cache.values().iterator().next();
+        var ctor=entry.getClass().getDeclaredConstructor(java.time.Instant.class, java.util.Map.class);ctor.setAccessible(true);
+        var data=entry.getClass().getDeclaredMethod("data");data.setAccessible(true);
+        cache.replaceAll((key,value)->{try{return ctor.newInstance(java.time.Instant.now().minusSeconds(1),data.invoke(value));}catch(Exception error){throw new RuntimeException(error);}});
+        assertEquals(true,controller.current(40,18).get("stale"));
+        assertEquals(true,controller.current(40,18).get("stale"));
+        provider.verify();
+    }
+
 }

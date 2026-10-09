@@ -59,7 +59,7 @@ public class DashboardPageController {
         model.addAttribute("cspNonce", nonce);
         response.setHeader("Cache-Control", "no-store");
         response.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
-        response.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
+        response.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=(self)");
         response.setHeader("Content-Security-Policy", "default-src 'self'; "
                 + "base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; "
                 + "script-src 'self' 'nonce-" + nonce + "'; "
