@@ -103,7 +103,7 @@
   #app .content { padding: var(--ui-space-5) var(--ui-space-4) var(--ui-space-8); }
   #app .topbar { gap: var(--ui-space-3); padding: var(--ui-space-3) var(--ui-space-4); }
   #app .top-actions { width: 100%; gap: var(--ui-space-2); }
-  #app .top-actions .quick { display: none; }
+  #app .top-actions .quick { flex: 1 1 auto; }
   #app .panel-head, #app .panel-body { padding: var(--ui-space-4); }
   #app .stats .stat { padding: var(--ui-space-4); min-height: 118px; }
   #app .workspace-link { min-height: 70px; }
@@ -116,4 +116,46 @@
 }
 @media (prefers-reduced-motion: reduce) {
   #app .workspace-link, #app .stats .stat { transition: none; }
+}
+
+/* Customer portal uses the same spacing and alignment rhythm without
+   inheriting authenticated control-room shell positioning. */
+.portal-main {
+  width: min(100%, 1240px);
+  padding: clamp(16px, 3vw, 40px);
+  margin-inline: auto;
+}
+.portal-main .portal-header {
+  align-items: center;
+  gap: var(--ui-space-5);
+  margin-bottom: var(--ui-space-8);
+  padding-bottom: var(--ui-space-6);
+}
+.portal-main .portal-header .brand {
+  min-width: 0;
+  gap: var(--ui-space-3);
+}
+.portal-main .portal-header .brand > div:last-child { min-width: 0; }
+.portal-main .portal-welcome { max-width: 780px; }
+.portal-main .portal-welcome h1 { line-height: 1.16; }
+.portal-main .portal-login {
+  width: min(100%, 960px);
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
+  align-items: stretch;
+  margin-block: var(--ui-space-8);
+}
+.portal-main .portal-login > * { min-width: 0; }
+.portal-main .portal-login-art { min-height: 330px; overflow: hidden; }
+.portal-main .portal-login-art img { width: 100%; max-height: 440px; object-fit: contain; }
+.portal-main #portalLogin { padding: clamp(24px, 3vw, 40px); gap: var(--ui-space-5); }
+.portal-main #portalLogin :is(input,button) { min-height: 44px; }
+.portal-main .portal-app-head { flex-wrap: wrap; gap: var(--ui-space-4); }
+.portal-main .portal-app-head .nav { min-width: 0; display: flex; flex-wrap: wrap; gap: var(--ui-space-2); }
+.portal-main .footer { display: flex; flex-wrap: wrap; gap: var(--ui-space-3) var(--ui-space-6); }
+.portal-main .footer > * { min-width: 0; overflow-wrap: anywhere; }
+@media (max-width: 700px) {
+  .portal-main .portal-header { margin-bottom: var(--ui-space-6); }
+  .portal-main .portal-login { grid-template-columns: minmax(0, 1fr); }
+  .portal-main .portal-login-art { display: none; }
+  .portal-main #portalLogin { padding: var(--ui-space-6); }
 }
