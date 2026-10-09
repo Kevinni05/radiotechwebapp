@@ -145,8 +145,11 @@ public class DashboardService {
         stats.put("interventions", interventions);
         stats.put("tasks", tasks);
         stats.put("activeTasks", activeTasks);
-        stats.put("pendingReports", MaintenanceReportService.activeCount(tenantQuery("maintenanceReports")
-                .whereIn("status", List.of("SUBMITTED", "APPROVAL_PENDING"))));
+        // A tenant equality uses Firestore's built-in index. Combining status + removedAt
+        // here required a new composite index and could fail the whole dashboard after deploy.
+        stats.put("pendingReports", tenantQuery("maintenanceReports").get().get().getDocuments().stream()
+                .filter(doc -> List.of("SUBMITTED", "APPROVAL_PENDING").contains(doc.getString("status")))
+                .filter(doc -> doc.get("removedAt") == null || doc.get("removedAt").toString().isBlank()).count());
 
         stats.put("inventoryItems", inventoryItems);
         stats.put("lowStock", lowStock);
