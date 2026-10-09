@@ -37,6 +37,13 @@ springdoc:
 radiotech:
   attachments:
     backend: ${RADIOTECH_ATTACHMENT_BACKEND:FIRESTORE}
+  operations:
+    daily-read-warning: ${RADIOTECH_OPERATIONS_DAILY_READ_WARNING:40000}
+    daily-write-warning: ${RADIOTECH_OPERATIONS_DAILY_WRITE_WARNING:16000}
+    daily-delete-warning: ${RADIOTECH_OPERATIONS_DAILY_DELETE_WARNING:16000}
+    storage-warning-bytes: ${RADIOTECH_OPERATIONS_STORAGE_WARNING_BYTES:858993459}
+    object-storage-warning-bytes: ${RADIOTECH_OPERATIONS_OBJECT_STORAGE_WARNING_BYTES:67108864}
+    pending-report-hours: ${RADIOTECH_OPERATIONS_PENDING_REPORT_HOURS:24}
 
 management:
   endpoints:

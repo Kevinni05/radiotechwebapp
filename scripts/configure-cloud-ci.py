@@ -39,15 +39,23 @@ def configure(repository, secrets):
         print(f'{repository}: configured {name}')
 
 def main():
-    runtime = json.loads((root / '.dist/secrets/local-runtime.json').read_text())
-    account = Path(runtime['serviceAccountPath']).read_text()
+    runtime_path = root / '.dist/secrets/local-runtime.json'
+    credential_path = os.environ.get('FIREBASE_SERVICE_ACCOUNT_PATH')
+    if not credential_path and runtime_path.exists(): credential_path = json.loads(runtime_path.read_text())['serviceAccountPath']
+    if not credential_path: raise RuntimeError('Set FIREBASE_SERVICE_ACCOUNT_PATH to the existing server credential file.')
+    account = Path(credential_path).read_text()
     if json.loads(account)['project_id'] != 'gestionale-radio': raise RuntimeError('Unexpected Firebase project.')
     private = Path.home() / '.radiotech'
     key_path = private / 'backups/cloud-backup.key'
     key_path.parent.mkdir(parents=True, exist_ok=True)
     if not key_path.exists(): key_path.write_bytes(os.urandom(32))
     if len(key_path.read_bytes()) != 32: raise RuntimeError('Invalid backup key; do not replace an existing key.')
-    tenants = json.loads((root / '.dist/operations-monitor-tenants.json').read_text())
+    tenant_config = os.environ.get('RADIOTECH_MONITOR_TENANT_IDS')
+    if not tenant_config:
+        tenant_file = root / '.dist/operations-monitor-tenants.json'
+        if tenant_file.exists(): tenant_config = tenant_file.read_text()
+    if not tenant_config: raise RuntimeError('Set RADIOTECH_MONITOR_TENANT_IDS to a JSON array of existing company IDs.')
+    tenants = json.loads(tenant_config)
     if not isinstance(tenants, list) or not tenants or not all(isinstance(item, str) and item.strip() and '/' not in item for item in tenants): raise RuntimeError('Configure the monitored company IDs before enabling scheduled checks.')
     configure('Kevinni05/radiotechwebapp', {'FIREBASE_BACKUP_SERVICE_ACCOUNT': account, 'FIREBASE_BACKUP_KEY_BASE64': base64.b64encode(key_path.read_bytes()).decode(), 'RADIOTECH_MONITOR_TENANT_IDS': json.dumps(tenants)})
     properties = dict(line.split('=', 1) for line in (private / 'signing/key.properties').read_text().splitlines() if '=' in line)

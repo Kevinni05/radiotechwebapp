@@ -18,13 +18,19 @@ Soglie predefinite: 40.000 letture/giorno, 16.000 scritture/giorno, 16.000 elimi
 
 Il workflow `availability-monitor.yml` controlla API/Firestore ogni 15 minuti; il controllo aggregato operativo avviene ogni ora al minuto 7. Errori e superamento delle soglie fanno fallire il relativo job. Abilitare le notifiche dei workflow GitHub nell'account per ricevere gli avvisi; questa modifica non invia messaggi a email o chat esterne. Le pianificazioni GitHub possono subire ritardi e, nei repository pubblici inattivi, essere sospese: non costituiscono uno SLA. Le aziende monitorate sono configurate nel secret `RADIOTECH_MONITOR_TENANT_IDS`; aggiornare la lista quando si aggiungono aziende.
 
+Le soglie Render si possono configurare con `RADIOTECH_OPERATIONS_DAILY_READ_WARNING`, `RADIOTECH_OPERATIONS_DAILY_WRITE_WARNING`, `RADIOTECH_OPERATIONS_DAILY_DELETE_WARNING`, `RADIOTECH_OPERATIONS_STORAGE_WARNING_BYTES`, `RADIOTECH_OPERATIONS_OBJECT_STORAGE_WARNING_BYTES` e `RADIOTECH_OPERATIONS_PENDING_REPORT_HOURS`. Per applicare le stesse soglie al controllo orario impostarle anche nell'ambiente del relativo job; in assenza di override entrambi usano i default documentati.
+
 ## Backup esterni e ripristino
 
 Il workflow `cloud-backup.yml`, giornaliero alle **03:13 UTC** e avviabile manualmente, esporta Firestore, identità Auth e allegati Firestore, cifra l'archivio con AES-256-GCM, lo autentica e lo ripristina negli emulatori `demo-radiotech-backup`. Confronta i documenti restaurati, le identità disabilitate e il contenuto/SHA-256 degli allegati prima del caricamento esterno su GitHub Actions. Registra il successo nel database soltanto dopo l'upload riuscito. Il workflow non esegue un ripristino sul progetto di produzione.
 
 I secret GitHub `FIREBASE_BACKUP_SERVICE_ACCOUNT`, `FIREBASE_BACKUP_KEY_BASE64` e `RADIOTECH_MONITOR_TENANT_IDS` sono configurati. La chiave locale è conservata fuori dal repository e da OneDrive in `%USERPROFILE%/.radiotech/backups/cloud-backup.key`; mantenerne una copia separata e protetta. La conservazione degli artefatti GitHub è di 90 giorni: per conservazione più lunga scegliere uno storage esterno con retention appropriata.
 
+Per riconfigurare i secret da un altro checkout: installare PyNaCl in un ambiente Python, impostare `FIREBASE_SERVICE_ACCOUNT_PATH` al file credenziale esistente e `RADIOTECH_MONITOR_TENANT_IDS` a un array JSON degli ID azienda; eseguire `scripts/configure-cloud-ci.py` con una credenziale GitHub già memorizzata dal gestore Git. Ripristinare prima le chiavi esistenti nelle cartelle private indicate: lo script non sostituisce chiavi presenti. `scripts/configure-monitoring.cjs` richiede un login Firebase CLI locale del proprietario del progetto e aggiunge solo Monitoring Viewer.
+
 La prova locale precedente alla migrazione ha ripristinato e confrontato **155 documenti, 14 identità e 9 allegati**. Gli account ripristinati rimangono disabilitati. Il backup è una lettura applicativa, non un punto nel tempo transazionale dell'intero database; per ripristini di produzione e archivi molto grandi è opportuno pianificare una finestra senza scritture o valutare un servizio di backup gestito.
+
+La prima [esecuzione esterna verificata](https://github.com/Kevinni05/radiotechwebapp/actions/runs/37866055852) ha completato export cifrato, ripristino/confronto e upload alle 00:43 UTC del 9 ottobre, con gli stessi 155 documenti, 14 identità e 9 allegati. Lo stato registrato nel database è `OK`. Il [controllo automatico API e soglie](https://github.com/Kevinni05/radiotechwebapp/actions/runs/37866315544) è passato; il pannello protetto è stato verificato via HTTPS su Render con un account amministrativo esistente, senza modificare ruoli o autorizzazioni.
 
 ## Predisposizione storage per oggetti
 
@@ -45,3 +51,7 @@ Il workflow mobile `production-release.yml` produce APK/AAB con la chiave config
 Per pubblicare una versione, avviare il workflow con `publish=true`; poi eseguire `scripts/sync-mobile-release.ps1 -Tag v1.5.0-2021 -ApkSigner <percorso-apksigner>` nel repository web. Lo script controlla release pubblica, APK, checksum e certificato prima di attivare il manifest; commit/push del manifest abilita il canale sul server. L'APK scaricabile deve essere esattamente quello del manifest, perché build locali e CI possono avere checksum diversi.
 
 Il manifest iniziale rimane `available:false` fino a una release pubblicata e verificata. L'app accetta solo release dal repository previsto e con lo stesso certificato installato. La nuova firma non aggiorna direttamente l'APK di test precedente: il telefono non viene disinstallato o azzerato. Verificare/salvare eventuali report locali prima della prima installazione di produzione. Android è verificato; iOS richiede macOS e una verifica separata.
+
+## Verifiche applicative
+
+Analisi Flutter senza problemi e 119 test mobile superati dopo l'integrazione del commit remoto `a7884b0`. Suite backend: 143 test locali eseguiti senza errori; test con emulatori eseguiti separatamente. Le verifiche browser e regole/emulatori sono passate anche nella CI. La verifica HTTPS su Render ha confrontato le liste classiche e paginata dell'operatore (4 incarichi, 3 report), il conteggio aggregato e gli SHA-256 di tutti i 9 allegati. Il manifest predisposto risponde pubblicamente e non presenta release non pubblicate.

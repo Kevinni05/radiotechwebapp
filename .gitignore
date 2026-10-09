@@ -17,3 +17,5 @@ test-results/
 playwright-report/
 serviceAccountKey.json
 firebase-service-account.json
+__pycache__/
+*.pyc
