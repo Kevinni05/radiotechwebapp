@@ -38,6 +38,12 @@ app:
     database-url: ${FIREBASE_DATABASE_URL:https://gestionale-radio-default-rtdb.europe-west1.firebasedatabase.app}
 
 radiotech:
+  brand:
+    name: ${RADIOTECH_BRAND_NAME:RadioTech}
+    subtitle: ${RADIOTECH_BRAND_SUBTITLE:Gestione operativa}
+    logo-path: ${RADIOTECH_BRAND_LOGO_PATH:/assets/brand/radiotech-symbol-v1.png}
+    copyright: ${RADIOTECH_BRAND_COPYRIGHT:© 2026 RadioTech. Tutti i diritti riservati.}
+    support-email: ${RADIOTECH_BRAND_SUPPORT_EMAIL:}
   pro:
     scan-delay-ms: ${RADIOTECH_PRO_SCAN_DELAY_MS:300000}
     webhook-hosts: ${RADIOTECH_WEBHOOK_HOSTS:}
