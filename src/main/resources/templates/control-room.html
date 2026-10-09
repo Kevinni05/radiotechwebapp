@@ -555,16 +555,16 @@
                         <button class="btn primary" id="newNotificationBtn">+ Nuova notifica</button>
                     </div>
 
-                    <div class="notification-grid">
-                        <div class="panel">
+                    <div class="notification-grid notification-workspace">
+                        <div class="panel notification-compose-panel">
                             <div class="panel-head">
                                 <div>
                                     <h3>Invia comunicazione</h3><span>Messaggi alla squadra. Assegna gli incarichi dalla sezione Operazioni.</span>
                                 </div>
                             </div>
-                            <div class="panel-body">
+                            <div class="panel-body notification-compose-body">
                                 <div class="field">
-                                    <label>Destinatari</label>
+                                    <label for="notificationTarget">Destinatari</label>
                                     <select id="notificationTarget">
                                         <option value="ALL">Tutti i dipendenti</option>
                                         <option value="SELECTED">Dipendenti selezionati</option>
@@ -574,28 +574,29 @@
                                 <div id="recipientBox" class="recipient-list hidden"></div>
 
                                 <div class="field">
-                                    <label>Titolo</label>
+                                    <label for="notificationTitle">Titolo</label>
                                     <input id="notificationTitle" maxlength="120" placeholder="Comunicazione alla squadra">
                                 </div>
 
                                 <div class="field">
-                                    <label>Messaggio</label>
+                                    <label for="notificationMessage">Messaggio</label>
                                     <textarea id="notificationMessage" maxlength="1000"
                                         placeholder="Scrivi qui la comunicazione..."></textarea>
                                 </div>
 
-                                <div class="toolbar">
+                                <div class="toolbar notification-compose-actions">
+                                    <div class="notification-priority-field"><label for="notificationPriority">Priorità</label>
                                     <select id="notificationPriority">
                                         <option value="NORMAL">Priorità normale</option>
                                         <option value="HIGH">Alta priorità</option>
                                         <option value="URGENT">Urgente</option>
-                                    </select>
+                                    </select></div>
                                     <button class="btn primary" id="sendNotificationBtn">Invia notifica</button>
                                 </div>
                             </div>
                         </div>
 
-                        <div class="panel">
+                        <div class="panel notification-history-panel">
                             <div class="panel-head">
                                 <div>
                                     <h3>Attività recenti</h3><span>Ultime comunicazioni inviate</span>

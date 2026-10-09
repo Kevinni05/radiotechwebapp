@@ -159,3 +159,169 @@
   .portal-main .portal-login-art { display: none; }
   .portal-main #portalLogin { padding: var(--ui-space-6); }
 }
+
+/*
+ * Enterprise layout QA pass: all Control Room views.
+ *
+ * Scope: consistent rhythm for section headers, panel grids, compact
+ * operational toolbars, forms, tables, empty states and notification
+ * composition. Avoid changing visual theme and JS-owned DOM state.
+ */
+#app .view.active { min-width: 0; }
+#app .view > .section-head:not(.overview-head) {
+  align-items: center;
+  margin-bottom: var(--ui-space-6);
+}
+#app .view > .section-head:not(.overview-head) h2 {
+  margin-bottom: var(--ui-space-2);
+  line-height: 1.22;
+}
+#app .view > .section-head:not(.overview-head) p {
+  line-height: 1.6;
+  max-width: 64ch;
+}
+#app .view > .section-head:not(.overview-head) > .toolbar {
+  flex: 0 1 auto;
+  justify-content: flex-end;
+  align-self: center;
+}
+#app .view > :is(.panel,.grid-2,.grid-equal,.notification-grid,.enterprise-grid,.stats-grid,.management-load) {
+  min-width: 0;
+}
+#app .view > .panel + .panel { margin-top: var(--ui-space-5); }
+#app .panel { min-width: 0; }
+#app .panel-head {
+  align-items: center;
+  gap: var(--ui-space-4);
+  min-height: 76px;
+}
+#app .panel-head > div:first-child { min-width: 0; }
+#app .panel-head h3 { margin: 0 0 var(--ui-space-1); font-size: 14px; line-height: 1.4; }
+#app .panel-head > div:first-child > span {
+  display: block;
+  font-size: 11px;
+  line-height: 1.5;
+  max-width: 75ch;
+}
+#app .panel-body > .field + .field { margin-top: var(--ui-space-5); }
+#app .panel-body > .field + :is(.toolbar,.actions,button) { margin-top: var(--ui-space-5); }
+#app .panel-body > .form-grid + :is(button,.btn,.toolbar) {
+  margin-top: var(--ui-space-5);
+}
+#app .field { display: grid; gap: var(--ui-space-2); align-content: start; }
+#app .field > label { display: block; margin: 0; line-height: 1.4; }
+#app .form-grid { column-gap: var(--ui-space-4); row-gap: var(--ui-space-5); }
+#app :is(.toolbar,.actions) { gap: var(--ui-space-3); }
+#app .panel-body > .toolbar { align-items: center; }
+#app .toolbar > :is(input,select) { min-width: 148px; flex: 1 1 180px; }
+#app .toolbar > :is(button,.btn,.mini-btn) { flex: 0 0 auto; }
+#app :is(.stat-card,.enterprise-kpis > .panel) {
+  display: flex; flex-direction: column; justify-content: space-between;
+  gap: var(--ui-space-3);
+  min-height: 130px;
+}
+#app .stat-card .stat-value { margin: auto 0; line-height: 1.1; }
+#app .stat-card .stat-foot { margin-top: auto; }
+#app .table-wrap { width: 100%; overflow-x: auto; }
+#app .table-wrap table { width: 100%; }
+#app .table-wrap th {
+  text-align: left;
+  padding: var(--ui-space-3) var(--ui-space-4);
+  vertical-align: middle;
+}
+#app .table-wrap td {
+  padding: var(--ui-space-3) var(--ui-space-4);
+  vertical-align: middle;
+}
+#app :is(.empty,.enterprise-empty) { line-height: 1.7; }
+#app .panel > :is(.empty,.enterprise-empty) { padding: var(--ui-space-8) var(--ui-space-6); }
+#app .profile-field { min-width: 0; }
+#app .profile-field strong { overflow-wrap: anywhere; }
+#app .profile-grid { align-items: stretch; }
+
+/* Notifications: a useful editor and a compact history, not two tall blank slabs. */
+#app #view-notifications .notification-workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(300px, .8fr);
+  align-items: start;
+  gap: var(--ui-space-5);
+}
+#app #view-notifications .notification-workspace > .panel {
+  height: auto;
+  align-self: start;
+}
+#app #view-notifications .notification-compose-body {
+  display: grid;
+  gap: var(--ui-space-5);
+}
+#app #view-notifications .notification-compose-body > .field {
+  margin: 0;
+}
+#app #view-notifications :is(#notificationTarget,#notificationTitle,#notificationMessage) {
+  width: 100%;
+  border-radius: var(--ui-radius-sm);
+}
+#app #view-notifications #notificationMessage {
+  min-height: 154px;
+  resize: vertical;
+}
+#app #view-notifications .notification-compose-actions {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--ui-space-4);
+  margin-top: var(--ui-space-1);
+  padding-top: var(--ui-space-5);
+  border-top: 1px solid var(--ui-surface-border);
+}
+#app #view-notifications .notification-priority-field {
+  display: grid;
+  gap: var(--ui-space-2);
+  flex: 1 1 200px;
+  min-width: 0;
+}
+#app #view-notifications .notification-priority-field label {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.4;
+}
+#app #view-notifications #notificationPriority {
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+}
+#app #view-notifications #sendNotificationBtn { min-height: 44px; flex: 0 0 auto; }
+#app #view-notifications .notification-history-panel { min-height: 250px; }
+#app #view-notifications #notificationHistory { flex: 0 1 auto; min-height: 0; }
+#app #view-notifications #notificationHistory > .empty {
+  padding: var(--ui-space-10) var(--ui-space-5);
+}
+@media (max-width: 1150px) {
+  #app #view-notifications .notification-workspace {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  #app #view-notifications .notification-history-panel { min-height: 180px; }
+  #app .view > .section-head:not(.overview-head) > .toolbar {
+    justify-content: flex-start;
+  }
+}
+@media (max-width: 700px) {
+  #app .view > .section-head:not(.overview-head) { align-items: flex-start; }
+  #app .view > .section-head:not(.overview-head) > .toolbar {
+    width: 100%;
+    justify-content: stretch;
+  }
+  #app .view > .section-head:not(.overview-head) > .toolbar > :is(input,select) {
+    flex: 1 1 100%;
+    min-width: 0;
+  }
+  #app .view > .section-head:not(.overview-head) > .toolbar > .btn {
+    flex: 1 1 130px;
+  }
+  #app .panel-head { min-height: 0; }
+  #app .table-wrap th, #app .table-wrap td { padding: 12px; }
+  #app #view-notifications .notification-compose-actions { align-items: stretch; }
+  #app #view-notifications #sendNotificationBtn { flex: 1 1 100%; }
+  #app #view-notifications #notificationMessage { min-height: 135px; }
+}
