@@ -20,7 +20,7 @@ public class FirebaseConfig {
     @Value("${app.firebase.storage-bucket:}")
     private String storageBucket;
 
-    @Value("${app.firebase.project-id:gestionale-radio}")
+    @Value("${app.firebase.project-id:demo-radiotech}")
     private String projectId;
 
     @Value("${app.firebase.service-account-path:}")
