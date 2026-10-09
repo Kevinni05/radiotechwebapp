@@ -43,7 +43,7 @@
 .workspace-command-result small,.workspace-command-help { color: var(--muted); font-size: 10px; }
 .workspace-command-help { padding-top: 16px; margin-top: 12px; border-top: 1px solid var(--border); }
 .workspace-notes-dialog .actions { justify-content: flex-end; margin-top: 24px; }
-#app .dashboard-tools { display: grid; grid-template-columns: minmax(0,.8fr) minmax(0,1.2fr); gap: var(--ui-space-5); margin-bottom: var(--ui-space-5); align-items: start; }
+#app .dashboard-tools { display: grid; grid-template-columns: minmax(0,.8fr) minmax(0,1.2fr); gap: var(--ui-space-5); margin: 0; align-items: start; }
 #app .dashboard-tools .workspace-links { display: grid; grid-template-columns: 1fr; margin: 0; gap: 10px; }
 #app .dashboard-tools .workspace-link { min-height: 64px; padding: 14px 18px; }
 #app .session-notes .panel-head { padding: 16px 20px; }
@@ -59,7 +59,6 @@
 #app #view-dashboard .dashboard-network { grid-template-columns: minmax(0,1.25fr) minmax(0,1fr); align-items: start; }
 #app #view-dashboard .dashboard-network > .panel { height: auto; align-self: start; }
 #app #view-dashboard .map-shell { height: 320px; min-height: 0; flex: 0 0 auto; }
-#app #view-dashboard .dashboard-network { margin-bottom: var(--ui-space-5); }
 #app #view-dashboard .dashboard-network .task-list { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 8px; }
 #app #view-dashboard .dashboard-network .task-row { min-height: 56px; padding: 10px 12px; gap: 8px; }
 #app #view-dashboard .dashboard-network .task-row > div:first-child { flex: 1 1 auto; }

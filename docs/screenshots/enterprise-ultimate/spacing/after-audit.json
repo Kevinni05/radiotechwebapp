@@ -1,0 +1,380 @@
+[
+  {
+    "view": "dashboard",
+    "width": 1440,
+    "surfaces": 16,
+    "issues": [],
+    "overflow": false
+  },
+  {
+    "view": "antennas",
+    "width": 1440,
+    "surfaces": 1,
+    "issues": [],
+    "overflow": false
+  },
+  {
+    "view": "operations",
+    "width": 1440,
+    "surfaces": 5,
+    "issues": [],
+    "overflow": false
+  },
+  {
+    "view": "planning",
+    "width": 1440,
+    "surfaces": 7,
+    "issues": [],
+    "overflow": false
+  },
+  {
+    "view": "reports",
+    "width": 1440,
+    "surfaces": 2,
+    "issues": [],
+    "overflow": false
+  },
+  {
+    "view": "operators",
+    "width": 1440,
+    "surfaces": 2,
+    "issues": [],
+    "overflow": false
+  },
+  {
+    "view": "workload",
+    "width": 1440,
+    "surfaces": 2,
+    "issues": [],
+    "overflow": false
+  },
+  {
+    "view": "inventory",
+    "width": 1440,
+    "surfaces": 9,
+    "issues": [],
+    "overflow": false
+  },
+  {
+    "view": "supplies",
+    "width": 1440,
+    "surfaces": 7,
+    "issues": [],
+    "overflow": false
+  },
+  {
+    "view": "notifications",
+    "width": 1440,
+    "surfaces": 3,
+    "issues": [],
+    "overflow": false
+  },
+  {
+    "view": "tools",
+    "width": 1440,
+    "surfaces": 1,
+    "issues": [],
+    "overflow": false
+  },
+  {
+    "view": "enterprise",
+    "width": 1440,
+    "surfaces": 10,
+    "issues": [],
+    "overflow": false
+  },
+  {
+    "view": "people",
+    "width": 1440,
+    "surfaces": 4,
+    "issues": [],
+    "overflow": false
+  },
+  {
+    "view": "ai",
+    "width": 1440,
+    "surfaces": 7,
+    "issues": [],
+    "overflow": false
+  },
+  {
+    "view": "pro",
+    "width": 1440,
+    "surfaces": 1,
+    "issues": [],
+    "overflow": false
+  },
+  {
+    "view": "access",
+    "width": 1440,
+    "surfaces": 4,
+    "issues": [],
+    "overflow": false
+  },
+  {
+    "view": "profile",
+    "width": 1440,
+    "surfaces": 1,
+    "issues": [],
+    "overflow": false
+  },
+  {
+    "view": "system",
+    "width": 1440,
+    "surfaces": 6,
+    "issues": [],
+    "overflow": false
+  },
+  {
+    "view": "dashboard",
+    "width": 768,
+    "surfaces": 16,
+    "issues": [],
+    "overflow": false
+  },
+  {
+    "view": "antennas",
+    "width": 768,
+    "surfaces": 1,
+    "issues": [],
+    "overflow": false
+  },
+  {
+    "view": "operations",
+    "width": 768,
+    "surfaces": 5,
+    "issues": [],
+    "overflow": false
+  },
+  {
+    "view": "planning",
+    "width": 768,
+    "surfaces": 7,
+    "issues": [],
+    "overflow": false
+  },
+  {
+    "view": "reports",
+    "width": 768,
+    "surfaces": 2,
+    "issues": [],
+    "overflow": false
+  },
+  {
+    "view": "operators",
+    "width": 768,
+    "surfaces": 2,
+    "issues": [],
+    "overflow": false
+  },
+  {
+    "view": "workload",
+    "width": 768,
+    "surfaces": 2,
+    "issues": [],
+    "overflow": false
+  },
+  {
+    "view": "inventory",
+    "width": 768,
+    "surfaces": 9,
+    "issues": [],
+    "overflow": false
+  },
+  {
+    "view": "supplies",
+    "width": 768,
+    "surfaces": 7,
+    "issues": [],
+    "overflow": false
+  },
+  {
+    "view": "notifications",
+    "width": 768,
+    "surfaces": 3,
+    "issues": [],
+    "overflow": false
+  },
+  {
+    "view": "tools",
+    "width": 768,
+    "surfaces": 1,
+    "issues": [],
+    "overflow": false
+  },
+  {
+    "view": "enterprise",
+    "width": 768,
+    "surfaces": 10,
+    "issues": [],
+    "overflow": false
+  },
+  {
+    "view": "people",
+    "width": 768,
+    "surfaces": 4,
+    "issues": [],
+    "overflow": false
+  },
+  {
+    "view": "ai",
+    "width": 768,
+    "surfaces": 7,
+    "issues": [],
+    "overflow": false
+  },
+  {
+    "view": "pro",
+    "width": 768,
+    "surfaces": 1,
+    "issues": [],
+    "overflow": false
+  },
+  {
+    "view": "access",
+    "width": 768,
+    "surfaces": 4,
+    "issues": [],
+    "overflow": false
+  },
+  {
+    "view": "profile",
+    "width": 768,
+    "surfaces": 1,
+    "issues": [],
+    "overflow": false
+  },
+  {
+    "view": "system",
+    "width": 768,
+    "surfaces": 6,
+    "issues": [],
+    "overflow": false
+  },
+  {
+    "view": "dashboard",
+    "width": 390,
+    "surfaces": 16,
+    "issues": [],
+    "overflow": false
+  },
+  {
+    "view": "antennas",
+    "width": 390,
+    "surfaces": 1,
+    "issues": [],
+    "overflow": false
+  },
+  {
+    "view": "operations",
+    "width": 390,
+    "surfaces": 5,
+    "issues": [],
+    "overflow": false
+  },
+  {
+    "view": "planning",
+    "width": 390,
+    "surfaces": 7,
+    "issues": [],
+    "overflow": false
+  },
+  {
+    "view": "reports",
+    "width": 390,
+    "surfaces": 2,
+    "issues": [],
+    "overflow": false
+  },
+  {
+    "view": "operators",
+    "width": 390,
+    "surfaces": 2,
+    "issues": [],
+    "overflow": false
+  },
+  {
+    "view": "workload",
+    "width": 390,
+    "surfaces": 2,
+    "issues": [],
+    "overflow": false
+  },
+  {
+    "view": "inventory",
+    "width": 390,
+    "surfaces": 9,
+    "issues": [],
+    "overflow": false
+  },
+  {
+    "view": "supplies",
+    "width": 390,
+    "surfaces": 7,
+    "issues": [],
+    "overflow": false
+  },
+  {
+    "view": "notifications",
+    "width": 390,
+    "surfaces": 3,
+    "issues": [],
+    "overflow": false
+  },
+  {
+    "view": "tools",
+    "width": 390,
+    "surfaces": 1,
+    "issues": [],
+    "overflow": false
+  },
+  {
+    "view": "enterprise",
+    "width": 390,
+    "surfaces": 10,
+    "issues": [],
+    "overflow": false
+  },
+  {
+    "view": "people",
+    "width": 390,
+    "surfaces": 4,
+    "issues": [],
+    "overflow": false
+  },
+  {
+    "view": "ai",
+    "width": 390,
+    "surfaces": 7,
+    "issues": [],
+    "overflow": false
+  },
+  {
+    "view": "pro",
+    "width": 390,
+    "surfaces": 1,
+    "issues": [],
+    "overflow": false
+  },
+  {
+    "view": "access",
+    "width": 390,
+    "surfaces": 4,
+    "issues": [],
+    "overflow": false
+  },
+  {
+    "view": "profile",
+    "width": 390,
+    "surfaces": 1,
+    "issues": [],
+    "overflow": false
+  },
+  {
+    "view": "system",
+    "width": 390,
+    "surfaces": 6,
+    "issues": [],
+    "overflow": false
+  }
+]

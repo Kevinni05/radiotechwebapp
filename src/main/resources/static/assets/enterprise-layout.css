@@ -57,11 +57,12 @@
 }
 #app :is(.grid-2,.grid-equal,.enterprise-grid,.notification-grid,.profile-grid,.access-layout) > * { min-width: 0; }
 #app :is(.grid-2,.grid-equal,.enterprise-grid,.notification-grid,.profile-grid,.access-layout) > .panel {
-  display: flex; flex-direction: column; height: 100%; margin: 0;
+  display: flex; flex-direction: column; height: auto; margin: 0;
 }
 #app .panel-head {
   display: flex; flex-wrap: wrap; align-items: center;
   justify-content: space-between; gap: var(--ui-space-4);
+  flex: 0 0 auto;
   min-height: 68px; padding: var(--ui-space-5) var(--ui-space-6);
 }
 #app .panel-head > :first-child { flex: 1 1 180px; }
@@ -116,10 +117,17 @@
  * operational toolbars, forms, tables, empty states and notification
  * composition. Avoid changing visual theme and JS-owned DOM state.
  */
-#app .view.active { min-width: 0; }
+#app .view.active {
+  display: grid;
+  grid-template-columns: minmax(0,1fr);
+  gap: var(--ui-space-6);
+  align-content: start;
+  min-width: 0;
+}
+#app .view > * { margin-block: 0; }
+#app .section-stack { display: grid; gap: var(--ui-space-5); align-content: start; }
 #app .view > .section-head:not(.overview-head) {
   align-items: center;
-  margin-bottom: var(--ui-space-6);
 }
 #app .view > .section-head:not(.overview-head) h2 {
   margin-bottom: var(--ui-space-2);
@@ -137,7 +145,6 @@
 #app .view > :is(.panel,.grid-2,.grid-equal,.notification-grid,.enterprise-grid,.stats-grid,.management-load) {
   min-width: 0;
 }
-#app .view > .panel + .panel { margin-top: var(--ui-space-5); }
 #app .panel { min-width: 0; }
 #app .panel-head > div:first-child { min-width: 0; }
 #app .panel-head > div:first-child > span {
