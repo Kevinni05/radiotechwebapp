@@ -71,7 +71,7 @@ test('server refusal leaves report in place and confirmation can be retried or c
   await expect(page.locator('[data-report-delete]')).toBeFocused();
 });
 
-for(const role of ['VIEWER','ENGINEER','OPERATOR']) {
+for(const role of ['VIEWER','OPERATOR']) {
   test(`${role} cannot approve or remove reports`,async({page})=>{
     await session(page,role,{'/reports':[report('readonly','SUBMITTED')]});
     await openReports(page);

@@ -45,7 +45,7 @@ public class MaintenanceReportDto {
         return notBlank(taskId) || notBlank(antennaId);
     }
 
-    @AssertTrue(message = "Le quantita dei materiali devono essere positive")
+    @AssertTrue(message = "Le quantità dei materiali devono essere numeri interi positivi")
     public boolean hasValidMaterials() {
         if (materialsUsed == null)
             return true;
@@ -53,7 +53,8 @@ public class MaintenanceReportDto {
             if (material == null || material.get("quantity") == null)
                 return false;
             Object value = material.get("quantity");
-            return value instanceof Number && ((Number) value).intValue() > 0;
+            return value instanceof Number quantity && Double.isFinite(quantity.doubleValue())
+                    && quantity.doubleValue() > 0 && quantity.doubleValue() == quantity.intValue();
         });
     }
 

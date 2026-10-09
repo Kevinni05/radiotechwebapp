@@ -212,6 +212,15 @@
                         </div>
                     </div>
 
+                    <div class="dashboard-tools"><div class="workspace-links" aria-label="Accessi rapidi">
+                        <button class="workspace-link" type="button" data-workspace-link="operations"><span data-icon="briefcase"></span><span><strong>Operazioni e squadra</strong><small>Incarichi, report e risorse</small></span><span class="link-arrow" data-icon="arrow"></span></button>
+                        <button class="workspace-link" type="button" data-workspace-link="enterprise"><span data-icon="shield"></span><span><strong>Rischi e competenze</strong><small>Incidenti e abilitazioni</small></span><span class="link-arrow" data-icon="arrow"></span></button>
+                        <button class="workspace-link" type="button" data-workspace-link="ai"><span data-icon="spark"></span><span><strong>Analisi aziendale</strong><small>Analisi e assistente AI</small></span><span class="link-arrow" data-icon="arrow"></span></button>
+                    </div>
+                    <section class="panel session-notes" aria-labelledby="sessionNotesTitle">
+                        <div class="panel-head"><div><h3 id="sessionNotesTitle">Note rapide</h3><span>Appunti della sessione di questa scheda</span></div><button class="mini-btn" id="sessionNotesClear" type="button" disabled>Svuota</button></div>
+                        <div class="panel-body"><label class="sr-only" for="sessionNotesEditor">Note rapide operative</label><textarea id="sessionNotesEditor" maxlength="8000" rows="3" placeholder="Annota una priorità o un promemoria per il prossimo intervento…" aria-describedby="sessionNotesHint" disabled></textarea><div class="session-notes-meta"><span id="sessionNotesStatus" role="status">Accedi per usare le note.</span><button class="mini-btn" id="sessionNotesRetry" type="button" hidden>Riprova</button><span id="sessionNotesCount">0 / 8000</span></div><p class="field-help" id="sessionNotesHint">Solo in questa scheda. Evita credenziali e informazioni sensibili.</p><span class="subtle" id="sessionNotesUpdated">Nessuna modifica</span></div>
+                    </section></div>
                     <div class="grid-2 dashboard-network">
                         <div class="panel">
                             <div class="panel-head">
@@ -302,15 +311,6 @@
                             </div>
                         </div>
                     </div>
-                    <div class="dashboard-tools"><div class="workspace-links" aria-label="Accessi rapidi">
-                        <button class="workspace-link" type="button" data-workspace-link="operations"><span data-icon="briefcase"></span><span><strong>Operazioni e squadra</strong><small>Incarichi, report e risorse</small></span><span class="link-arrow" data-icon="arrow"></span></button>
-                        <button class="workspace-link" type="button" data-workspace-link="enterprise"><span data-icon="shield"></span><span><strong>Rischi e competenze</strong><small>Incidenti e abilitazioni</small></span><span class="link-arrow" data-icon="arrow"></span></button>
-                        <button class="workspace-link" type="button" data-workspace-link="ai"><span data-icon="spark"></span><span><strong>Analisi aziendale</strong><small>Analisi e assistente AI</small></span><span class="link-arrow" data-icon="arrow"></span></button>
-                    </div>
-                    <section class="panel session-notes" aria-labelledby="sessionNotesTitle">
-                        <div class="panel-head"><div><h3 id="sessionNotesTitle">Note rapide</h3><span>Appunti della sessione di questa scheda</span></div><button class="mini-btn" id="sessionNotesClear" type="button" disabled>Svuota</button></div>
-                        <div class="panel-body"><label class="sr-only" for="sessionNotesEditor">Note rapide operative</label><textarea id="sessionNotesEditor" maxlength="8000" rows="3" placeholder="Annota una priorità o un promemoria per il prossimo intervento…" aria-describedby="sessionNotesHint" disabled></textarea><div class="session-notes-meta"><span id="sessionNotesStatus" role="status">Accedi per usare le note.</span><span id="sessionNotesCount">0 / 8000</span></div><p class="field-help" id="sessionNotesHint">Solo in questa scheda. Evita credenziali e informazioni sensibili.</p><span class="subtle" id="sessionNotesUpdated">Nessuna modifica</span></div>
-                    </section></div>
                 </section>
 
                 <!-- ANTENNE -->
@@ -340,7 +340,7 @@
                             </div>
                             <button class="mini-btn" id="reloadAntennasBtn">Aggiorna</button>
                         </div>
-                        <div class="table-wrap">
+                        <div class="table-wrap" tabindex="0" role="region" aria-label="Elenco antenne">
                             <table>
                                 <thead>
                                     <tr>
@@ -394,7 +394,7 @@
                                 <span class="subtle" id="operatorsSummary">Caricamento…</span>
                             </div>
                         </div>
-                        <div class="table-wrap">
+                        <div class="table-wrap" tabindex="0" role="region" aria-label="Elenco operatori">
                             <table>
                                 <thead>
                                     <tr>
@@ -426,8 +426,8 @@
                         </div>
                         <div class="panel-body">
                             <div class="toolbar">
-                                <input id="syncOperatorEmail" type="email" placeholder="Email account Firebase">
-                                <input id="syncOperatorName" placeholder="Nome operatore (facoltativo)">
+                                <label class="sr-only" for="syncOperatorEmail">Email account Firebase</label><input id="syncOperatorEmail" type="email" placeholder="Email account Firebase">
+                                <label class="sr-only" for="syncOperatorName">Nome operatore</label><input id="syncOperatorName" placeholder="Nome operatore (facoltativo)">
                                 <button class="btn" id="syncOperatorBtn" type="button">Sincronizza operatore</button>
                             </div>
                         </div>
@@ -658,7 +658,7 @@
                                             step="any"></div>
                                 </div><button class="btn primary" id="tbLinkBtn">Calcola</button>
                                 <div class="panel" style="margin-top:16px">
-                                    <div class="panel-body" id="tbResult">Inserisci i parametri e calcola.</div>
+                                    <div class="panel-body" id="tbResult" role="status" aria-live="polite" aria-atomic="true">Inserisci i parametri e calcola.</div>
                                 </div>
                             </div>
                         </div>
@@ -675,13 +675,13 @@
                                     <div class="field"><label for="tbW">W</label><input id="tbW" type="number" step="any"></div>
                                 </div>
                                 <button class="btn" id="tbPowerBtn">Converti potenza</button>
-                                <div id="tbPowerResult" class="subtle" style="margin-top:12px"></div>
+                                <div id="tbPowerResult" role="status" aria-live="polite" aria-atomic="true" class="subtle" style="margin-top:12px"></div>
                                 <hr style="border:0;border-top:1px solid var(--border);margin:22px 0">
                                 <div class="form-grid">
                                     <div class="field"><label for="tbVswr">VSWR</label><input id="tbVswr" type="number" min="1"
                                             step="any"></div>
                                 </div><button class="btn" id="tbVswrBtn">Calcola VSWR</button>
-                                <div id="tbVswrResult" class="subtle" style="margin-top:12px"></div>
+                                <div id="tbVswrResult" role="status" aria-live="polite" aria-atomic="true" class="subtle" style="margin-top:12px"></div>
                             </div>
                         </div>
                     </div>
@@ -722,7 +722,7 @@
                                     <option value="LOW">Sotto scorta</option><option value="ARCHIVED">Archiviati</option>
                                 </select>
                             </div>
-                            <div class="table-wrap">
+                            <div class="table-wrap" tabindex="0" role="region" aria-label="Elenco articoli">
                                 <table>
                                     <thead><tr><th>Articolo</th><th>Categoria</th><th>Disponibilità</th><th>Posizione</th><th>Valore</th><th>Stato</th><th>Azioni</th></tr></thead>
                                     <tbody id="inventoryTableBody"><tr><td colspan="7"><div class="empty"><span class="spinner"></span> Caricamento magazzino...</div></td></tr></tbody>
@@ -905,7 +905,7 @@
                     <div class="footer-grid">
                         <div class="footer-identity">
                             <button type="button" class="footer-brand" data-footer-view="dashboard" aria-label="RadioTech: torna alla panoramica"><img th:src="${brandLogoPath}" src="/assets/brand/radiotech-symbol-v1.png" width="42" height="42" alt=""><span><strong th:text="${brandName}">RadioTech</strong><small>Gestione operativa</small></span></button>
-                            <p>Infrastrutture, persone e interventi.<br>Un unico centro per la tua rete.</p>
+                            <p>Infrastrutture, persone e interventi. <br>Un unico centro per la tua rete.</p>
                             <button type="button" class="footer-service" data-footer-view="system"><span class="footer-status-dot" aria-hidden="true"></span><span id="footerServiceStatus" role="status">Verifica del servizio in corso</span><span aria-hidden="true">↗</span></button>
                         </div>
                         <nav class="footer-group" aria-label="Operazioni"><h3>Operazioni</h3><button type="button" data-footer-view="antennas">Antenne e rete</button><button type="button" data-footer-view="operations">Incarichi</button><button type="button" data-footer-view="planning">Agenda interventi</button><button type="button" data-footer-view="reports">Centro report</button></nav>
@@ -1516,7 +1516,8 @@
                 for (const id of ["quickAntennaBtn", "quickNotificationBtn", "newAntennaBtn", "newOperatorBtn", "syncOperatorBtn", "createTaskBtn", "newNotificationBtn", "sendNotificationBtn", "newInventoryItemBtn", "editProfileBtn"]) {
                     if ($(id)) $(id).hidden = !allowed;
                 }
-                document.querySelectorAll("[data-edit], [data-delete], [data-delete-operator], [data-reset-password], [data-validity], [data-save-role], [data-approve], [data-badge], [data-regenerate], [data-report-approve], [data-report-reject], [data-report-delete], [data-inventory-move], [data-inventory-edit], [data-inventory-archive], [data-inventory-restore]").forEach(element => { element.hidden = !allowed; });
+                document.querySelectorAll("[data-edit], [data-delete], [data-delete-operator], [data-reset-password], [data-validity], [data-save-role], [data-approve], [data-badge], [data-regenerate], [data-inventory-move], [data-inventory-edit], [data-inventory-archive], [data-inventory-restore]").forEach(element => { element.hidden = !allowed; });
+                document.querySelectorAll("[data-report-approve], [data-report-reject], [data-report-delete]").forEach(element => { element.hidden = !canManageReports(); });
                 document.querySelectorAll("[data-operator-role]").forEach(element => { if (!allowed) element.disabled = true; });
             }
 
@@ -2061,7 +2062,7 @@
             }
 
             function canManageReports() {
-                return ["ADMIN", "SUPER_ADMIN", "CHIEF_EXECUTIVE", "CAPO", "NETWORK_MANAGER"].includes(state.authRole || state.user?.role);
+                return ["ADMIN", "SUPER_ADMIN", "CHIEF_EXECUTIVE", "CAPO", "NETWORK_MANAGER", "ENGINEER"].includes(state.authRole || state.user?.role);
             }
             function renderReportRow(report) {
                 const id = escapeHtml(report.id || ""), status = report.status || "SUBMITTED";

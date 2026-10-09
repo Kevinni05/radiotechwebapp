@@ -75,15 +75,17 @@
 #app .inventory-card .inventory-value { margin-top: auto; }
 #app .task-row { gap: var(--ui-space-3); }
 #app .pro-toolbar { align-items: end; gap: var(--ui-space-4); }
-#app :is(.field,.pro-field) { min-width: 0; }
-#app :is(.field,.pro-field) > label { display: block; margin-bottom: var(--ui-space-2); line-height: 1.45; }
+#app :is(.field,.pro-field) { min-width: 0; display: grid; gap: var(--ui-space-2); align-content: start; }
+#app :is(.field,.pro-field) > label { display: block; margin: 0; line-height: 1.45; }
 #app :is(input:not([type=checkbox]):not([type=radio]),select,textarea) { max-width: 100%; }
 #app :is(input:not([type=checkbox]):not([type=radio]),select) { min-height: var(--ui-control-height); }
 #app textarea { min-height: 100px; }
-#app :is(.table-wrap,.pro-table-wrap) { max-width: 100%; overflow-x: auto; overscroll-behavior-inline: contain; }
+#app :is(.table-wrap,.pro-table-wrap) { width: 100%; max-width: 100%; overflow-x: auto; overscroll-behavior-inline: contain; scrollbar-gutter: stable; }
 #app table { border-collapse: collapse; }
 #app :is(th,td) { vertical-align: middle; }
-#app th { white-space: nowrap; }
+#app th { white-space: nowrap; text-align: left; }
+#app .table-wrap table { width: 100%; }
+#app .table-wrap :is(th,td) { padding: var(--ui-space-3) var(--ui-space-4); }
 #app td .actions { align-items: center; gap: var(--ui-space-2); }
 #app .modal { width: min(calc(100vw - 32px), var(--modal-width, 720px)); max-height: calc(100dvh - 32px); }
 #app .modal-body { min-height: 0; overflow-y: auto; }
@@ -149,8 +151,6 @@
 #app .panel-body > .form-grid + :is(button,.btn,.toolbar) {
   margin-top: var(--ui-space-5);
 }
-#app .field { display: grid; gap: var(--ui-space-2); align-content: start; }
-#app .field > label { display: block; margin: 0; line-height: 1.4; }
 #app .form-grid { column-gap: var(--ui-space-4); row-gap: var(--ui-space-5); }
 #app :is(.toolbar,.actions) { gap: var(--ui-space-3); }
 #app .panel-body > .toolbar { align-items: center; }
@@ -163,10 +163,6 @@
 }
 #app .stat-card .stat-value { margin: auto 0; line-height: 1.1; }
 #app .stat-card .stat-foot { margin-top: auto; }
-#app .table-wrap { width: 100%; }
-#app .table-wrap table { width: 100%; }
-#app .table-wrap :is(th,td) { padding: var(--ui-space-3) var(--ui-space-4); }
-#app .table-wrap th { text-align: left; }
 #app :is(.empty,.enterprise-empty) { line-height: 1.7; }
 #app .panel > :is(.empty,.enterprise-empty) { padding: var(--ui-space-8) var(--ui-space-6); }
 #app .profile-field { min-width: 0; }
@@ -181,8 +177,20 @@
   height: auto;
 }
 #app #view-antennas .table-wrap table { min-width: 920px; }
-#app #view-antennas :is(th,td):first-child { min-width: 180px; }
+#app :is(#view-antennas,#view-inventory) :is(th,td):first-child { min-width: 180px; }
 #app #view-antennas :is(th,td):last-child { min-width: 170px; }
+#app #view-antennas :is(th,td):nth-child(n+4):nth-child(-n+7),
+#app #view-inventory :is(th,td):nth-child(5) {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+#app :is(#view-antennas,#view-inventory,#view-operations) td:first-child {
+  overflow-wrap: anywhere;
+  max-width: 280px;
+}
+#app #view-operations .table-wrap table { min-width: 900px; }
+#app #view-operations td:last-child .actions { flex-wrap: wrap; min-width: 250px; }
 #app #view-inventory .panel-body > .toolbar {
   display: grid;
   grid-template-columns: minmax(240px,2fr) repeat(2,minmax(160px,1fr));
@@ -190,11 +198,30 @@
 #app #view-inventory .section-head > .toolbar { flex-wrap: wrap; }
 #app #view-inventory .stat-card { min-height: 112px; }
 #app #view-inventory .table-wrap table { min-width: 860px; }
+#app #view-inventory td:last-child .actions { min-width: 170px; flex-wrap: wrap; }
 #app #view-operations #operatorsSummary { flex: 1 1 100%; }
+#app #view-tools .notification-grid { grid-template-columns: minmax(0,1.2fr) minmax(0,.8fr); }
+#app #view-tools .telco-calculators { gap: var(--ui-space-5); }
+#app #view-tools .telco-card .panel-head { min-height: 64px; }
+#app #view-tools .telco-card .panel-body { display: grid; align-content: start; gap: var(--ui-space-5); }
+#app #view-tools .telco-card .panel-body > .btn { justify-self: start; margin: 0; min-height: 44px; }
+#app #view-tools .telco-result { margin: 0; min-height: 0; line-height: 1.7; font-variant-numeric: tabular-nums; }
+#app #view-tools .telco-result:empty { display: none; }
+#app #view-tools .telco-nav { gap: var(--ui-space-2); overscroll-behavior-inline: contain; }
+#app #view-tools .telco-nav .btn { min-height: 44px; }
+#app #view-tools :is(#tbResult,#tbPowerResult,#tbVswrResult) { line-height: 1.7; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
+#app #view-tools #tbResult { padding: var(--ui-space-4); }
+#app #view-tools :is(#tbPowerResult,#tbVswrResult):empty { display: none; }
+#app #view-tools .panel-body > :is(#tbPowerBtn,#tbVswrBtn,#tbLinkBtn) { min-height: 44px; }
 #app #view-system .health-card { padding: var(--ui-space-4); margin-bottom: var(--ui-space-3); }
 #app #view-system .health-card:last-child { margin-bottom: 0; }
 #app #view-profile .profile-hero > div { min-width: 0; }
 #app #view-profile :is(.profile-name,.profile-role) { overflow-wrap: anywhere; }
+@media (max-width: 1150px) {
+  #app #view-inventory .panel-body > .toolbar { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  #app #view-inventory #inventorySearch { grid-column: 1 / -1; }
+  #app #view-tools .notification-grid { grid-template-columns: minmax(0,1fr); }
+}
 @media (max-width: 700px) {
   #app #view-inventory .panel-body > .toolbar { grid-template-columns: minmax(0,1fr); }
   #app #view-profile .profile-hero > .badge { grid-column: 1 / -1; justify-self: start; }

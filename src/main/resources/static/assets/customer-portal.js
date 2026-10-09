@@ -10,9 +10,26 @@
     window.scrollTo({top:0,behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth'});
   };
   async function apiFetch(path,options={},retry=true) {
+    const session=state.sessionEpoch;
+    const assertSession=()=>{
+      if(session!==state.sessionEpoch||!token)throw new DOMException("Sessione terminata.","AbortError");
+    };
+    assertSession();
     const response=await fetch(path,{...options,headers:{"Content-Type":"application/json","Authorization":`Bearer ${token}`},signal:AbortSignal.timeout(20000)});
-    if(response.status===401&&retry&&refreshToken) { const r=await fetch("/api/v1/auth/refresh",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({refreshToken}),signal:AbortSignal.timeout(20000)});const data=await r.json();if(!r.ok)throw new Error("Sessione scaduta: accedi nuovamente.");token=data.token;refreshToken=data.refreshToken||refreshToken;return apiFetch(path,options,false); }
-    const data=await response.json();if(!response.ok)throw new Error(data.message||"Operazione non riuscita.");return data.data??data;
+    assertSession();
+    if(response.status===401&&retry&&refreshToken) {
+      const r=await fetch("/api/v1/auth/refresh",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({refreshToken}),signal:AbortSignal.timeout(20000)});
+      const data=await r.json();
+      assertSession();
+      if(!r.ok)throw new Error("Sessione scaduta: accedi nuovamente.");
+      token=data.token;
+      refreshToken=data.refreshToken||refreshToken;
+      return apiFetch(path,options,false);
+    }
+    const data=await response.json();
+    assertSession();
+    if(!response.ok)throw new Error(data.message||"Operazione non riuscita.");
+    return data.data??data;
   }
   const loginForm=document.getElementById("portalLogin");
   const portalApp=document.getElementById("portalApp");
@@ -45,7 +62,7 @@
       status.textContent="";
       if(!suite)suite=window.RadioTechPro({
         apiFetch,state,escapeHtml:esc,
-        toast:(title,message)=>status.textContent=`${title}: ${message}`,
+        toast:(title,message)=>{if(token)status.textContent=`${title}: ${message}`;},
         switchView:view=>document.querySelectorAll(".view").forEach(element=>
           element.classList.toggle("active",element.id===`view-${view}`))
       });
