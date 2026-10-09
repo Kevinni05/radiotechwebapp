@@ -22,7 +22,7 @@ test('glass surfaces align cards and brand returns home without losing the sessi
   expect(await page.evaluate(()=>sessionStorage.getItem('radiotech_control_token'))).toBe('test-token');
   const panels=await page.locator('#view-dashboard .grid-2 > .panel').evaluateAll(nodes=>nodes.map(n=>{const r=n.getBoundingClientRect();return {width:r.width,height:r.height};}));
   expect(Math.abs(panels[0].width-panels[1].width)).toBeLessThan(1);expect(Math.abs(panels[0].height-panels[1].height)).toBeLessThan(1);
-  await expect(page.locator('.footer')).toContainText('Kevin Cagnazzo e Anthony Piccinonno');
+  await expect(page.locator('.footer')).toContainText('RadioTech');
   expect(await page.evaluate(()=>getComputedStyle(document.body,'::before').animationName)).toBe('none');
   await page.emulateMedia({reducedMotion:'no-preference'});
   expect(await page.evaluate(()=>getComputedStyle(document.body,'::before').animationName)).toBe('radiotech-aurora');
