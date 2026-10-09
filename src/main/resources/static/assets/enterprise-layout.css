@@ -1,0 +1,161 @@
+/*
+ * Enterprise PRO layout foundation.
+ * Intentionally loaded after the product theme: shared structural constraints,
+ * not a second palette. Keep product-specific visuals in radiotech-theme.css.
+ */
+:root {
+  --ui-space-1: 4px;
+  --ui-space-2: 8px;
+  --ui-space-3: 12px;
+  --ui-space-4: 16px;
+  --ui-space-5: 20px;
+  --ui-space-6: 24px;
+  --ui-space-8: 32px;
+  --ui-space-10: 40px;
+  --ui-space-12: 48px;
+  --ui-radius-sm: 8px;
+  --ui-radius-md: 12px;
+  --ui-radius-lg: 16px;
+  --ui-control-height: 40px;
+  --ui-surface-border: var(--glass-border, var(--border));
+  --ui-content-width: 1520px;
+}
+#app, #app * { min-width: 0; }
+#app .main { width: 100%; }
+#app .content {
+  width: min(100%, var(--ui-content-width));
+  padding: clamp(20px, 2.1vw, 36px);
+  margin-inline: auto;
+}
+#app .sidebar { overflow: hidden; }
+#app .sidebar-scroll { min-height: 0; overflow-y: auto; overflow-x: hidden; }
+#app .nav button { display: flex; align-items: center; min-height: 44px; gap: var(--ui-space-3); }
+#app .nav-icon { width: 20px; flex: 0 0 20px; text-align: center; }
+#app .topbar { gap: var(--ui-space-4); }
+#app .topbar > div:first-child { flex: 1 1 240px; }
+#app .top-actions { flex: 0 1 auto; gap: var(--ui-space-2); justify-content: flex-end; }
+#app :is(.top-actions,.actions,.panel-head) > :is(button,.btn,.icon-btn,.mini-btn) { flex-shrink: 0; }
+#app :is(.top-actions,.actions) > :is(.btn,.icon-btn) { min-height: var(--ui-control-height); }
+#app .section-head:not(.overview-head) { gap: var(--ui-space-5); }
+#app .section-head:not(.overview-head) > :first-child { flex: 1 1 320px; }
+#app .overview-head { isolation: isolate; }
+#app .overview-head > :not(.overview-art) { z-index: 1; }
+#app .stats { display: grid; grid-auto-rows: 1fr; align-items: stretch; gap: var(--ui-space-3); }
+#app .stats .stat {
+  display: flex; flex-direction: column; justify-content: flex-start;
+  min-height: 126px; padding: var(--ui-space-5);
+}
+#app .stats .stat .stat-top {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  min-height: 23px; gap: var(--ui-space-2);
+}
+#app .stats .stat .stat-value { margin-block: auto var(--ui-space-2); line-height: 1.16; }
+#app .stats .stat .subtle { margin-top: 0; line-height: 1.45; }
+#app .workspace-links { display: grid; gap: var(--ui-space-3); align-items: stretch; }
+#app .workspace-link { display: flex; align-items: center; gap: var(--ui-space-3); height: 100%; min-height: 78px; }
+#app .workspace-link > span:nth-child(2) { flex: 1 1 auto; }
+#app .workspace-link .link-arrow { margin-left: auto; flex-shrink: 0; }
+#app :is(.grid-2,.grid-equal,.enterprise-grid,.notification-grid,.profile-grid,.access-layout) {
+  align-items: stretch; column-gap: var(--ui-space-5); row-gap: var(--ui-space-5);
+}
+#app :is(.grid-2,.grid-equal,.enterprise-grid,.notification-grid,.profile-grid,.access-layout) > * { min-width: 0; }
+#app :is(.grid-2,.grid-equal,.enterprise-grid,.notification-grid,.profile-grid,.access-layout) > .panel {
+  display: flex; flex-direction: column; height: 100%; margin: 0;
+}
+#app .panel-head {
+  display: flex; flex-wrap: wrap; align-items: center;
+  justify-content: space-between; gap: var(--ui-space-3);
+  min-height: 76px; padding: var(--ui-space-5) var(--ui-space-6);
+}
+#app .panel-head > :first-child { flex: 1 1 180px; }
+#app .panel-head h3 { line-height: 1.4; margin-block: 0 var(--ui-space-1); }
+#app .panel-body { flex: 1 1 auto; min-height: 0; padding: var(--ui-space-6); }
+#app .map-shell { min-width: 0; min-height: 340px; }
+#app .map-legend { display: flex; align-items: center; flex-wrap: wrap; gap: var(--ui-space-3); }
+#app .enterprise-grid > .enterprise-section { align-self: stretch; margin-bottom: 0; }
+#app :is(.stat-card,.enterprise-kpis .panel,.inventory-card,.pro-record) { min-width: 0; }
+#app .inventory-card { display: flex; flex-direction: column; gap: var(--ui-space-3); }
+#app .inventory-card .inventory-value { margin-top: auto; }
+#app .task-row { gap: var(--ui-space-3); }
+#app .pro-toolbar { align-items: end; gap: var(--ui-space-4); }
+#app :is(.field,.pro-field) { min-width: 0; }
+#app :is(.field,.pro-field) > label { display: block; margin-bottom: var(--ui-space-2); line-height: 1.45; }
+#app :is(input:not([type=checkbox]):not([type=radio]),select,textarea) { max-width: 100%; }
+#app :is(input:not([type=checkbox]):not([type=radio]),select) { min-height: var(--ui-control-height); }
+#app textarea { min-height: 100px; }
+#app :is(.table-wrap,.pro-table-wrap) { max-width: 100%; overflow-x: auto; overscroll-behavior-inline: contain; }
+#app table { border-collapse: collapse; }
+#app :is(th,td) { vertical-align: middle; }
+#app th { white-space: nowrap; }
+#app td .actions { align-items: center; gap: var(--ui-space-2); }
+#app .modal { width: min(calc(100vw - 32px), var(--modal-width, 720px)); max-height: calc(100dvh - 32px); }
+#app .modal-body { min-height: 0; overflow-y: auto; }
+#app .modal-head, #app .modal-foot { gap: var(--ui-space-3); }
+@media (max-width: 1200px) {
+  #app .content { padding-inline: var(--ui-space-6); }
+  #app .topbar { padding-inline: var(--ui-space-6); }
+}
+@media (max-width: 980px) {
+  #app .topbar { flex-wrap: wrap; align-items: center; }
+  #app .top-actions { flex: 1 1 auto; justify-content: flex-start; }
+}
+@media (max-width: 700px) {
+  #app .content { padding: var(--ui-space-5) var(--ui-space-4) var(--ui-space-8); }
+  #app .topbar { gap: var(--ui-space-3); padding: var(--ui-space-3) var(--ui-space-4); }
+  #app .top-actions { width: 100%; gap: var(--ui-space-2); flex-wrap: wrap; }
+  #app .top-actions .quick { display: inline-flex; flex: 1 1 140px; }
+  #app .panel-head, #app .panel-body { padding: var(--ui-space-4); }
+  #app .stats .stat { padding: var(--ui-space-4); min-height: 118px; }
+  #app .workspace-link { min-height: 70px; }
+  #app .map-shell { min-height: 300px; }
+  #app .section-head:not(.overview-head) { flex-wrap: wrap; }
+}
+@media (max-width: 380px) {
+  #app .stats { grid-template-columns: minmax(0,1fr); }
+  #app .top-actions :is(.btn,.icon-btn) { min-height: 40px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  #app .workspace-link, #app .stats .stat { transition: none; }
+}
+
+/* Customer portal uses the same spacing and alignment rhythm without
+   inheriting authenticated control-room shell positioning. */
+.portal-main {
+  width: min(100%, 1240px);
+  padding: clamp(16px, 3vw, 40px);
+  margin-inline: auto;
+}
+.portal-main .portal-header {
+  align-items: center;
+  gap: var(--ui-space-5);
+  margin-bottom: var(--ui-space-8);
+  padding-bottom: var(--ui-space-6);
+}
+.portal-main .portal-header .brand {
+  min-width: 0;
+  gap: var(--ui-space-3);
+}
+.portal-main .portal-header .brand > div:last-child { min-width: 0; }
+.portal-main .portal-welcome { max-width: 780px; }
+.portal-main .portal-welcome h1 { line-height: 1.16; }
+.portal-main .portal-login {
+  width: min(100%, 960px);
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
+  align-items: stretch;
+  margin-block: var(--ui-space-8);
+}
+.portal-main .portal-login > * { min-width: 0; }
+.portal-main .portal-login-art { min-height: 330px; overflow: hidden; }
+.portal-main .portal-login-art img { width: 100%; max-height: 440px; object-fit: contain; }
+.portal-main #portalLogin { padding: clamp(24px, 3vw, 40px); gap: var(--ui-space-5); }
+.portal-main #portalLogin :is(input,button) { min-height: 44px; }
+.portal-main .portal-app-head { flex-wrap: wrap; gap: var(--ui-space-4); }
+.portal-main .portal-app-head .nav { min-width: 0; display: flex; flex-wrap: wrap; gap: var(--ui-space-2); }
+.portal-main .footer { display: flex; flex-wrap: wrap; gap: var(--ui-space-3) var(--ui-space-6); }
+.portal-main .footer > * { min-width: 0; overflow-wrap: anywhere; }
+@media (max-width: 700px) {
+  .portal-main .portal-header { margin-bottom: var(--ui-space-6); }
+  .portal-main .portal-login { grid-template-columns: minmax(0, 1fr); }
+  .portal-main .portal-login-art { display: none; }
+  .portal-main #portalLogin { padding: var(--ui-space-6); }
+}
