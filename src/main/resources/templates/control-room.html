@@ -21,6 +21,7 @@
     <link rel="stylesheet" href="/assets/operations-upgrade.css">
     <link rel="stylesheet" href="/assets/environment-console.css">
     <link rel="stylesheet" href="/assets/enterprise-layout.css">
+    <link rel="stylesheet" href="/assets/signature-workspace.css">
 </head>
 
 <body th:attr="data-brand-name=${brandName},data-brand-subtitle=${brandSubtitle}">
@@ -140,26 +141,30 @@
         </aside>
 
         <main class="main" id="mainContent" tabindex="-1">
-            <header class="topbar">
-                <div style="display:flex;align-items:center;gap:9px;min-width:0">
-                    <button class="icon-btn mobile-menu" id="mobileMenu" aria-label="Apri navigazione" aria-controls="sidebar" aria-expanded="false" data-icon="menu">☰</button>
-                    <div>
-                        <div class="workspace-label" th:text="${brandName} + ' / Spazio operativo'">RadioTech / Spazio operativo</div><h1 id="pageTitle">Panoramica</h1>
-                        <p id="pageSubtitle">Monitoraggio infrastruttura radio e operazioni tecniche</p>
+            <header class="topbar signature-topbar" aria-label="Barra dello spazio operativo">
+                <div class="workspace-context">
+                    <button class="icon-btn mobile-menu" id="mobileMenu" type="button" aria-label="Apri navigazione" aria-controls="sidebar" aria-expanded="false" data-icon="menu">☰</button>
+                    <div class="workspace-heading-copy"><div class="workspace-label" th:text="${brandName}">RadioTech</div><h1 id="pageTitle">Panoramica</h1><p id="pageSubtitle" class="sr-only">Monitoraggio infrastruttura radio e operazioni tecniche</p></div>
+                </div>
+                <button class="workspace-search" id="workspaceSearchBtn" type="button" aria-label="Cerca sezioni e azioni" aria-haspopup="dialog" aria-controls="workspaceCommandDialog"><span data-icon="search" aria-hidden="true">⌕</span><span class="workspace-search-label">Cerca sezioni e azioni</span><kbd id="workspaceShortcut">Ctrl K</kbd></button>
+                <div class="top-actions">
+                    <button class="icon-btn notification-btn" id="notificationBell" type="button" title="Notifiche" aria-label="Apri notifiche"><span data-icon="bell" aria-hidden="true">✦</span><span class="notification-count hidden" id="notificationCount">0</span></button>
+                    <button class="icon-btn" id="refreshBtn" type="button" title="Aggiorna" aria-label="Aggiorna dati" data-icon="refresh">↻</button>
+                    <div class="workspace-menu-anchor">
+                        <button class="icon-btn" id="workspaceActionsBtn" type="button" aria-label="Azioni rapide" aria-expanded="false" aria-controls="workspaceActionsMenu" aria-haspopup="menu">＋</button>
+                        <div class="workspace-menu" id="workspaceActionsMenu" role="menu" aria-label="Azioni rapide" hidden><span class="workspace-menu-heading">Crea e comunica</span><button class="btn primary quick" id="quickAntennaBtn" type="button" role="menuitem">Nuova antenna</button><button class="btn quick" id="quickNotificationBtn" type="button" role="menuitem">Invia notifica</button><button class="btn" id="workspaceReportsBtn" type="button" role="menuitem">Apri Centro report</button></div>
+                    </div>
+                    <div class="workspace-menu-anchor account-anchor">
+                        <button class="workspace-account" id="workspaceAccountBtn" type="button" aria-label="Menu account" aria-expanded="false" aria-controls="workspaceAccountMenu" aria-haspopup="menu"><span class="avatar" id="topbarAvatar" aria-hidden="true">C</span><span class="workspace-account-copy"><strong id="topbarName">Account</strong><small id="topbarRole">—</small></span><span aria-hidden="true">⌄</span></button>
+                        <div class="workspace-menu" id="workspaceAccountMenu" role="menu" aria-label="Account" hidden><div class="workspace-menu-heading"><strong id="topbarAccountEmail">—</strong><span>Il tuo spazio aziendale</span></div><button class="btn" id="workspaceProfileBtn" type="button" role="menuitem">Profilo e account</button><button class="btn" id="workspaceSystemBtn" type="button" role="menuitem">Stato della sessione</button><button class="btn danger" id="topbarLogoutBtn" type="button" role="menuitem" aria-label="Esci dall'applicazione">Esci</button></div>
                     </div>
                 </div>
-
-                <div class="top-actions">
-                    <button class="icon-btn notification-btn" id="notificationBell" title="Notifiche" aria-label="Apri notifiche">
-                        ✦
-                        <span class="notification-count hidden" id="notificationCount">0</span>
-                    </button>
-                    <button class="icon-btn" id="refreshBtn" title="Aggiorna" aria-label="Aggiorna dati" data-icon="refresh">↻</button>
-                    <button class="btn" id="topbarLogoutBtn" type="button" aria-label="Esci dall'applicazione">Esci</button>
-                    <button class="btn quick" id="quickNotificationBtn">+ Invia notifica</button>
-                    <button class="btn primary quick" id="quickAntennaBtn">+ Nuova antenna</button>
-                </div>
             </header>
+            <dialog class="workspace-command-dialog" id="workspaceCommandDialog" aria-labelledby="workspaceCommandTitle">
+                <div class="workspace-command-head"><div><h2 id="workspaceCommandTitle">Trova nel workspace</h2><p>Sezioni e azioni disponibili per il tuo ruolo.</p></div><button class="icon-btn" id="workspaceCommandClose" type="button" aria-label="Chiudi ricerca">×</button></div>
+                <label class="sr-only" for="workspaceCommandInput">Cerca sezioni e azioni autorizzate</label><input id="workspaceCommandInput" type="search" placeholder="Cerca una sezione o un’azione…" autocomplete="off" aria-controls="workspaceCommandResults">
+                <div class="workspace-command-results" id="workspaceCommandResults" aria-live="polite"></div><div class="workspace-command-help">↑ ↓ per scegliere · Invio per aprire · Esc per chiudere</div>
+            </dialog>
 
             <div class="content">
 
@@ -167,7 +172,7 @@
                 <section class="view active" id="view-dashboard">
                     <div class="section-head overview-head">
                         <div><span class="section-kicker">La tua visione operativa</span>
-                            <h2>La rete, in primo piano.<br><span>Ogni giorno, sotto controllo.</span></h2>
+                            <h2>La rete, sotto controllo.</h2>
                             <p>Dalle infrastrutture alla squadra: una visione d’insieme per decidere dove intervenire.</p>
                         </div>
                         <div class="update-stamp">Aggiornamento <span id="lastUpdate">—</span></div>
@@ -207,12 +212,7 @@
                         </div>
                     </div>
 
-                    <div class="workspace-links" aria-label="Accessi rapidi">
-                        <button class="workspace-link" type="button" data-workspace-link="operations"><span data-icon="briefcase"></span><span><strong>Operazioni e squadra</strong><small>Incarichi, report e risorse</small></span><span class="link-arrow" data-icon="arrow"></span></button>
-                        <button class="workspace-link" type="button" data-workspace-link="enterprise"><span data-icon="shield"></span><span><strong>Rischi e competenze</strong><small>Incidenti e abilitazioni</small></span><span class="link-arrow" data-icon="arrow"></span></button>
-                        <button class="workspace-link" type="button" data-workspace-link="ai"><span data-icon="spark"></span><span><strong>Analisi aziendale</strong><small>Analisi e assistente AI</small></span><span class="link-arrow" data-icon="arrow"></span></button>
-                    </div>
-                    <div class="grid-2">
+                    <div class="grid-2 dashboard-network">
                         <div class="panel">
                             <div class="panel-head">
                                 <div>
@@ -302,6 +302,15 @@
                             </div>
                         </div>
                     </div>
+                    <div class="dashboard-tools"><div class="workspace-links" aria-label="Accessi rapidi">
+                        <button class="workspace-link" type="button" data-workspace-link="operations"><span data-icon="briefcase"></span><span><strong>Operazioni e squadra</strong><small>Incarichi, report e risorse</small></span><span class="link-arrow" data-icon="arrow"></span></button>
+                        <button class="workspace-link" type="button" data-workspace-link="enterprise"><span data-icon="shield"></span><span><strong>Rischi e competenze</strong><small>Incidenti e abilitazioni</small></span><span class="link-arrow" data-icon="arrow"></span></button>
+                        <button class="workspace-link" type="button" data-workspace-link="ai"><span data-icon="spark"></span><span><strong>Analisi aziendale</strong><small>Analisi e assistente AI</small></span><span class="link-arrow" data-icon="arrow"></span></button>
+                    </div>
+                    <section class="panel session-notes" aria-labelledby="sessionNotesTitle">
+                        <div class="panel-head"><div><h3 id="sessionNotesTitle">Note rapide</h3><span>Appunti della sessione di questa scheda</span></div><button class="mini-btn" id="sessionNotesClear" type="button" disabled>Svuota</button></div>
+                        <div class="panel-body"><label class="sr-only" for="sessionNotesEditor">Note rapide operative</label><textarea id="sessionNotesEditor" maxlength="8000" rows="3" placeholder="Annota una priorità o un promemoria per il prossimo intervento…" aria-describedby="sessionNotesHint" disabled></textarea><div class="session-notes-meta"><span id="sessionNotesStatus" role="status">Accedi per usare le note.</span><span id="sessionNotesCount">0 / 8000</span></div><p class="field-help" id="sessionNotesHint">Solo in questa scheda. Evita credenziali e informazioni sensibili.</p><span class="subtle" id="sessionNotesUpdated">Nessuna modifica</span></div>
+                    </section></div>
                 </section>
 
                 <!-- ANTENNE -->
@@ -312,8 +321,8 @@
                             <p>Controlla e modifica l'infrastruttura direttamente dal Centro operativo.</p>
                         </div>
                         <div class="toolbar">
-                            <input class="search" id="antennaSearch" type="search" placeholder="Cerca antenna...">
-                            <select id="antennaStatusFilter">
+                            <input class="search" id="antennaSearch" aria-label="Cerca antenna" type="search" placeholder="Cerca antenna...">
+                            <select id="antennaStatusFilter" aria-label="Filtra stato antenna">
                                 <option value="">Tutti gli stati</option>
                                 <option value="ATTIVA">Attiva</option>
                                 <option value="MANUTENZIONE">Manutenzione</option>
@@ -376,7 +385,7 @@
                         </div>
                         <div class="panel-body">
                             <div class="toolbar" style="margin-bottom:14px">
-                                <input id="operatorSearch" type="search" placeholder="Cerca per nome o email">
+                                <input id="operatorSearch" aria-label="Cerca operatore" type="search" placeholder="Cerca per nome o email">
                                 <select id="operatorRoleFilter" aria-label="Filtra per ruolo">
                                     <option value="">Tutti i ruoli</option>
                                     <option value="OPERATOR">Operatore</option>
@@ -435,6 +444,7 @@
                         </div>
                         <div class="panel-body"><span id="reportsPageStatus" aria-live="polite"></span> <button class="mini-btn" id="reportsMoreBtn" hidden>Carica altri report</button></div>
                     </div>
+                    <div class="operations-actions">
                     <div class="panel" style="margin-bottom:18px">
                         <div class="panel-head">
                             <div>
@@ -443,22 +453,22 @@
                         </div>
                         <div class="panel-body">
                             <div class="form-grid">
-                                <div class="field"><label>Titolo</label><input id="taskTitle" maxlength="160"></div>
-                                <div class="field"><label>Priorità</label><select id="taskPriority">
+                                <div class="field"><label for="taskTitle">Titolo</label><input id="taskTitle" maxlength="160"></div>
+                                <div class="field"><label for="taskPriority">Priorità</label><select id="taskPriority">
                                         <option value="LOW">Bassa</option>
                                         <option value="MEDIUM" selected>Media</option>
                                         <option value="HIGH">Alta</option>
                                         <option value="CRITICAL">Critica</option>
                                     </select></div>
-                                <div class="field"><label>Operatore</label><select id="taskOperator">
+                                <div class="field"><label for="taskOperator">Operatore</label><select id="taskOperator">
                                         <option value="">Seleziona operatore</option>
                                     </select></div>
-                                <div class="field"><label>Antenna</label><select id="taskAntenna">
+                                <div class="field"><label for="taskAntenna">Antenna</label><select id="taskAntenna">
                                         <option value="">Seleziona antenna</option>
                                     </select></div>
-                                <div class="field"><label>Scadenza</label><input id="taskDueAt" type="datetime-local">
+                                <div class="field"><label for="taskDueAt">Scadenza</label><input id="taskDueAt" type="datetime-local">
                                 </div>
-                                <div class="field" style="grid-column:1/-1"><label>Descrizione</label><textarea
+                                <div class="field" style="grid-column:1/-1"><label for="taskDescription">Descrizione</label><textarea
                                         id="taskDescription" maxlength="2000"></textarea></div>
                             </div><button class="btn primary" id="createTaskBtn">Assegna incarico</button>
                         </div>
@@ -475,6 +485,7 @@
                         <div class="panel-body"><span id="tasksPageStatus" aria-live="polite"></span> <button class="mini-btn" id="tasksMoreBtn" hidden>Carica altri incarichi</button></div>
                     </div>
 
+                    </div>
                     <div class="grid-equal">
                         <div class="panel">
                             <div class="panel-head">
@@ -627,23 +638,23 @@
                             </div>
                             <div class="panel-body">
                                 <div class="form-grid">
-                                    <div class="field"><label>Frequenza MHz</label><input id="tbFreq" type="number"
+                                    <div class="field"><label for="tbFreq">Frequenza MHz</label><input id="tbFreq" type="number"
                                             min="0" step="any"></div>
-                                    <div class="field"><label>Distanza km</label><input id="tbDist" type="number"
+                                    <div class="field"><label for="tbDist">Distanza km</label><input id="tbDist" type="number"
                                             min="0" step="any"></div>
-                                    <div class="field"><label>TX dBm</label><input id="tbTx" type="number" step="any">
+                                    <div class="field"><label for="tbTx">TX dBm</label><input id="tbTx" type="number" step="any">
                                     </div>
-                                    <div class="field"><label>TX Gain dBi</label><input id="tbGt" type="number"
+                                    <div class="field"><label for="tbGt">TX Gain dBi</label><input id="tbGt" type="number"
                                             step="any"></div>
-                                    <div class="field"><label>RX Gain dBi</label><input id="tbGr" type="number"
+                                    <div class="field"><label for="tbGr">RX Gain dBi</label><input id="tbGr" type="number"
                                             step="any"></div>
-                                    <div class="field"><label>TX loss dB</label><input id="tbLt" type="number" min="0"
+                                    <div class="field"><label for="tbLt">TX loss dB</label><input id="tbLt" type="number" min="0"
                                             step="any" value="0"></div>
-                                    <div class="field"><label>RX loss dB</label><input id="tbLr" type="number" min="0"
+                                    <div class="field"><label for="tbLr">RX loss dB</label><input id="tbLr" type="number" min="0"
                                             step="any" value="0"></div>
-                                    <div class="field"><label>Altre perdite dB</label><input id="tbLo" type="number"
+                                    <div class="field"><label for="tbLo">Altre perdite dB</label><input id="tbLo" type="number"
                                             min="0" step="any" value="0"></div>
-                                    <div class="field"><label>Sensibilità RX dBm</label><input id="tbSens" type="number"
+                                    <div class="field"><label for="tbSens">Sensibilità RX dBm</label><input id="tbSens" type="number"
                                             step="any"></div>
                                 </div><button class="btn primary" id="tbLinkBtn">Calcola</button>
                                 <div class="panel" style="margin-top:16px">
@@ -659,15 +670,15 @@
                             </div>
                             <div class="panel-body">
                                 <div class="form-grid">
-                                    <div class="field"><label>dBm</label><input id="tbDbm" type="number" step="any">
+                                    <div class="field"><label for="tbDbm">dBm</label><input id="tbDbm" type="number" step="any">
                                     </div>
-                                    <div class="field"><label>W</label><input id="tbW" type="number" step="any"></div>
+                                    <div class="field"><label for="tbW">W</label><input id="tbW" type="number" step="any"></div>
                                 </div>
                                 <button class="btn" id="tbPowerBtn">Converti potenza</button>
                                 <div id="tbPowerResult" class="subtle" style="margin-top:12px"></div>
                                 <hr style="border:0;border-top:1px solid var(--border);margin:22px 0">
                                 <div class="form-grid">
-                                    <div class="field"><label>VSWR</label><input id="tbVswr" type="number" min="1"
+                                    <div class="field"><label for="tbVswr">VSWR</label><input id="tbVswr" type="number" min="1"
                                             step="any"></div>
                                 </div><button class="btn" id="tbVswrBtn">Calcola VSWR</button>
                                 <div id="tbVswrResult" class="subtle" style="margin-top:12px"></div>
@@ -704,7 +715,7 @@
                         </div>
                         <div class="panel-body">
                             <div class="toolbar" style="margin-bottom:14px">
-                                <input id="inventorySearch" type="search" placeholder="Cerca nome, SKU, barcode, posizione">
+                                <input id="inventorySearch" aria-label="Cerca articolo inventario" type="search" placeholder="Cerca nome, SKU, barcode, posizione">
                                 <select id="inventoryCategoryFilter" aria-label="Categoria magazzino"><option value="">Tutte le categorie</option></select>
                                 <select id="inventoryStockFilter" aria-label="Stato scorte">
                                     <option value="ACTIVE">Articoli attivi</option><option value="ALL">Tutti gli articoli</option>
@@ -759,10 +770,6 @@
 
                 <!-- SYSTEM -->
                 <section class="view" id="view-system">
-                    <div class="panel" style="margin-bottom:18px">
-                        <div class="panel-head"><div><h3>Archivio, quote e backup</h3><span>Utilizzo e avvisi operativi</span></div><button class="mini-btn" id="operationsHealthRefresh">Aggiorna monitoraggio</button></div>
-                        <div class="panel-body" id="operationsHealth" aria-live="polite">Apri questa sezione per verificare il monitoraggio.</div>
-                    </div>
                     <div class="section-head">
                         <div>
                             <h2>Stato sistema</h2>
@@ -771,6 +778,10 @@
                         <button class="btn" id="systemRefreshBtn">Verifica ora</button>
                     </div>
 
+                    <div class="panel" style="margin-bottom:18px">
+                        <div class="panel-head"><div><h3>Archivio, quote e backup</h3><span>Utilizzo e avvisi operativi</span></div><button class="mini-btn" id="operationsHealthRefresh">Aggiorna monitoraggio</button></div>
+                        <div class="panel-body" id="operationsHealth" aria-live="polite">Apri questa sezione per verificare il monitoraggio.</div>
+                    </div>
                     <div class="grid-equal">
                         <div class="panel">
                             <div class="panel-head">
@@ -918,25 +929,25 @@
                 <div class="modal-body">
                     <input type="hidden" id="antennaId">
                     <div class="form-grid">
-                        <div class="field"><label>Nome</label><input id="antennaName" required
+                        <div class="field"><label for="antennaName">Nome</label><input id="antennaName" required
                                 placeholder="ANT-ROMA-001"></div>
-                        <div class="field"><label>Stato</label>
+                        <div class="field"><label for="antennaStatus">Stato</label>
                             <select id="antennaStatus">
                                 <option value="ATTIVA">ATTIVA</option>
                                 <option value="MANUTENZIONE">MANUTENZIONE</option>
                                 <option value="OFFLINE">OFFLINE</option>
                             </select>
                         </div>
-                        <div class="field"><label>Latitudine</label><input id="antennaLat" type="number" step="any"
+                        <div class="field"><label for="antennaLat">Latitudine</label><input id="antennaLat" type="number" step="any"
                                 required></div>
-                        <div class="field"><label>Longitudine</label><input id="antennaLng" type="number" step="any"
+                        <div class="field"><label for="antennaLng">Longitudine</label><input id="antennaLng" type="number" step="any"
                                 required></div>
-                        <div class="field"><label>Frequenza</label><input id="antennaFreq" type="number" step="any">
+                        <div class="field"><label for="antennaFreq">Frequenza</label><input id="antennaFreq" type="number" step="any">
                         </div>
-                        <div class="field"><label>Potenza</label><input id="antennaPower" type="number" step="any">
+                        <div class="field"><label for="antennaPower">Potenza</label><input id="antennaPower" type="number" step="any">
                         </div>
-                        <div class="field"><label>ROS</label><input id="antennaRos" type="number" step="any"></div>
-                        <div class="field"><label>Temperatura</label><input id="antennaTemp" type="number" step="any">
+                        <div class="field"><label for="antennaRos">ROS</label><input id="antennaRos" type="number" step="any"></div>
+                        <div class="field"><label for="antennaTemp">Temperatura</label><input id="antennaTemp" type="number" step="any">
                         </div>
                     </div>
                 </div>
@@ -957,18 +968,18 @@
             <form id="operatorForm">
                 <div class="modal-body">
                     <div class="form-grid">
-                        <div class="field"><label>Nome e cognome</label><input id="operatorFullName" required
+                        <div class="field"><label for="operatorFullName">Nome e cognome</label><input id="operatorFullName" required
                                 maxlength="120"></div>
-                        <div class="field"><label>Email</label><input id="operatorEmail" type="email"
+                        <div class="field"><label for="operatorEmail">Email</label><input id="operatorEmail" type="email"
                                 placeholder="Generata automaticamente"></div>
-                        <div class="field"><label>Telefono</label><input id="operatorPhone" type="tel"></div>
-                        <div class="field"><label>Livello</label><select id="operatorLevel">
+                        <div class="field"><label for="operatorPhone">Telefono</label><input id="operatorPhone" type="tel"></div>
+                        <div class="field"><label for="operatorLevel">Livello</label><select id="operatorLevel">
                                 <option>JUNIOR</option>
                                 <option selected>TECNICO</option>
                                 <option>SENIOR</option>
                             </select></div>
-                        <div class="field"><label>Turno</label><input id="operatorShift" value="GIORNALIERO"></div>
-                        <div class="field"><label>Password temporanea</label><input id="operatorPassword" type="text"
+                        <div class="field"><label for="operatorShift">Turno</label><input id="operatorShift" value="GIORNALIERO"></div>
+                        <div class="field"><label for="operatorPassword">Password temporanea</label><input id="operatorPassword" type="text"
                                 minlength="6" placeholder="Generata dal server"></div>
                     </div>
                     <div class="subtle" id="operatorCredentialsResult"></div>
@@ -1089,8 +1100,8 @@
             <form id="profileForm">
                 <div class="modal-body">
                     <div class="form-grid">
-                        <div class="field"><label>Nome completo</label><input id="editProfileName"></div>
-                        <div class="field"><label>Telefono</label><input id="editProfilePhone" type="tel"></div>
+                        <div class="field"><label for="editProfileName">Nome completo</label><input id="editProfileName"></div>
+                        <div class="field"><label for="editProfilePhone">Telefono</label><input id="editProfilePhone" type="tel"></div>
                         <div class="field full"><label for="editProfileCompany">Azienda</label><input id="editProfileCompany"></div>
                     </div>
                 </div>
@@ -1113,6 +1124,7 @@
     <script src="/assets/pro-security.js" defer></script>
     <script src="/assets/auth-client.js" defer></script>
     <script src="/assets/report-attachments.js"></script>
+    <script src="/assets/signature-workspace.js"></script>
     <script src="/assets/italian.js"></script>
     <script src="/assets/operations-upgrade.js" defer></script>
     <script src="/assets/telco-tools.js" defer></script>
@@ -1191,6 +1203,7 @@
             let management = null;
             let proSuite = null;
             let proSecurity = null;
+            let signatureWorkspace = null;
 
             const $ = id => document.getElementById(id);
 
@@ -1261,10 +1274,17 @@
             }
 
             function saveSession(token, user, remember, refreshToken = state.refreshToken) {
+                const identityOf = account => JSON.stringify([account?.tenantId, account?.uid || account?.id || account?.email]);
+                if (state.user && identityOf(state.user) !== identityOf(user)) {
+                    state.sessionEpoch = (state.sessionEpoch || 0) + 1;
+                    reportAttachments?.clear();
+                    document.querySelectorAll(".report-delete-dialog, .report-material-review").forEach(dialog => dialog.close());
+                }
                 state.token = token;
                 state.refreshToken = refreshToken || null;
                 state.user = user || null;
                 state.authRole = user?.role || null;
+                signatureWorkspace?.syncIdentity();
 
                 if (remember) {
                     localStorage.setItem(CONFIG.STORAGE_TOKEN, token);
@@ -1283,6 +1303,8 @@
             }
 
             function clearSession() {
+                signatureWorkspace?.reset();
+                document.querySelectorAll(".report-delete-dialog, .report-material-review").forEach(dialog => dialog.close());
                 reportAttachments?.clear();
                 state.token = null;
                 state.user = null;
@@ -1494,12 +1516,13 @@
                 for (const id of ["quickAntennaBtn", "quickNotificationBtn", "newAntennaBtn", "newOperatorBtn", "syncOperatorBtn", "createTaskBtn", "newNotificationBtn", "sendNotificationBtn", "newInventoryItemBtn", "editProfileBtn"]) {
                     if ($(id)) $(id).hidden = !allowed;
                 }
-                document.querySelectorAll("[data-edit], [data-delete], [data-delete-operator], [data-reset-password], [data-validity], [data-save-role], [data-approve], [data-badge], [data-regenerate], [data-report-approve], [data-report-reject], [data-inventory-move], [data-inventory-edit], [data-inventory-archive], [data-inventory-restore]").forEach(element => { element.hidden = !allowed; });
+                document.querySelectorAll("[data-edit], [data-delete], [data-delete-operator], [data-reset-password], [data-validity], [data-save-role], [data-approve], [data-badge], [data-regenerate], [data-report-approve], [data-report-reject], [data-report-delete], [data-inventory-move], [data-inventory-edit], [data-inventory-archive], [data-inventory-restore]").forEach(element => { element.hidden = !allowed; });
                 document.querySelectorAll("[data-operator-role]").forEach(element => { if (!allowed) element.disabled = true; });
             }
 
             function hydrateUser() {
                 applyPermissions();
+                signatureWorkspace?.syncIdentity();
                 const u = state.user || {};
                 const name = u.name || u.displayName || u.fullName || "Capo RadioTech";
                 const email = u.email || "—";
@@ -1986,18 +2009,22 @@
             function attachmentViewer() { return reportAttachments ??= window.RadioTechReportAttachments({apiFetch, escapeHtml}); }
             function reportDisplayTitle(report) {
                 const task = state.tasks.find(t => t.id === report.taskId);
+                return report.taskTitle || task?.title || "Intervento senza compito assegnato";
+            }
+            function reportDisplaySummary(report) {
                 const operator = state.operators.find(o => o.id === report.operatorId || o.firebaseUid === report.operatorFirebaseUid);
-                const title = report.taskTitle || task?.title || "Intervento senza compito assegnato";
                 const name = report.operatorName || operator?.fullName || "Operatore non disponibile";
                 const instant = new Date(report.submittedAt || report.completedAt || report.createdAt || "");
                 const date = Number.isNaN(instant.getTime()) ? "Data non disponibile" : instant.toLocaleDateString("it-IT", {day:"2-digit",month:"2-digit",year:"numeric"});
-                return `Report-${title}-${name}-${date}`;
+                return `ID ${report.id} · ${name} · ${date}`;
             }
             function refreshReportTitles() {
                 for (const report of state.reports || []) {
                     const row = [...$("reportsList").querySelectorAll("[data-report-id]")].find(n => n.dataset.reportId === report.id);
                     const title = row?.querySelector(".task-title");
                     if (title) { title.textContent = reportDisplayTitle(report); title.title = title.textContent; }
+                    const summary = row?.querySelector(".report-summary");
+                    if (summary) summary.textContent = reportDisplaySummary(report);
                 }
             }
             async function loadReports(append = false) {
@@ -2021,15 +2048,84 @@
                     $('reportsMoreBtn').hidden = !reportsCursor;
                     $('reportsPageStatus').textContent = `${reports.length} report caricati${reportsCursor ? ' · altri disponibili' : ' · fine elenco'}`;
                     attachmentViewer().clear();
-                    $("reportsList").innerHTML = reports.length ? reports.map(r => `<div class="task-row report-row" data-report-id="${escapeHtml(r.id || "")}" data-status="${escapeHtml(r.status || "SUBMITTED")}" data-operator="${escapeHtml(r.operatorName || r.operatorId || "")}" data-date="${escapeHtml((r.submittedAt || r.createdAt || "").slice(0,10))}"><div><div class="task-title">${escapeHtml(reportDisplayTitle(r))}</div><div class="task-meta">Incarico ${escapeHtml(r.taskId || "—")} · Operatore ${escapeHtml(r.operatorName || r.operatorId || "—")} · ${escapeHtml(r.operatorNotes || r.description || "Nessuna nota")}</div>${reportDetails(r)}${attachmentViewer().markup(r.attachments)}</div><div class="actions"><span class="badge ${badgeClass(r.status)}">${escapeHtml(formatStatus(r.status || "SUBMITTED"))}</span><button class="mini-btn" data-report-toggle aria-expanded="true" aria-label="Comprimi report">⌃</button>${["SUBMITTED","APPROVAL_PENDING"].includes(r.status) ? `<button class="mini-btn" data-report-approve="${escapeHtml(r.id)}">${r.status === "APPROVAL_PENDING" ? "Riprendi approvazione" : "Approva"}</button>${r.status === "SUBMITTED" ? `<button class="mini-btn" data-report-reject="${escapeHtml(r.id)}">Rifiuta</button>` : ""}` : ""}</div></div>`).join("") : `<div class="empty">Nessun report ricevuto.</div>`;
-                attachmentViewer().mount($("reportsList"));
-                applyPermissions();
+                    $("reportsList").innerHTML = reports.length ? reports.map(renderReportRow).join("") : `<div class="empty">${data?.hasMore ? "Nessun report visibile in questa pagina. Carica altri report per continuare." : "Nessun report ricevuto."}</div>`;
+                    attachmentViewer().mount($("reportsList"));
+                    applyPermissions();
                     $("reportsList").querySelectorAll('[data-report-approve]').forEach(b => b.addEventListener('click', () => reviewReport(b.dataset.reportApprove, true)));
                     $("reportsList").querySelectorAll('[data-report-reject]').forEach(b => b.addEventListener('click', () => reviewReport(b.dataset.reportReject, false)));
+                    $("reportsList").querySelectorAll('[data-report-delete]').forEach(b => b.addEventListener('click', () => deleteReport(b.dataset.reportDelete, b)));
                 } catch (e) { if (append) toast('Caricamento non riuscito', e.message, 'error'); else $("reportsList").innerHTML = `<div class="empty">Report non disponibili: ${escapeHtml(e.message)}</div>`; }
                 finally { loadingReports = false; $('reportsMoreBtn').disabled = false;
                     if (reloadReports) { reloadReports = false; if (state.token) loadReports(); }
                 }
+            }
+
+            function canManageReports() {
+                return ["ADMIN", "SUPER_ADMIN", "CHIEF_EXECUTIVE", "CAPO", "NETWORK_MANAGER"].includes(state.authRole || state.user?.role);
+            }
+            function renderReportRow(report) {
+                const id = escapeHtml(report.id || ""), status = report.status || "SUBMITTED";
+                const date = report.submittedAt || report.completedAt || report.createdAt;
+                return `<article class="task-row report-row" data-report-id="${id}" data-status="${escapeHtml(status)}" data-operator="${escapeHtml(report.operatorName || report.operatorId || "")}" data-date="${escapeHtml((date || "").slice(0,10))}">
+                    <div class="report-copy"><div class="task-title">${escapeHtml(reportDisplayTitle(report))}</div>
+                    <div class="task-meta report-summary">${escapeHtml(reportDisplaySummary(report))}</div>
+                    <div class="task-meta report-note">${escapeHtml(report.operatorNotes || report.description || "Nessuna nota")}</div>
+                    ${reportDetails(report)}${attachmentViewer().markup(report.attachments)}</div>
+                    <div class="actions"><span class="badge ${badgeClass(status)}">${escapeHtml(formatStatus(status))}</span>
+                    ${canManageReports() && ["SUBMITTED", "APPROVAL_PENDING"].includes(status) ? `<button type="button" class="mini-btn" data-report-approve="${id}">${status === "APPROVAL_PENDING" ? "Riprendi approvazione" : "Approva"}</button>${status === "SUBMITTED" ? `<button type="button" class="mini-btn" data-report-reject="${id}">Rifiuta</button>` : ""}` : ""}
+                    ${canManageReports() ? `<button type="button" class="btn danger mini-btn" data-report-delete="${id}">Elimina</button>` : ""}
+                    <button type="button" class="mini-btn" data-report-toggle aria-expanded="true" aria-label="Comprimi report">⌃</button></div></article>`;
+            }
+            async function deleteReport(id, trigger) {
+                if (!canManageReports() || trigger.disabled) return;
+                const report = state.reports.find(item => item.id === id);
+                if (!report) return;
+                const rowButtons = [...trigger.closest('[data-report-id]').querySelectorAll('[data-report-approve], [data-report-reject], [data-report-delete]')];
+                if (rowButtons.some(button => button.disabled)) return;
+                const epoch = state.sessionEpoch || 0;
+                const dialog = document.createElement('dialog');
+                dialog.className = 'report-material-review report-delete-dialog';
+                dialog.setAttribute('aria-labelledby', 'reportDeleteTitle');
+                dialog.setAttribute('aria-describedby', 'reportDeleteConsequences');
+                dialog.innerHTML = `<form><h2 id="reportDeleteTitle">Elimina report</h2>
+                    <p class="report-delete-name">${escapeHtml(reportDisplayTitle(report))}</p>
+                    <dl><dt>Identificativo</dt><dd>${escapeHtml(id)}</dd><dt>Stato</dt><dd>${escapeHtml(formatStatus(report.status || 'SUBMITTED'))}</dd></dl>
+                    <p id="reportDeleteConsequences">Il report sarà rimosso dall’elenco operativo. Documento, allegati, firme e storico delle operazioni rimarranno conservati per la tracciabilità. L’incarico e i movimenti di magazzino già registrati non saranno modificati.</p>
+                    <p role="alert" data-delete-error hidden></p>
+                    <div class="actions"><button type="button" class="btn" data-delete-cancel>Annulla</button><button type="submit" class="btn danger">Conferma eliminazione</button></div></form>`;
+                let busy = false;
+                rowButtons.forEach(button => { button.disabled = true; });
+                dialog.addEventListener('close', () => { dialog.remove(); rowButtons.forEach(button => { button.disabled = false; }); if (trigger.isConnected) trigger.focus(); else $('reportsRefreshBtn')?.focus(); }, {once:true});
+                dialog.addEventListener('cancel', event => { if (busy) event.preventDefault(); });
+                dialog.querySelector('[data-delete-cancel]').addEventListener('click', () => dialog.close());
+                dialog.querySelector('form').addEventListener('submit', async event => {
+                    event.preventDefault();
+                    if (busy) return;
+                    if (epoch !== (state.sessionEpoch || 0) || !canManageReports()) { dialog.close(); return; }
+                    busy = true;
+                    dialog.querySelectorAll('button').forEach(button => { button.disabled = true; });
+                    const errorBox = dialog.querySelector('[data-delete-error]');
+                    errorBox.hidden = true;
+                    try {
+                        await apiFetch(`/api/v1/reports/${encodeURIComponent(id)}`, {method:'DELETE'});
+                        if (epoch !== (state.sessionEpoch || 0)) { dialog.close(); return; }
+                        state.reports = state.reports.filter(item => item.id !== id);
+                        trigger.closest('[data-report-id]')?.remove();
+                        dialog.close();
+                        await Promise.all([loadReports(), loadStats()]);
+                        toast('Report eliminato', 'Rimosso dall’elenco operativo. Documenti e storico conservati.');
+                    } catch (error) {
+                        if (epoch !== (state.sessionEpoch || 0)) { dialog.close(); return; }
+                        errorBox.textContent = `Eliminazione non riuscita: ${error.message}`;
+                        errorBox.hidden = false;
+                        toast('Eliminazione fallita', error.message, 'error');
+                    } finally {
+                        busy = false;
+                        dialog.querySelectorAll('button').forEach(button => { button.disabled = false; });
+                    }
+                });
+                document.body.append(dialog); dialog.showModal();
+                dialog.querySelector('[data-delete-cancel]').focus();
             }
 
             function reportDetails(report) {
@@ -2040,7 +2136,9 @@
             }
 
             async function reviewReport(id, approve) {
-                const buttons = [...$("reportsList").querySelectorAll('[data-report-approve], [data-report-reject]')].filter(b => b.dataset.reportApprove === id || b.dataset.reportReject === id);
+                const currentReport = state.reports.find(item => item.id === id);
+                if (!canManageReports() || !currentReport || !(approve ? ["SUBMITTED", "APPROVAL_PENDING"] : ["SUBMITTED"]).includes(currentReport.status)) return;
+                const buttons = [...$("reportsList").querySelectorAll('[data-report-approve], [data-report-reject], [data-report-delete]')].filter(b => b.dataset.reportApprove === id || b.dataset.reportReject === id || b.dataset.reportDelete === id);
                 if (buttons.some(b => b.disabled)) return;
                 const note = approve ? 'Report approvato dalla centrale.' : (prompt('Motivo del rifiuto:') || '');
                 if (!approve && !note.trim()) return;
@@ -2653,6 +2751,7 @@
 
                 setText("pageTitle", titles[view]?.[0] || "Panoramica");
                 setText("pageSubtitle", titles[view]?.[1] || "");
+                signatureWorkspace?.onNavigate(view);
 
                 if (view === "dashboard") {
                     initMap();
@@ -2951,6 +3050,7 @@
                 window.RadioTechTelcoTools();
                 window.RadioTechOperations({apiFetch, state, escapeHtml, toast, loadOperators, loadInventory});
                 management = window.RadioTechManagement({ apiFetch, state, escapeHtml, switchView, loadOperators, loadReports });
+                signatureWorkspace = window.RadioTechSignatureWorkspace({state, switchView, initials});
                 const skip = document.createElement("a");
                 skip.href = "#mainContent"; skip.className = "skip-link"; skip.textContent = "Vai al contenuto";
                 document.body.prepend(skip);

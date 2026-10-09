@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
+import { session } from './fixtures/control-room-session.js';
 
 test('login identifies proxy and CORS rejection instead of claiming bad credentials',async({page})=>{
   await page.route('**/api/v1/auth/public-config',route=>route.fulfill({json:{enabled:false}}));
@@ -29,7 +30,7 @@ test('glass surfaces align cards and brand returns home without losing the sessi
   await page.locator('#brandHome').click();await expect(page.locator('#view-dashboard')).toHaveClass(/active/);
   expect(await page.evaluate(()=>sessionStorage.getItem('radiotech_control_token'))).toBe('test-token');
   const panels=await page.locator('#view-dashboard .grid-2 > .panel').evaluateAll(nodes=>nodes.map(n=>{const r=n.getBoundingClientRect();return {width:r.width,height:r.height};}));
-  expect(Math.abs(panels[0].width-panels[1].width)).toBeLessThan(1);expect(Math.abs(panels[0].height-panels[1].height)).toBeLessThan(1);
+  expect(panels[0].width).toBeGreaterThan(panels[1].width);expect(panels.every(panel=>panel.height>0)).toBe(true);
   await expect(page.locator('.footer')).toContainText('RadioTech');
   expect(await page.evaluate(()=>getComputedStyle(document.body,'::before').animationName)).toBe('none');
   await page.emulateMedia({reducedMotion:'no-preference'});
@@ -38,6 +39,7 @@ test('glass surfaces align cards and brand returns home without losing the sessi
   await page.locator('#mobileMenu').click();await page.locator('#brandHome').focus();await page.keyboard.press('Enter');
   await expect(page.locator('#view-dashboard')).toHaveClass(/active/);await expect(page.locator('#mobileMenu')).toHaveAttribute('aria-expanded','false');
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+  await page.locator('#workspaceActionsBtn').click();
   await expect(page.locator('#quickAntennaBtn')).toBeVisible();
   await expect(page.locator('#quickNotificationBtn')).toBeVisible();
 });
@@ -65,7 +67,7 @@ test('Enterprise operational pages keep consistent spacing and notification comp
   for(let i=1;i<fields.length;i++) expect(fields[i].top-fields[i-1].bottom).toBeGreaterThanOrEqual(16);
   for(const width of [768,390,320]){
     await page.setViewportSize({width,height:850});
-    expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+    await expect.poll(()=>page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
     await expect(page.locator('#notificationTarget')).toBeVisible();
     await expect(page.locator('#sendNotificationBtn')).toBeVisible();
   }
@@ -392,7 +394,7 @@ test('planning denies mutation for viewers and clears failed or expired data', a
   await expect(page.locator('#planningStatus')).toContainText('non disponibili');
   await expect(page.locator('#planningList')).toBeEmpty();
   await expect(page.locator('#planningExport')).toBeDisabled();
-  await page.locator('#topbarLogoutBtn').click();
+  await page.locator('#workspaceAccountBtn').click();await page.locator('#topbarLogoutBtn').click();
   await expect(page.locator('#planningMetrics')).toBeEmpty();
   await expect(page.locator('#workloadList')).toBeEmpty();
 });
@@ -485,81 +487,6 @@ test('home counters include records beyond the first loaded archive page',async(
  await expect(page.locator('#widgetOverdueTasks')).toHaveText('35');
 });
 
-async function session(page, role = 'ADMIN', records = {}) {
-  await page.addInitScript(role => {
-    sessionStorage.setItem('radiotech_control_token', 'test-token');
-    sessionStorage.setItem('radiotech_control_user', JSON.stringify({ role, name: 'Responsabile', email: 'admin@example.test', tenantId: 'test-tenant' }));
-  }, role);
-  const incidents = [{ id: 'i1', title: 'Backhaul indisponibile', severity: 'HIGH', status: 'DETECTED' }];
-  const antennas = records.antennas || [];
-  let shift = { status: 'OFF_DUTY', readiness: 'READY', version: 0, workMinutes: 0, restMinutes: 0 };
-  const signals = [];
-  let badgeToken = 'badge-only-token';
-  await page.route('**/api/**', async route => {
-    const url = new URL(route.request().url());
-    const requestedPath = url.pathname.replace('/api/v1', '');
-    const paged = ['/tasks/page', '/reports/page'].includes(requestedPath);
-    const path = paged ? requestedPath.replace(/\/page$/, '') : requestedPath;
-    let data;
-    const method = route.request().method();
-    if (method === 'GET' && ['/dashboard/antenne', '/dashboard/notifications', '/dashboard/audit', '/reports', '/inventory', '/inventory/movements'].includes(path)) data = [];
-    if (path === '/dashboard/antenne' && method === 'GET') data = antennas;
-    if (path === '/dashboard/antenne' && method === 'POST') {
-      const input = JSON.parse(route.request().postData());
-      const item = { ...input, id: 'a-new', specs: { frequenza: input.specs.frequencyMHz, potenza: input.specs.powerWatts, ros: input.specs.ros, temperatura: input.specs.temperature } };
-      antennas.push(item); data = item;
-    }
-    if (path === '/dashboard/antenne/a-new' && method === 'PUT') {
-      Object.assign(antennas[0], JSON.parse(route.request().postData())); data = antennas[0];
-    }
-    if (path === '/dashboard/stats') data = { antennas: 1, tasks: 1, operators: 1, availability: 100, activeTasks: 1, taskStats:{overdue:1}, pendingReports: (records['/reports'] || []).filter(r=>['SUBMITTED','APPROVAL_PENDING'].includes(r.status)).length };
-    if (path === '/reports/count') data = {count: (records['/reports'] || []).filter(r => ['SUBMITTED','APPROVAL_PENDING'].includes(r.status)).length};
-    if (path === '/auth/verify') data = { success: true, user: { role } };
-    if (path === '/dashboard/profile' && method === 'GET') data = { fullName: 'Responsabile', company: 'RadioTech', role };
-    if (path === '/capo/profile' && method === 'PUT') data = { success: true, data: JSON.parse(route.request().postData()) };
-    if (path === '/tasks') data = { success: true, data: [{ id: 't1', title: 'Verifica trasmettitore', operatorId: 'o1', antennaId: 'a1', status: 'ASSIGNED', dueAt: '2020-01-01T00:00:00Z' }] };
-    if (path === '/operators') data = { success: true, data: [{ id: 'o1', fullName: 'Tecnico Bari', status: 'ATTIVO', role: 'OPERATOR' }] };
-    if (path === '/operators/o1/badge' && method === 'GET') data = { success: true, data: { qrCodeToken: badgeToken, imageDataUrl: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jMZkAAAAASUVORK5CYII=' } };
-    if (path === '/operators/o1/regenerate-qr' && method === 'POST') {
-      badgeToken = 'fresh-badge-token';
-      data = {success: true, data: {qrCodeToken: badgeToken}};
-    }
-    if (path === '/alerts') data = [{ id: 'alert1', descrizione: '<img src=x onerror=alert(1)>', priorita: 'CRITICA', letto: false }];
-    if (path === '/incidents') data = incidents;
-    if (path === '/incidents/i1/transitions') { incidents[0].status = JSON.parse(route.request().postData()).status; data = incidents[0]; }
-    if (path === '/health' || path === '/health/firebase') data = { status: 'UP' };
-    if (path === '/operations/health') data = {backend:'FIRESTORE',attachments:{count:9,bytes:1561029},pendingReports:3,backup:{state:'NOT_CONFIGURED'},firestore:{state:'UNAVAILABLE',note:'Metriche Google non disponibili.',quotaDayTimezone:'America/Los_Angeles'},alarms:[{message:'Backup esterno da configurare.'}]};
-    if (path === '/operators/o1/skills') data = [{ skill: 'RF', level: 4, certification: 'RF Test', expiration: '2030-01-01', authorized: true }];
-    if (path === '/ai/status') data = { enabled: true, model: 'test-local' };
-    if (path === '/ai/insights') data = { scope: 'TENANT', assetsObserved: 1, highRiskAssets: 1, activeTasks: 1, overdueTasks: 1, notice: 'Indicatori, non probabilità di guasto.', partial: false, risks: [{ assetId: 'a1', name: 'Ponte Bari', score: 70, level: 'HIGH', dataQuality: 'LIMITED', reasons: ['Asset offline'], recommendation: 'Verificare con il responsabile.', estimatedMaintenanceAt: null }] };
-    if (path === '/ai/chat' && method === 'POST') data = { answer: '<img src=x onerror=alert(1)> Risposta dal modello', notice: 'Verificare le decisioni.' };
-    if (path === '/workforce/me/shift') {
-      if (method === 'PUT') { const input = JSON.parse(route.request().postData()); shift = { ...shift, status: input.action === 'START' ? 'ACTIVE' : input.action === 'BREAK' ? 'BREAK' : 'OFF_DUTY', readiness: input.readiness, version: shift.version + 1 }; }
-      data = shift;
-    }
-    if (path === '/workforce/shifts') data = [{ ...shift, name: 'Squadra Bari' }];
-    if (path === '/workforce/signals') {
-      if (method === 'POST') signals.push({ ...JSON.parse(route.request().postData()), id: 's1', name: 'Tecnico', status: 'OPEN', version: 0, createdAt: '2026-10-03T10:00:00Z' });
-      data = method === 'POST' ? signals.at(-1) : signals;
-    }
-    if (path === '/workforce/signals/s1' && method === 'PATCH') { Object.assign(signals[0], JSON.parse(route.request().postData()), { version: 1 }); data = signals[0]; }
-    if (method === 'GET' && records[path]) data = records[path];
-    if (records.respond) { const custom = await records.respond(path, method, route.request()); if (custom !== undefined) data = custom; }
-    if (paged && data !== undefined) {
-      let items = Array.isArray(data) ? data : data.data;
-      if (requestedPath === '/reports/page' && url.searchParams.get('status') && Array.isArray(items)) {
-        const status=url.searchParams.get('status');
-        items=items.filter(item=>item.status===status || status==='SUBMITTED' && item.status==='APPROVAL_PENDING');
-      }
-      const start = Number(url.searchParams.get('cursor') || 0), limit = Number(url.searchParams.get('limit') || 50);
-      if (Array.isArray(items)) data = {items:items.slice(start,start+limit),nextCursor:items.length>start+limit?String(start+limit):null,hasMore:items.length>start+limit};
-    }
-    await route.fulfill({ status: data === undefined ? 404 : 200, contentType: 'application/json', body: JSON.stringify(data ?? { message: `Unexpected route: ${method} ${path}` }) });
-  });
-  await page.route('**/actuator/**', route => route.fulfill({ status: 200, contentType: 'application/json', body: '{"status":"UP"}' }));
-  await page.goto('/dashboard');
-  await expect(page.locator('#app')).toHaveClass(/ready/);
-}
 
 test('all assignments remain visible beyond fifty and an active task can be cancelled', async ({page}) => {
   const tasks = Array.from({length: 55}, (_, index) => ({id: `task-${index}`, title: `Intervento ${index}`, operatorId: 'o1', status: 'IN_PROGRESS'}));
@@ -635,7 +562,7 @@ test('wrapped task responses render and enterprise workflows call real route con
   await expect(page.locator('#enterpriseSkills')).toContainText('RF Test');
   expect(errors).toEqual([]);
   await page.screenshot({ path: 'build/reports/web/enterprise-desktop.png', fullPage: true });
-  await page.locator('#topbarLogoutBtn').click();
+  await page.locator('#workspaceAccountBtn').click();await page.locator('#topbarLogoutBtn').click();
   await expect(page.locator('#loginEmail')).toBeVisible();
   expect(await page.evaluate(() => sessionStorage.getItem('radiotech_control_token'))).toBeNull();
 });
@@ -734,7 +661,7 @@ test('AI offers evidence, private chat context and safe output rendering', async
   await page.setViewportSize({ width: 390, height: 844 });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   await page.screenshot({ path: 'build/reports/web/ai-mobile.png', fullPage: true });
-  await page.locator('#topbarLogoutBtn').click();
+  await page.locator('#workspaceAccountBtn').click();await page.locator('#topbarLogoutBtn').click();
   await expect(page.locator('#aiConversation')).toBeEmpty();
   await expect(page.locator('#aiContext')).not.toBeChecked();
   await expect(page.locator('#aiAssets')).toHaveText('—');
@@ -967,7 +894,8 @@ test('report headings use assigned task title operator name and date even with d
   await page.locator('#mobileMenu').click();
   await page.locator('.nav [data-view="reports"]').click();
   const title=page.locator('#reportsList [data-report-id="r-heading"] .task-title');
-  await expect(title).toHaveText('Report-Verifica collegamento <sede>-Mario Rossi-07/10/2026');
+  await expect(title).toHaveText('Verifica collegamento <sede>');
+  await expect(page.locator('#reportsList [data-report-id="r-heading"] .report-summary')).toHaveText('ID r-heading · Mario Rossi · 07/10/2026');
   await expect(title).not.toContainText('r-heading');
   expect(await title.evaluate(node=>node.getBoundingClientRect().right<=innerWidth)).toBeTruthy();
 });
