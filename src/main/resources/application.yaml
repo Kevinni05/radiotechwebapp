@@ -32,12 +32,18 @@ app:
     seed-tenant-id: ${RADIOTECH_FIRESTORE_SEED_TENANT_ID:}
   firebase:
     enabled: ${RADIOTECH_FIREBASE_ENABLED:true}
-    project-id: ${FIREBASE_PROJECT_ID:gestionale-radio}
+    project-id: ${FIREBASE_PROJECT_ID:demo-radiotech}
     storage-bucket: ${FIREBASE_STORAGE_BUCKET:}
     service-account-path: ${FIREBASE_SERVICE_ACCOUNT_PATH:}
-    database-url: ${FIREBASE_DATABASE_URL:https://gestionale-radio-default-rtdb.europe-west1.firebasedatabase.app}
+    database-url: ${FIREBASE_DATABASE_URL:}
 
 radiotech:
+  brand:
+    name: ${RADIOTECH_BRAND_NAME:RadioTech}
+    subtitle: ${RADIOTECH_BRAND_SUBTITLE:Gestione operativa}
+    logo-path: ${RADIOTECH_BRAND_LOGO_PATH:/assets/brand/radiotech-symbol-v1.png}
+    copyright: ${RADIOTECH_BRAND_COPYRIGHT:© 2026 RadioTech. Tutti i diritti riservati.}
+    support-email: ${RADIOTECH_BRAND_SUPPORT_EMAIL:}
   pro:
     scan-delay-ms: ${RADIOTECH_PRO_SCAN_DELAY_MS:300000}
     webhook-hosts: ${RADIOTECH_WEBHOOK_HOSTS:}

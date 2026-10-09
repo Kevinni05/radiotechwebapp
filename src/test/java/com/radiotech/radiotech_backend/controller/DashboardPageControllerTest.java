@@ -24,6 +24,10 @@ class DashboardPageControllerTest {
         assertEquals("control-room.html", controller.dashboard(firstModel, firstResponse));
         assertEquals("control-room.html", controller.dashboard(secondModel, secondResponse));
 
+        assertEquals("RadioTech", firstModel.get("brandName"));
+        assertEquals("Gestione operativa", firstModel.get("brandSubtitle"));
+        assertEquals("/assets/brand/radiotech-symbol-v1.png", firstModel.get("brandLogoPath"));
+
         String firstNonce = (String) firstModel.get("cspNonce");
         assertTrue(firstNonce.matches("[A-Za-z0-9_-]{20,}"));
         assertTrue(firstResponse.getHeader("Content-Security-Policy").contains("'nonce-" + firstNonce + "'"));
@@ -38,4 +42,16 @@ class DashboardPageControllerTest {
         assertTrue(template.contains("<style th:attr=\"nonce=${cspNonce}\">"));
         assertTrue(template.contains("<script th:attr=\"nonce=${cspNonce}\">"));
     }
+
+    @Test
+    void customerPortalReceivesWhiteLabelModel() {
+        ExtendedModelMap model = new ExtendedModelMap();
+        MockHttpServletResponse response = new MockHttpServletResponse();
+
+        assertEquals("customer-portal.html", controller.portal(model, response));
+        assertEquals("RadioTech", model.get("brandName"));
+        assertEquals("Gestione operativa", model.get("brandSubtitle"));
+        assertEquals("no-store", response.getHeader("Cache-Control"));
+    }
+
 }

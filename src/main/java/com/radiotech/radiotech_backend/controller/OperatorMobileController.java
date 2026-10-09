@@ -66,7 +66,7 @@ public class OperatorMobileController {
             String fullName = value(request, "fullName");
 
             if (email == null) {
-                email = "operatore-" + uid.substring(0, Math.min(8, uid.length())) + "@gestionale-radio.local";
+                email = "operatore-" + uid.substring(0, Math.min(8, uid.length())) + "@internal.invalid";
             }
             if (fullName == null) {
                 fullName = email.substring(0, email.indexOf('@'));

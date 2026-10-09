@@ -22,7 +22,7 @@ test('glass surfaces align cards and brand returns home without losing the sessi
   expect(await page.evaluate(()=>sessionStorage.getItem('radiotech_control_token'))).toBe('test-token');
   const panels=await page.locator('#view-dashboard .grid-2 > .panel').evaluateAll(nodes=>nodes.map(n=>{const r=n.getBoundingClientRect();return {width:r.width,height:r.height};}));
   expect(Math.abs(panels[0].width-panels[1].width)).toBeLessThan(1);expect(Math.abs(panels[0].height-panels[1].height)).toBeLessThan(1);
-  await expect(page.locator('.footer')).toContainText('Kevin Cagnazzo e Anthony Piccinonno');
+  await expect(page.locator('.footer')).toContainText('RadioTech');
   expect(await page.evaluate(()=>getComputedStyle(document.body,'::before').animationName)).toBe('none');
   await page.emulateMedia({reducedMotion:'no-preference'});
   expect(await page.evaluate(()=>getComputedStyle(document.body,'::before').animationName)).toBe('radiotech-aurora');
@@ -54,7 +54,7 @@ test('Signal customer portal preserves login, requests and logout on small scree
   await expect(page.locator('#proTitle')).toHaveText('Richieste di assistenza');await expect(page.locator('.portal-login')).toBeHidden();
   await page.locator('#proNew').click();await page.locator('#proField-name').fill('Verifica collegamento');await page.locator('#proField-notes').fill('Descrizione della richiesta del cliente.');
   await page.locator('#proForm [type="submit"]').click();await expect(page.locator('#proRecords')).toContainText('Verifica collegamento');
-  await page.locator('#portalBrandHome').click();await expect(page.locator('#portalApp')).toBeVisible();await expect(page.locator('.footer')).toContainText('Kevin Cagnazzo e Anthony Piccinonno');
+  await page.locator('#portalBrandHome').click();await expect(page.locator('#portalApp')).toBeVisible();await expect(page.locator('.footer')).toContainText('RadioTech');
   expect(calls).toHaveLength(1);expect(calls[0].operationId).toBeTruthy();
   for(const width of [320,768,1440]){
     await page.setViewportSize({width,height:1000});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);

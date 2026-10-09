@@ -1,3 +1,5 @@
+> Commercial/customer-owned provisioning: see [CUSTOMER-PROVISIONING.md](CUSTOMER-PROVISIONING.md). The sections below also document the current RadioTech reference environment and historical deployment notes.
+
 # RadioTech — rilascio web, API e mobile
 
 ## Ambiente rilevato il 3 ottobre 2026
