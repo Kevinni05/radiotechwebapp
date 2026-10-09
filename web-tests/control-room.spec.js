@@ -30,7 +30,7 @@ test('glass surfaces align cards and brand returns home without losing the sessi
   await page.locator('#brandHome').click();await expect(page.locator('#view-dashboard')).toHaveClass(/active/);
   expect(await page.evaluate(()=>sessionStorage.getItem('radiotech_control_token'))).toBe('test-token');
   const panels=await page.locator('#view-dashboard .grid-2 > .panel').evaluateAll(nodes=>nodes.map(n=>{const r=n.getBoundingClientRect();return {width:r.width,height:r.height};}));
-  expect(panels[0].width).toBeGreaterThan(panels[1].width);expect(panels.every(panel=>panel.height>0)).toBe(true);
+  expect(Math.abs(panels[0].width-panels[1].width)).toBeLessThan(2);expect(panels.every(panel=>panel.height>0)).toBe(true);
   await expect(page.locator('.footer')).toContainText('RadioTech');
   expect(await page.evaluate(()=>getComputedStyle(document.body,'::before').animationName)).toBe('none');
   await page.emulateMedia({reducedMotion:'no-preference'});
@@ -600,7 +600,7 @@ test('manager profile updates and badge retrieval use dedicated endpoints', asyn
   await page.locator('#editProfileCompany').fill('RadioTech Enterprise');
   const saved = page.waitForRequest(request => request.url().endsWith('/api/v1/capo/profile') && request.method() === 'PUT');
   await page.locator('#profileForm button[type="submit"]').click();
-  expect((await saved).postDataJSON()).toEqual({ fullName: 'Direzione RadioTech', phone: '', company: 'RadioTech Enterprise' });
+  expect((await saved).postDataJSON()).toEqual({ fullName: 'Direzione RadioTech', phone: '', company: 'RadioTech Enterprise', photoUrl: '' });
   await expect(page.locator('#profileName')).toHaveText('Direzione RadioTech');
   await page.locator('[data-view="operators"]').click();
   await page.locator('[data-badge="o1"]').click();
@@ -764,7 +764,7 @@ test('mobile menu and dialogs support keyboard navigation and focus return', asy
   await expect(page.locator('#mainContent')).toHaveAttribute('inert','');
   await page.locator('#sidebarClose').focus();
   await page.keyboard.press('Shift+Tab');
-  await expect(page.locator('[data-view="system"]')).toBeFocused();
+  await expect(page.locator('#brandingNav')).toBeFocused();
   await page.keyboard.press('Escape');
   await expect(page.locator('#mobileMenu')).toHaveAttribute('aria-expanded','false');
   await expect(page.locator('#mobileMenu')).toBeFocused();
@@ -929,7 +929,7 @@ test('environment widget searches cities and antennas with five day forecast and
 
 test('Raycast footer navigates workspaces preserves session and fits all screen widths',async({page})=>{
  await page.emulateMedia({reducedMotion:'reduce'});const errors=[];page.on('pageerror',e=>errors.push(e.message));await session(page);
- const footer=page.locator('footer.app-footer');await expect(footer).toContainText('Kevin Cagnazzo e Anthony Piccinonno');await expect(page.locator('#footerServiceStatus')).toHaveText('Backend disponibile');
+ const footer=page.locator('footer.app-footer');await expect(footer).toContainText('© 2026 RadioTech. Tutti i diritti riservati.');await expect(page.locator('#footerServiceStatus')).toHaveText('Backend disponibile');
  for(const width of [1440,1024,768,390,320]){await page.setViewportSize({width,height:1000});await footer.scrollIntoViewIfNeeded();expect(await footer.locator('button,.footer-group,.footer-brand,.footer-bottom').evaluateAll(nodes=>nodes.filter(n=>n.getClientRects().length).some(n=>{const r=n.getBoundingClientRect();return r.left<0||r.right>innerWidth+1;}))).toBe(false);expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);}
  for(const view of ['reports','planning','inventory','pro','access','system','dashboard']){await footer.locator(`[data-footer-view="${view}"]`).first().click();await expect(page.locator(`#view-${view}`)).toBeVisible();}
  expect(await page.evaluate(()=>sessionStorage.getItem('radiotech_control_token'))).toBe('test-token');await footer.scrollIntoViewIfNeeded();await page.locator('#footerBackTop').click();await expect(page.locator('.topbar')).toBeInViewport();await expect.poll(()=>page.evaluate(()=>document.scrollingElement.scrollTop)).toBe(0);

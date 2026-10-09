@@ -35,3 +35,9 @@ Il conteggio dei report in attesa nella dashboard ora usa un'unica query di ugua
 - 31 test browser sull’app Spring Boot compilata: geometria dashboard, personalizzazione persistente, autorizzazioni viewer, ritaglio circolare, tema chiaro/scuro, ingrandimento del testo, gestione errori meteo e responsive su nove risoluzioni (320–1920 px).
 - Risposta reale del provider verificata per Lecce; i test automatici usano risposte controllate per non dipendere dalla rete.
 - La verifica di produzione delle statistiche richiede i log della richiesta 500 e un accesso autenticato: non sono stati usati account o credenziali di produzione.
+
+## Correzioni della CI della PR #10
+
+La vista di personalizzazione è inserita prima del footer, insieme agli altri workspace. I pannelli nelle griglie crescono al contenuto e i loro corpi usano `flex: 1 1 auto`: la lista lunga degli incarichi conserva così la propria altezza e il blocco di paginazione non copre i pulsanti delle ultime righe.
+
+Le verifiche esistenti sono allineate al layout introdotto: colonne dashboard uguali, mappa che può crescere oltre l'altezza minima, copyright aziendale, nuova voce finale nella navigazione da tastiera e campo foto nel payload del profilo. Nel centro notifiche si conserva la colonna di composizione più ampia dello storico. Restano attivi i controlli su overflow, focus, ordine delle viste prima del footer e annullamento reale dell'ultimo incarico nella lista di 55 elementi.

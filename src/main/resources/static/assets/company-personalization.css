@@ -8,10 +8,10 @@
 #app .panel-head { padding:18px var(--card-padding); min-height:78px; gap:16px; flex-wrap:wrap; }
 #app .panel-body { padding:var(--card-padding); }
 #app :is(.grid-2,.dashboard-tools,.operations-actions,.telco-calculators,.enterprise-grid,.form-grid) { gap:var(--card-gap); align-items:stretch; }
-#app :is(.grid-2,.dashboard-tools,.operations-actions,.telco-calculators,.enterprise-grid)> .panel { height:100%; display:flex; flex-direction:column; min-width:0; }
-#app :is(.grid-2,.dashboard-tools,.operations-actions,.telco-calculators,.enterprise-grid)> .panel>.panel-body { flex:1; }
+#app :is(.grid-2,.dashboard-tools,.operations-actions,.telco-calculators,.enterprise-grid)> .panel { height:auto; display:flex; flex-direction:column; min-width:0; }
+#app :is(.grid-2,.dashboard-tools,.operations-actions,.telco-calculators,.enterprise-grid)> .panel>.panel-body { flex:1 1 auto; }
 #app #view-dashboard .dashboard-tools, #app #view-dashboard .dashboard-network { grid-template-columns:repeat(2,minmax(0,1fr)); align-items:stretch; }
-#app #view-dashboard .dashboard-network>.panel { height:100%; align-self:stretch; }
+#app #view-dashboard .dashboard-network>.panel { height:auto; align-self:stretch; }
 #app .dashboard-tools .workspace-links { height:100%; display:grid; grid-template-rows:repeat(3,minmax(0,1fr)); gap:12px; }
 #app .dashboard-tools .workspace-link { height:100%; padding:18px 24px; min-height:88px; }
 #app .session-notes .panel-body { display:flex; flex-direction:column; }
