@@ -1,0 +1,8 @@
+{
+  "available": false,
+  "channel": "GITHUB_RELEASES",
+  "applicationId": "com.example.gestionale_radio",
+  "versionName": "1.5.0",
+  "versionCode": 2021,
+  "note": "Release firmata predisposta; attivare dopo la pubblicazione e verifica dell’APK."
+}

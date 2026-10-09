@@ -224,6 +224,8 @@ public class TaskService {
                 }
 
                 task.setCreatedAt(now);
+                task.setArchiveAt(ArchiveQueries.timestamp(now));
+                task.setOperatorRefs(ArchiveQueries.identities(task.getOperatorId(), task.getOperatorFirebaseUid()));
                 task.setUpdatedAt(now);
                 task.setCompletedAt(null);
 
@@ -545,19 +547,30 @@ public class TaskService {
 
         public List<Task> getByOperator(String operatorId, String firebaseUid) throws Exception {
                 validateId(operatorId);
-                var references = new java.util.HashSet<String>();
-                references.add(operatorId.trim());
-                if (!isBlank(firebaseUid)) references.add(firebaseUid.trim());
-                // A tenant-only query also includes historical tasks without createdAt
-                // and avoids requiring new composite indexes during a deployment.
-                return getAllTasks().stream().filter(task -> references.contains(task.getOperatorId())
-                                || references.contains(task.getOperatorFirebaseUid())
-                                || references.contains(task.getOperator_uid())).toList();
+                var documents = ArchiveQueries.legacyOperator(FirestoreClient.getFirestore().collection(COLLECTION)
+                                .whereEqualTo("tenantId", requireCurrentTenant()), operatorId, firebaseUid).get().get().getDocuments();
+                var tasks = new ArrayList<Task>();
+                var profile = FirestoreClient.getFirestore().collection("operators").document(operatorId).get().get();
+                for (var document : documents) {
+                        var task = mapDocument(document);
+                        if (!isBlank(firebaseUid)) { task.setOperatorId(operatorId); task.setOperatorFirebaseUid(firebaseUid); }
+                        if (isBlank(task.getOperatorName()) && profile.exists() && requireCurrentTenant().equals(profile.getString("tenantId"))) task.setOperatorName(profile.getString("fullName"));
+                        tasks.add(task);
+                }
+                tasks.sort(java.util.Comparator.comparing((Task task) -> java.util.Objects.toString(task.getCreatedAt(), "")).reversed().thenComparing(Task::getId));
+                return tasks;
         }
 
         // ============================================================
         // BY ANTENNA
         // ============================================================
+
+        public ArchiveQueries.Page<Task> getPage(int limit, String cursor, String operatorId, String firebaseUid) throws Exception {
+                Query query = FirestoreClient.getFirestore().collection(COLLECTION)
+                                .whereEqualTo("tenantId", requireCurrentTenant());
+                if (operatorId != null) query = ArchiveQueries.operator(query, ArchiveQueries.identities(operatorId, firebaseUid));
+                return ArchiveQueries.page(query, limit, cursor, this::mapDocument);
+        }
 
         public List<Task> getByAntenna(
                         String antennaId)
@@ -711,6 +724,8 @@ public class TaskService {
                 Task task = gson.fromJson(gson.toJson(data), Task.class);
                 task.setId(document.getId());
                 normalizeLegacyOperator(task);
+                if (document.getString("archiveOperatorId") != null) task.setOperatorId(document.getString("archiveOperatorId"));
+                if (isBlank(task.getOperatorName())) task.setOperatorName(document.getString("archiveOperatorName"));
                 return task;
         }
 

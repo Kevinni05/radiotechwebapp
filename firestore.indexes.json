@@ -1,323 +1,451 @@
 {
-    "indexes": [
+  "indexes": [
+    {
+      "collectionGroup": "tasks",
+      "queryScope": "COLLECTION",
+      "fields": [
         {
-            "collectionGroup": "tasks",
-            "queryScope": "COLLECTION",
-            "fields": [
-                {
-                    "fieldPath": "operator_uid",
-                    "order": "ASCENDING"
-                },
-                {
-                    "fieldPath": "created_at",
-                    "order": "DESCENDING"
-                }
-            ]
+          "fieldPath": "operator_uid",
+          "order": "ASCENDING"
         },
         {
-            "collectionGroup": "auditLogs",
-            "queryScope": "COLLECTION",
-            "fields": [
-                {
-                    "fieldPath": "tenantId",
-                    "order": "ASCENDING"
-                },
-                {
-                    "fieldPath": "timestamp",
-                    "order": "DESCENDING"
-                }
-            ]
-        },
-        {
-            "collectionGroup": "tasks",
-            "queryScope": "COLLECTION",
-            "fields": [
-                {
-                    "fieldPath": "tenantId",
-                    "order": "ASCENDING"
-                },
-                {
-                    "fieldPath": "createdAt",
-                    "order": "DESCENDING"
-                }
-            ]
-        },
-        {
-            "collectionGroup": "incidents",
-            "queryScope": "COLLECTION",
-            "fields": [
-                {
-                    "fieldPath": "tenantId",
-                    "order": "ASCENDING"
-                },
-                {
-                    "fieldPath": "createdAt",
-                    "order": "DESCENDING"
-                }
-            ]
-        },
-        {
-            "collectionGroup": "tasks",
-            "queryScope": "COLLECTION",
-            "fields": [
-                {
-                    "fieldPath": "tenantId",
-                    "order": "ASCENDING"
-                },
-                {
-                    "fieldPath": "operatorId",
-                    "order": "ASCENDING"
-                }
-            ]
-        },
-        {
-            "collectionGroup": "tasks",
-            "queryScope": "COLLECTION",
-            "fields": [
-                {
-                    "fieldPath": "tenantId",
-                    "order": "ASCENDING"
-                },
-                {
-                    "fieldPath": "operatorFirebaseUid",
-                    "order": "ASCENDING"
-                }
-            ]
-        },
-        {
-            "collectionGroup": "tasks",
-            "queryScope": "COLLECTION",
-            "fields": [
-                {
-                    "fieldPath": "tenantId",
-                    "order": "ASCENDING"
-                },
-                {
-                    "fieldPath": "antennaId",
-                    "order": "ASCENDING"
-                }
-            ]
-        },
-        {
-            "collectionGroup": "maintenanceReports",
-            "queryScope": "COLLECTION",
-            "fields": [
-                {
-                    "fieldPath": "tenantId",
-                    "order": "ASCENDING"
-                },
-                {
-                    "fieldPath": "submittedAt",
-                    "order": "DESCENDING"
-                }
-            ]
-        },
-        {
-            "collectionGroup": "maintenanceReports",
-            "queryScope": "COLLECTION",
-            "fields": [
-                {
-                    "fieldPath": "tenantId",
-                    "order": "ASCENDING"
-                },
-                {
-                    "fieldPath": "operatorId",
-                    "order": "ASCENDING"
-                }
-            ]
-        },
-        {
-            "collectionGroup": "maintenanceReports",
-            "queryScope": "COLLECTION",
-            "fields": [
-                {
-                    "fieldPath": "tenantId",
-                    "order": "ASCENDING"
-                },
-                {
-                    "fieldPath": "operatorFirebaseUid",
-                    "order": "ASCENDING"
-                }
-            ]
-        },
-        {
-            "collectionGroup": "maintenanceReports",
-            "queryScope": "COLLECTION",
-            "fields": [
-                {
-                    "fieldPath": "tenantId",
-                    "order": "ASCENDING"
-                },
-                {
-                    "fieldPath": "taskId",
-                    "order": "ASCENDING"
-                }
-            ]
-        },
-        {
-            "collectionGroup": "notificationHistory",
-            "queryScope": "COLLECTION",
-            "fields": [
-                {
-                    "fieldPath": "tenantId",
-                    "order": "ASCENDING"
-                },
-                {
-                    "fieldPath": "createdAt",
-                    "order": "DESCENDING"
-                }
-            ]
-        },
-        {
-            "collectionGroup": "notificationHistory",
-            "queryScope": "COLLECTION",
-            "fields": [
-                {
-                    "fieldPath": "tenantId",
-                    "order": "ASCENDING"
-                },
-                {
-                    "fieldPath": "target",
-                    "order": "ASCENDING"
-                }
-            ]
-        },
-        {
-            "collectionGroup": "operators",
-            "queryScope": "COLLECTION",
-            "fields": [
-                {
-                    "fieldPath": "tenantId",
-                    "order": "ASCENDING"
-                },
-                {
-                    "fieldPath": "createdAt",
-                    "order": "DESCENDING"
-                }
-            ]
-        },
-        {
-            "collectionGroup": "operators",
-            "queryScope": "COLLECTION",
-            "fields": [
-                {
-                    "fieldPath": "tenantId",
-                    "order": "ASCENDING"
-                },
-                {
-                    "fieldPath": "firebaseUid",
-                    "order": "ASCENDING"
-                }
-            ]
-        },
-        {
-            "collectionGroup": "antennas",
-            "queryScope": "COLLECTION",
-            "fields": [
-                {
-                    "fieldPath": "tenantId",
-                    "order": "ASCENDING"
-                },
-                {
-                    "fieldPath": "code",
-                    "order": "ASCENDING"
-                }
-            ]
-        },
-        {
-            "collectionGroup": "antennas",
-            "queryScope": "COLLECTION",
-            "fields": [
-                {
-                    "fieldPath": "tenantId",
-                    "order": "ASCENDING"
-                },
-                {
-                    "fieldPath": "name",
-                    "order": "ASCENDING"
-                }
-            ]
-        },
-        {
-            "collectionGroup": "inventory",
-            "queryScope": "COLLECTION",
-            "fields": [
-                {
-                    "fieldPath": "tenantId",
-                    "order": "ASCENDING"
-                },
-                {
-                    "fieldPath": "name",
-                    "order": "ASCENDING"
-                }
-            ]
-        },
-        {
-            "collectionGroup": "inventoryMovements",
-            "queryScope": "COLLECTION",
-            "fields": [
-                {
-                    "fieldPath": "tenantId",
-                    "order": "ASCENDING"
-                },
-                {
-                    "fieldPath": "createdAt",
-                    "order": "DESCENDING"
-                }
-            ]
-        },
-        {
-            "collectionGroup": "alerts",
-            "queryScope": "COLLECTION",
-            "fields": [
-                {
-                    "fieldPath": "tenantId",
-                    "order": "ASCENDING"
-                },
-                {
-                    "fieldPath": "generated",
-                    "order": "ASCENDING"
-                }
-            ]
-        },
-        {
-            "collectionGroup": "workforceSignals",
-            "queryScope": "COLLECTION",
-            "fields": [
-                {
-                    "fieldPath": "tenantId",
-                    "order": "ASCENDING"
-                },
-                {
-                    "fieldPath": "createdAt",
-                    "order": "DESCENDING"
-                }
-            ]
-        },
-        {
-            "collectionGroup": "workforceSignals",
-            "queryScope": "COLLECTION",
-            "fields": [
-                {
-                    "fieldPath": "tenantId",
-                    "order": "ASCENDING"
-                },
-                {
-                    "fieldPath": "createdBy",
-                    "order": "ASCENDING"
-                },
-                {
-                    "fieldPath": "createdAt",
-                    "order": "DESCENDING"
-                }
-            ]
+          "fieldPath": "created_at",
+          "order": "DESCENDING"
         }
-    ],
-    "fieldOverrides": [
+      ]
+    },
+    {
+      "collectionGroup": "auditLogs",
+      "queryScope": "COLLECTION",
+      "fields": [
         {
-            "collectionGroup": "chunks",
-            "fieldPath": "data",
-            "indexes": []
+          "fieldPath": "tenantId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "timestamp",
+          "order": "DESCENDING"
         }
-    ]
+      ]
+    },
+    {
+      "collectionGroup": "tasks",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "tenantId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "createdAt",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "incidents",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "tenantId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "createdAt",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "tasks",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "tenantId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "operatorId",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "tasks",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "tenantId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "operatorFirebaseUid",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "tasks",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "tenantId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "antennaId",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "maintenanceReports",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "tenantId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "submittedAt",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "maintenanceReports",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "tenantId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "operatorId",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "maintenanceReports",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "tenantId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "operatorFirebaseUid",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "maintenanceReports",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "tenantId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "taskId",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "notificationHistory",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "tenantId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "createdAt",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "notificationHistory",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "tenantId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "target",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "operators",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "tenantId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "createdAt",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "operators",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "tenantId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "firebaseUid",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "antennas",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "tenantId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "code",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "antennas",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "tenantId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "name",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "inventory",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "tenantId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "name",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "inventoryMovements",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "tenantId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "createdAt",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "alerts",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "tenantId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "generated",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "workforceSignals",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "tenantId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "createdAt",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "workforceSignals",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "tenantId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "createdBy",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "createdAt",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "tasks",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "order": "ASCENDING",
+          "fieldPath": "tenantId"
+        },
+        {
+          "order": "DESCENDING",
+          "fieldPath": "archiveAt"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "tasks",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "order": "ASCENDING",
+          "fieldPath": "tenantId"
+        },
+        {
+          "fieldPath": "operatorRefs",
+          "arrayConfig": "CONTAINS"
+        },
+        {
+          "order": "DESCENDING",
+          "fieldPath": "archiveAt"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "tasks",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "order": "ASCENDING",
+          "fieldPath": "tenantId"
+        },
+        {
+          "fieldPath": "operatorRefs",
+          "arrayConfig": "CONTAINS"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "maintenanceReports",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "order": "ASCENDING",
+          "fieldPath": "tenantId"
+        },
+        {
+          "order": "DESCENDING",
+          "fieldPath": "archiveAt"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "maintenanceReports",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "order": "ASCENDING",
+          "fieldPath": "tenantId"
+        },
+        {
+          "fieldPath": "operatorRefs",
+          "arrayConfig": "CONTAINS"
+        },
+        {
+          "order": "DESCENDING",
+          "fieldPath": "archiveAt"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "maintenanceReports",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "order": "ASCENDING",
+          "fieldPath": "tenantId"
+        },
+        {
+          "fieldPath": "operatorRefs",
+          "arrayConfig": "CONTAINS"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "maintenanceReports",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "order": "ASCENDING",
+          "fieldPath": "tenantId"
+        },
+        {
+          "order": "ASCENDING",
+          "fieldPath": "status"
+        },
+        {
+          "order": "ASCENDING",
+          "fieldPath": "archiveAt"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "reportFiles",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "tenantId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "chunkCount",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "size",
+          "order": "ASCENDING"
+        }
+      ]
+    }
+  ],
+  "fieldOverrides": [
+    {
+      "collectionGroup": "chunks",
+      "fieldPath": "data",
+      "indexes": []
+    }
+  ]
 }

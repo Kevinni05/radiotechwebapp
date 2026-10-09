@@ -33,6 +33,10 @@ public class MaintenanceReport {
     private String startedAt;
     private String completedAt;
     private String submittedAt;
+    @JsonIgnore
+    private Long archiveAt;
+    @JsonIgnore
+    private List<String> operatorRefs;
     private String reviewedAt;
     private String reviewedBy;
     private String reviewNote;

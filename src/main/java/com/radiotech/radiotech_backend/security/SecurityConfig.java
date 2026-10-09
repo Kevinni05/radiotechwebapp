@@ -36,6 +36,7 @@ public class SecurityConfig {
                                                                 "/api/auth/qr-login",
                                                                 "/api/v1/auth/login",
                                                                 "/api/v1/auth/public-config",
+                                                                "/api/v1/mobile/releases/latest",
                                                                 "/api/v1/auth/refresh",
                                                                 "/api/v1/auth/verify",
                                                                 "/api/v1/auth/qr-login",

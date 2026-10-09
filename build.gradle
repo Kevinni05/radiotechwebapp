@@ -67,3 +67,20 @@ tasks.register('authenticatedSmoke', JavaExec) {
     mainClass = 'com.radiotech.radiotech_backend.ops.AuthenticatedSmokeTool'
     args project.findProperty('smokeOrigin') ?: 'http://127.0.0.1:8080'
 }
+
+tasks.register('archiveMigration', JavaExec) {
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.radiotech.radiotech_backend.ops.ArchiveMigrationTool'
+    args project.findProperty('archiveMigrationMode') ?: 'dry-run'
+}
+
+tasks.register('backupDrill', JavaExec) {
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.radiotech.radiotech_backend.ops.BackupDrillTool'
+    if (project.hasProperty('backupArchive')) args project.property('backupArchive'), project.property('backupKey')
+}
+
+tasks.register('operationsMonitor', JavaExec) {
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.radiotech.radiotech_backend.ops.OperationalMonitorTool'
+}

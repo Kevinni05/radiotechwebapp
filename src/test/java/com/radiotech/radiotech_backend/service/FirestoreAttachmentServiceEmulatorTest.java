@@ -67,6 +67,20 @@ class FirestoreAttachmentServiceEmulatorTest {
         }
     }
 
+    @Test void switchingNewUploadsToObjectStorageKeepsFirestoreFilesReadableWithoutABucket() throws Exception {
+        try (var db = database(); var client = mockStatic(FirestoreClient.class)) {
+            client.when(FirestoreClient::getFirestore).thenReturn(db);
+            byte[] bytes = "historical Firestore attachment".getBytes();
+            String reference = persistent().save("tenant", "operator", UUID.randomUUID().toString(), "old.pdf", bytes).get("reference").toString();
+            var env = new MockEnvironment().withProperty("radiotech.attachments.backend", "FIREBASE_STORAGE");
+            env.setActiveProfiles("production");
+            var switched = new LocalAttachmentService(env);
+            assertArrayEquals(bytes, Base64.getDecoder().decode(switched.read(reference.substring(15), "tenant", "operator", false).get("base64").toString()));
+            assertDoesNotThrow(() -> switched.validateOwned(reference, "tenant", "operator"));
+            assertThrows(SecurityException.class, () -> switched.read(reference.substring(15), "foreign", "operator", true));
+        }
+    }
+
     @Test void recoveringLocalFilesKeepsOriginalReferencesAndCannotImportAnotherOperatorsFile() throws Exception {
         try (var db = database(); var client = mockStatic(FirestoreClient.class)) {
             client.when(FirestoreClient::getFirestore).thenReturn(db);

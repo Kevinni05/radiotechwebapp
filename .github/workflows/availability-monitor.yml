@@ -1,0 +1,54 @@
+name: API availability and cloud quota alarm
+on:
+  schedule:
+    - cron: '*/15 * * * *'
+    - cron: '7 * * * *'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  operations:
+    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '7 * * * *'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      FIREBASE_PROJECT_ID: gestionale-radio
+      RADIOTECH_MONITOR_TENANT_IDS: ${{ secrets.RADIOTECH_MONITOR_TENANT_IDS }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: gradle
+      - name: Prepare existing read credentials
+        env:
+          MONITOR_ACCOUNT_JSON: ${{ secrets.FIREBASE_BACKUP_SERVICE_ACCOUNT }}
+        run: |
+          node - <<'NODE'
+          const fs = require('node:fs'), path = require('node:path');
+          const account = JSON.parse(process.env.MONITOR_ACCOUNT_JSON || '{}');
+          if (account.project_id !== 'gestionale-radio') throw new Error('Monitoring credentials are missing.');
+          const file = path.join(process.env.RUNNER_TEMP, 'monitor-account.json');
+          fs.writeFileSync(file, process.env.MONITOR_ACCOUNT_JSON, {mode:0o600});
+          fs.appendFileSync(process.env.GITHUB_ENV, `FIREBASE_SERVICE_ACCOUNT_PATH=${file}\n`);
+          NODE
+      - name: Check quota thresholds, pending reports and verified backups
+        run: bash gradlew operationsMonitor --console=plain
+  health:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check RadioTech API and Firestore
+        env:
+          API_ORIGIN: https://radiotechwebapp.onrender.com
+        run: |
+          curl --silent --show-error --fail-with-body --retry 3 --retry-all-errors --retry-delay 10 --max-time 75 "$API_ORIGIN/api/v1/health" -o api-health.json
+          curl --silent --show-error --fail-with-body --retry 3 --retry-all-errors --retry-delay 10 --max-time 75 "$API_ORIGIN/api/v1/health/firebase" -o firestore-health.json
+          node - <<'NODE'
+          const fs = require('node:fs');
+          for (const file of ['api-health.json','firestore-health.json']) {
+            const result = JSON.parse(fs.readFileSync(file,'utf8'));
+            if (result.status !== 'UP') throw new Error('API/Firestore unavailable; inspect quota and provider status.');
+          }
+          NODE

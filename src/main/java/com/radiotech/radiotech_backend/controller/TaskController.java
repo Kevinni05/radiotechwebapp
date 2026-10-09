@@ -51,6 +51,14 @@ public class TaskController {
                 }
         }
 
+        @GetMapping("/page")
+        public Object page(@RequestParam(defaultValue = "50") int limit,
+                        @RequestParam(required = false) String cursor,
+                        @RequestHeader(value = "X-Tenant-Id", required = false) String tenantId) throws Exception {
+                requirePermission(Permission.TASK_READ, tenantId);
+                return taskService.getPage(limit, cursor, null, null);
+        }
+
         @GetMapping("/{id}")
         public ResponseEntity<?> getTaskById(
                         @PathVariable String id,

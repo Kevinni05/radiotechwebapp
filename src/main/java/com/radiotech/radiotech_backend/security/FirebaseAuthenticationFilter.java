@@ -209,6 +209,7 @@ public class FirebaseAuthenticationFilter
                                 || path.equals("/api/auth/qr-login")
                                 || path.equals("/api/v1/auth/login")
                                 || path.equals("/api/v1/auth/public-config")
+                                || path.equals("/api/v1/mobile/releases/latest")
                                 || path.equals("/api/v1/auth/verify")
                                 || path.equals("/api/v1/auth/refresh")
                                 || path.equals("/api/v1/auth/qr-login")

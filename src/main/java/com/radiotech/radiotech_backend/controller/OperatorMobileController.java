@@ -347,6 +347,26 @@ public class OperatorMobileController {
         }
     }
 
+    @GetMapping("/me/reports/page")
+    public Object myReportPage(@RequestAttribute("firebaseUid") String uid,
+            @RequestParam(defaultValue = "30") int limit, @RequestParam(required = false) String cursor) throws Exception {
+        Operator own = operatorService.getByFirebaseUid(uid);
+        return reportService.getPage(limit, cursor, own == null ? uid : own.getId(), uid);
+    }
+
+    @GetMapping("/me/tasks/page")
+    public Object myTaskPage(@RequestAttribute("firebaseUid") String uid,
+            @RequestParam(defaultValue = "30") int limit, @RequestParam(required = false) String cursor) throws Exception {
+        Operator own = operatorService.getByFirebaseUid(uid);
+        return taskService.getPage(limit, cursor, own == null ? uid : own.getId(), uid);
+    }
+
+    @GetMapping("/me/reports/count")
+    public Object myReportCount(@RequestAttribute("firebaseUid") String uid) throws Exception {
+        Operator own = operatorService.getByFirebaseUid(uid);
+        return Map.of("count", reportService.countByOperator(own == null ? uid : own.getId(), uid));
+    }
+
     @GetMapping("/me/reports")
     public ResponseEntity<?> myReports(@RequestAttribute("firebaseUid") String uid) {
         try {

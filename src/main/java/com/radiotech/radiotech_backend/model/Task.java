@@ -37,6 +37,11 @@ public class Task {
 
     private String createdAt;
 
+    @com.fasterxml.jackson.annotation.JsonIgnore
+    private Long archiveAt;
+    @com.fasterxml.jackson.annotation.JsonIgnore
+    private java.util.List<String> operatorRefs;
+
     private String updatedAt;
 
     private String completedAt;

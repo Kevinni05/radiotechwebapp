@@ -43,6 +43,14 @@ public class MaintenanceReportController {
         return ok(service::getAll);
     }
 
+    @GetMapping("/page")
+    public Object page(@RequestParam(defaultValue = "50") int limit,
+            @RequestParam(required = false) String cursor,
+            @RequestHeader(value = "X-Tenant-Id", required = false) String tenantId) throws Exception {
+        requirePermission(Permission.REPORT_READ, tenantId);
+        return service.getPage(limit, cursor, null, null);
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<?> one(@PathVariable String id,
             @RequestHeader(value = "X-Tenant-Id", required = false) String tenantId) {

@@ -61,6 +61,8 @@ public class HealthController {
 
         } catch (Exception e) {
 
+            if (com.radiotech.radiotech_backend.exception.CloudQuota.exhausted(e)) response.put("error", "CLOUD_QUOTA_EXHAUSTED");
+
             response.put("success", false);
             response.put("status", "DOWN");
             response.put(

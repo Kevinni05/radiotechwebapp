@@ -113,16 +113,27 @@ public class MaintenanceReportService {
 
     public List<MaintenanceReport> getByOperator(String operatorRef, String firebaseUid) throws Exception {
         if (blank(operatorRef)) throw new IllegalArgumentException("operatorId obbligatorio.");
-        var references = new java.util.HashSet<String>();
-        references.add(operatorRef.trim());
-        if (!blank(firebaseUid)) references.add(firebaseUid.trim());
-        return getAll().stream().filter(report -> references.contains(report.getOperatorId())
-                || references.contains(report.getOperatorFirebaseUid())).toList();
+        return map(ArchiveQueries.legacyOperator(FirestoreClient.getFirestore().collection(COLLECTION)
+                .whereEqualTo("tenantId", currentTenant()), operatorRef, firebaseUid).get().get());
     }
 
     public List<MaintenanceReport> getByTask(String taskId) throws Exception {
         if (blank(taskId)) throw new IllegalArgumentException("taskId obbligatorio.");
-        return getAll().stream().filter(report -> taskId.trim().equals(report.getTaskId())).toList();
+        return map(FirestoreClient.getFirestore().collection(COLLECTION).whereEqualTo("tenantId", currentTenant())
+                .where(com.google.cloud.firestore.Filter.or(com.google.cloud.firestore.Filter.equalTo("taskId", taskId.trim()),
+                        com.google.cloud.firestore.Filter.equalTo("task_id", taskId.trim()))).get().get());
+    }
+
+    public ArchiveQueries.Page<MaintenanceReport> getPage(int limit, String cursor, String operatorId, String firebaseUid) throws Exception {
+        Query query = FirestoreClient.getFirestore().collection(COLLECTION).whereEqualTo("tenantId", currentTenant());
+        if (operatorId != null) query = ArchiveQueries.operator(query, ArchiveQueries.identities(operatorId, firebaseUid));
+        return ArchiveQueries.page(query, limit, cursor, this::mapDocument);
+    }
+
+    public long countByOperator(String operatorId, String firebaseUid) throws Exception {
+        return ArchiveQueries.operator(FirestoreClient.getFirestore().collection(COLLECTION)
+                .whereEqualTo("tenantId", currentTenant()), ArchiveQueries.identities(operatorId, firebaseUid))
+                .count().get().get().getCount();
     }
 
     public MaintenanceReport getById(String id) throws Exception {
@@ -207,6 +218,8 @@ public class MaintenanceReportService {
         report.setOperatorName(operator != null ? operator.getFullName() : null);
         report.setStatus(SUBMITTED);
         report.setSubmittedAt(Instant.now().toString());
+        report.setArchiveAt(ArchiveQueries.timestamp(report.getSubmittedAt()));
+        report.setOperatorRefs(ArchiveQueries.identities(report.getOperatorId(), authenticatedUid));
         report.setReviewedAt(null);
         report.setReviewedBy(null);
         report.setReviewNote(null);

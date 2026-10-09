@@ -90,8 +90,15 @@ public class LocalAttachmentService {
             throw new SecurityException("Identità richiesta.");
         }
         if (localMode) return readLocal(id, tenant, uid, manager);
-        return "FIREBASE_STORAGE".equals(backend)
-                ? readCloud(id, tenant, uid, manager) : readFirestore(id, tenant, uid, manager);
+        try {
+            var metadata = firestoreMetadata(id);
+            requireAuthorized(metadata, tenant, uid, manager);
+            return "FIREBASE_STORAGE".equals(metadata.get("backend"))
+                    ? readCloud(id, tenant, uid, manager) : readFirestore(id, metadata, tenant, uid, manager);
+        } catch (org.springframework.web.server.ResponseStatusException missing) {
+            if (missing.getStatusCode().value() != 404 || !"FIREBASE_STORAGE".equals(backend)) throw missing;
+            return readCloud(id, tenant, uid, manager);
+        }
     }
 
     public void validateOwned(String reference, String tenant, String uid) {
@@ -101,8 +108,15 @@ public class LocalAttachmentService {
             }
             String id = reference.substring("radiotech-file:".length());
             validateId(id);
-            Map<String, String> record = localMode ? localMetadata(id)
-                    : "FIREBASE_STORAGE".equals(backend) ? cloudMetadata(id) : firestoreMetadata(id);
+            Map<String, String> record;
+            if (localMode) record = localMetadata(id);
+            else {
+                try { record = firestoreMetadata(id); }
+                catch (org.springframework.web.server.ResponseStatusException missing) {
+                    if (missing.getStatusCode().value() != 404 || !"FIREBASE_STORAGE".equals(backend)) throw missing;
+                    record = cloudMetadata(id);
+                }
+            }
             if (!Objects.equals(tenant, record.get("tenantId")) || !Objects.equals(uid, record.get("uid"))) {
                 throw new SecurityException("Allegato non autorizzato.");
             }
@@ -204,8 +218,7 @@ public class LocalAttachmentService {
         return metadata;
     }
 
-    private Map<String, Object> readFirestore(String id, String tenant, String uid, boolean manager) throws Exception {
-        Map<String, String> metadata = firestoreMetadata(id);
+    private Map<String, Object> readFirestore(String id, Map<String,String> metadata, String tenant, String uid, boolean manager) throws Exception {
         requireAuthorized(metadata, tenant, uid, manager);
         int size = Integer.parseInt(metadata.get("size")), count = Integer.parseInt(metadata.get("chunkCount"));
         if (size <= 0 || size > MAX_BYTES || count != (size + CHUNK_BYTES - 1) / CHUNK_BYTES)
@@ -253,9 +266,10 @@ public class LocalAttachmentService {
 
         if (existing != null) {
             Map<String, String> metadata = existing.getMetadata();
-            if (metadata == null || !digest.equals(metadata.get("digest"))) {
+            if (metadata == null || !digest.equals(metadata.get("digest")) || !tenant.equals(metadata.get("tenantId")) || !uid.equals(metadata.get("uid"))) {
                 throw new IllegalArgumentException("Operazione allegato già usata per un altro file.");
             }
+            recordCloudMetadata(id, metadata);
             return Map.of(
                     "reference", "radiotech-file:" + id,
                     "name", metadata.getOrDefault("name", safeName));
@@ -281,12 +295,30 @@ public class LocalAttachmentService {
             }
             Blob concurrent = storage.get(blobId);
             Map<String, String> concurrentMetadata = concurrent == null ? null : concurrent.getMetadata();
-            if (concurrentMetadata == null || !digest.equals(concurrentMetadata.get("digest"))) {
+            if (concurrentMetadata == null || !digest.equals(concurrentMetadata.get("digest")) || !tenant.equals(concurrentMetadata.get("tenantId")) || !uid.equals(concurrentMetadata.get("uid"))) {
                 throw new IllegalArgumentException("Operazione allegato già usata per un altro file.");
             }
         }
 
+        recordCloudMetadata(id, metadata);
         return Map.of("reference", "radiotech-file:" + id, "name", safeName);
+    }
+
+    private void recordCloudMetadata(String id, Map<String,String> metadata) throws Exception {
+        var ref = FirestoreClient.getFirestore().collection(FILE_COLLECTION).document(id);
+        FirestoreClient.getFirestore().runTransaction(tx -> {
+            var existing = tx.get(ref).get();
+            if (existing.exists()) {
+                if (!metadata.get("tenantId").equals(existing.getString("tenantId")) || !metadata.get("uid").equals(existing.getString("uid"))
+                        || !metadata.get("digest").equals(existing.getString("digest"))) throw new IllegalArgumentException("Operazione allegato già usata per un altro file.");
+                // Retain an existing Firestore copy and all historical references.
+                return null;
+            }
+            tx.set(ref, Map.of("tenantId", metadata.get("tenantId"), "uid", metadata.get("uid"), "digest", metadata.get("digest"),
+                    "name", metadata.get("name"), "size", Long.parseLong(metadata.get("size")), "chunkCount", 0,
+                    "backend", "FIREBASE_STORAGE", "createdAt", java.time.Instant.now().toString()));
+            return null;
+        }).get();
     }
 
     private Map<String, Object> readLocal(

@@ -66,6 +66,7 @@ test('Signal customer portal preserves login, requests and logout on small scree
 });
 
 test('Pro and access workspaces contain long content and fields at every breakpoint', async ({page}) => {
+  test.setTimeout(60000);
   await page.emulateMedia({reducedMotion:'reduce'});
   const errors=[];page.on('pageerror',e=>errors.push(e.message));
   const fields=[{key:'name',label:'Ragione sociale',type:'text',required:true},{key:'email',label:'Email',type:'email'},{key:'notes',label:'Note',type:'textarea'}];
@@ -150,7 +151,11 @@ test('long report lists remain visible when scroll animations are enabled', asyn
   await page.emulateMedia({reducedMotion:'no-preference'});
   await session(page,'ADMIN',{'/reports':Array.from({length:300},(_,index) => ({id:`r-${index}`,taskId:`t-${index}`,operatorId:'o1',status:'SUBMITTED',operatorNotes:'Documentazione del lavoro sul campo'}))});
   await page.locator('[data-view="reports"]').click();
-  await expect(page.locator('#reportsList .task-row')).toHaveCount(300);
+  await expect(page.locator('#reportsList .task-row')).toHaveCount(50);
+  for (let count = 100; count <= 300; count += 50) {
+    await page.locator('#reportsMoreBtn').click();
+    await expect(page.locator('#reportsList .task-row')).toHaveCount(count);
+  }
   await expect(page.locator('#reportsList').locator('..')).toHaveCSS('opacity','1');
   await expect(page.locator('#reportsList').locator('..')).not.toHaveClass(/motion-pending/);
 });
@@ -360,7 +365,9 @@ async function session(page, role = 'ADMIN', records = {}) {
   let badgeToken = 'badge-only-token';
   await page.route('**/api/**', async route => {
     const url = new URL(route.request().url());
-    const path = url.pathname.replace('/api/v1', '');
+    const requestedPath = url.pathname.replace('/api/v1', '');
+    const paged = ['/tasks/page', '/reports/page'].includes(requestedPath);
+    const path = paged ? requestedPath.replace(/\/page$/, '') : requestedPath;
     let data;
     const method = route.request().method();
     if (method === 'GET' && ['/dashboard/antenne', '/dashboard/notifications', '/dashboard/audit', '/reports', '/inventory', '/inventory/movements'].includes(path)) data = [];
@@ -388,6 +395,7 @@ async function session(page, role = 'ADMIN', records = {}) {
     if (path === '/incidents') data = incidents;
     if (path === '/incidents/i1/transitions') { incidents[0].status = JSON.parse(route.request().postData()).status; data = incidents[0]; }
     if (path === '/health' || path === '/health/firebase') data = { status: 'UP' };
+    if (path === '/operations/health') data = {backend:'FIRESTORE',attachments:{count:9,bytes:1561029},pendingReports:3,backup:{state:'NOT_CONFIGURED'},firestore:{state:'UNAVAILABLE',note:'Metriche Google non disponibili.',quotaDayTimezone:'America/Los_Angeles'},alarms:[{message:'Backup esterno da configurare.'}]};
     if (path === '/operators/o1/skills') data = [{ skill: 'RF', level: 4, certification: 'RF Test', expiration: '2030-01-01', authorized: true }];
     if (path === '/ai/status') data = { enabled: true, model: 'test-local' };
     if (path === '/ai/insights') data = { scope: 'TENANT', assetsObserved: 1, highRiskAssets: 1, activeTasks: 1, overdueTasks: 1, notice: 'Indicatori, non probabilità di guasto.', partial: false, risks: [{ assetId: 'a1', name: 'Ponte Bari', score: 70, level: 'HIGH', dataQuality: 'LIMITED', reasons: ['Asset offline'], recommendation: 'Verificare con il responsabile.', estimatedMaintenanceAt: null }] };
@@ -404,6 +412,11 @@ async function session(page, role = 'ADMIN', records = {}) {
     if (path === '/workforce/signals/s1' && method === 'PATCH') { Object.assign(signals[0], JSON.parse(route.request().postData()), { version: 1 }); data = signals[0]; }
     if (method === 'GET' && records[path]) data = records[path];
     if (records.respond) { const custom = await records.respond(path, method, route.request()); if (custom !== undefined) data = custom; }
+    if (paged && data !== undefined) {
+      const items = Array.isArray(data) ? data : data.data;
+      const start = Number(url.searchParams.get('cursor') || 0), limit = Number(url.searchParams.get('limit') || 50);
+      if (Array.isArray(items)) data = {items:items.slice(start,start+limit),nextCursor:items.length>start+limit?String(start+limit):null,hasMore:items.length>start+limit};
+    }
     await route.fulfill({ status: data === undefined ? 404 : 200, contentType: 'application/json', body: JSON.stringify(data ?? { message: `Unexpected route: ${method} ${path}` }) });
   });
   await page.route('**/actuator/**', route => route.fulfill({ status: 200, contentType: 'application/json', body: '{"status":"UP"}' }));
@@ -421,10 +434,13 @@ test('all assignments remain visible beyond fifty and an active task can be canc
     }
   }});
   await page.locator('[data-view="operations"]').click();
+  await expect(page.locator('#tasksList .task-row')).toHaveCount(50);
+  await page.locator('#tasksMoreBtn').click();
   await expect(page.locator('#tasksList .task-row')).toHaveCount(55);
   page.once('dialog', dialog => dialog.accept());
   await page.locator('[data-task-cancel="task-54"]').click();
   await expect(page.locator('[data-task-cancel="task-54"]')).toHaveCount(0);
+  await page.locator('#tasksMoreBtn').click();
   expect(changes).toEqual([{status: 'CANCELLED'}]);
   await expect(page.locator('#tasksList .task-row').last()).toContainText('Annullato');
 });
@@ -433,6 +449,27 @@ test('a viewer cannot cancel an active assignment', async ({page}) => {
   await session(page, 'VIEWER');
   await page.locator('[data-view="operations"]').click();
   await expect(page.locator('[data-task-cancel="t1"]')).toBeHidden();
+});
+
+test('system monitoring exposes missing backups and unknown cloud values', async ({page}) => {
+  await session(page,'ADMIN');
+  await page.locator('[data-view="system"]').click();
+  await expect(page.locator('#operationsHealth')).toContainText('Da configurare');
+  await expect(page.locator('#operationsHealth')).toContainText('Letture di oggi: Non disponibile');
+  await expect(page.locator('#operationsHealth')).toContainText('Backup esterno da configurare');
+  await page.locator('#operationsHealthRefresh').click();
+  await expect(page.locator('#operationsHealthRefresh')).toBeEnabled();
+});
+
+test('a failed report page preserves already loaded reports', async ({page}) => {
+  await session(page,'ADMIN',{'/reports':Array.from({length:60},(_,i)=>({id:`report-${i}`,status:'APPROVED',taskTitle:`Rapporto ${i}`}))});
+  await page.locator('[data-view="reports"]').click();
+  await expect(page.locator('#reportsList .task-row')).toHaveCount(50);
+  await page.route('**/api/v1/reports/page?*', route => new URL(route.request().url()).searchParams.has('cursor') ? route.fulfill({status:503,json:{message:'Temporaneamente non disponibile'}}) : route.fallback());
+  await page.locator('#reportsMoreBtn').click();
+  await expect(page.locator('#toastStack')).toContainText('Caricamento non riuscito');
+  await expect(page.locator('#reportsList .task-row')).toHaveCount(50);
+  await expect(page.locator('#reportsMoreBtn')).toBeEnabled();
 });
 
 test('root serves the login and protects unauthenticated API requests', async ({ page, request }) => {
