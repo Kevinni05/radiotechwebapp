@@ -106,6 +106,17 @@ public class MaintenanceReportController {
         return Map.of("report", report, "verificationUrl", service.verificationUrl(report));
     }
 
+    @DeleteMapping("/{id}")
+    public ResponseEntity<?> remove(@PathVariable String id, @RequestAttribute("firebaseUid") String uid,
+            @RequestHeader(value = "X-Tenant-Id", required = false) String tenantId) {
+        return ok(() -> {
+            requirePermission(Permission.REPORT_DELETE, tenantId);
+            service.remove(id, uid);
+            return Map.of("success", true, "id", id, "removed", true,
+                    "message", "Report rimosso dall'elenco. Documenti e audit conservati.");
+        });
+    }
+
     @PostMapping("/{id}/approve")
     public ResponseEntity<?> approve(@PathVariable String id, @RequestAttribute("firebaseUid") String uid,
             @RequestBody(required = false) Map<String, Object> body,

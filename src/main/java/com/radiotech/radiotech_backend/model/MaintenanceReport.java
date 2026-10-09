@@ -37,6 +37,9 @@ public class MaintenanceReport {
     private Long archiveAt;
     @JsonIgnore
     private List<String> operatorRefs;
+    /** Logical removal only: signed content and review state remain intact. */
+    private String removedAt;
+    private String removedBy;
     private String reviewedAt;
     private String reviewedBy;
     private String reviewNote;

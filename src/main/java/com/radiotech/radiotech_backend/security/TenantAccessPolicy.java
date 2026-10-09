@@ -29,6 +29,7 @@ public final class TenantAccessPolicy {
             Permission.REPORT_CREATE,
             Permission.REPORT_READ,
             Permission.REPORT_APPROVE,
+            Permission.REPORT_DELETE,
             Permission.ALERT_CREATE,
             Permission.ALERT_READ,
             Permission.ALERT_ACK,
