@@ -329,6 +329,59 @@ test('report review filters and approval update the dedicated review center', as
   await expect(page.locator('#reportFilterEmpty')).toBeVisible();
 });
 
+test('legacy report review maps actual stock, requires unresolved choices and cancels without approving', async ({page}) => {
+  const errors=[], approvals=[];
+  page.on('pageerror',error=>errors.push(error.message));
+  const materials=[{name:'Connettore N',quantity:1},{name:'Cavo RG-213',quantity:1},{name:'Fusibile 5A',quantity:2}];
+  const inventory=[{id:'connector',name:'Connettore N',sku:'RF-001',quantity:37},{id:'cable',name:'Cavo coassiale',sku:'RF-002',quantity:3}];
+  const report={id:'legacy',status:'APPROVAL_PENDING',materialsUsed:materials};
+  await session(page,'ADMIN',{'/reports':[report],respond(path,method,request){
+    if(path==='/reports/legacy/review-context')return {materials,inventory,mappings:{},locked:false};
+    if(path==='/reports/legacy/approve'){approvals.push(request.postDataJSON());report.status='APPROVED';return report;}
+  }});
+  await page.locator('[data-view="reports"]').click();
+  await page.locator('#reportsList summary').click();
+  const approve=page.locator('[data-report-approve="legacy"]');
+  await approve.click();
+  const dialog=page.locator('dialog.report-material-review');
+  await expect(dialog).toBeVisible();
+  await expect(dialog.locator('#reviewMaterial-0')).toHaveValue('connector');
+  await expect(dialog.locator('#reviewMaterial-1')).toHaveValue('');
+  await dialog.locator('[type="submit"]').click();
+  expect(approvals).toHaveLength(0);
+  await dialog.locator('[data-cancel]').click();
+  await expect(dialog).toHaveCount(0);
+  await expect(approve).toBeEnabled();
+  await approve.click();
+  await page.setViewportSize({width:320,height:800});
+  await expect(dialog).toBeVisible();
+  expect(await dialog.evaluate(node=>node.getBoundingClientRect().width<=innerWidth)).toBe(true);
+  await dialog.locator('#reviewMaterial-1').selectOption('cable');
+  await dialog.locator('#reviewMaterial-2').selectOption('@external');
+  await dialog.locator('[type="submit"]').click();
+  await expect(dialog).toHaveCount(0);
+  await expect.poll(()=>approvals.length).toBe(1);
+  expect(approvals[0].materialMappings).toEqual({'0':'connector','1':'cable','2':'@external'});
+  expect(materials[1].name).toBe('Cavo RG-213');
+  expect(errors).toEqual([]);
+});
+
+test('interrupted legacy approval preserves consumed mappings and escapes material names', async ({page}) => {
+  const materials=[{name:'<img src=x onerror=alert(1)>',quantity:1}], approvals=[];
+  const report={id:'locked',status:'APPROVAL_PENDING',materialsUsed:materials};
+  await session(page,'ADMIN',{'/reports':[report],respond(path,method,request){
+    if(path==='/reports/locked/review-context')return {materials,inventory:[{id:'real',name:'Connettore N',sku:'RF-001',quantity:36}],mappings:{'0':'real'},locked:true};
+    if(path==='/reports/locked/approve'){approvals.push(request.postDataJSON());report.status='APPROVED';return report;}
+  }});
+  await page.locator('[data-view="reports"]').click();await page.locator('#reportsList summary').click();
+  await page.locator('[data-report-approve="locked"]').click();
+  const dialog=page.locator('dialog.report-material-review');
+  await expect(dialog.locator('select')).toBeDisabled();await expect(dialog.locator('select')).toHaveValue('real');
+  await expect(dialog.locator('label')).toContainText('<img');await expect(dialog.locator('img')).toHaveCount(0);
+  await dialog.locator('[type="submit"]').click();await expect.poll(()=>approvals.length).toBe(1);
+  expect(approvals[0]).not.toHaveProperty('materialMappings');
+});
+
 test('planning denies mutation for viewers and clears failed or expired data', async ({ page }) => {
   await session(page,'VIEWER');
   await page.locator('[data-view="planning"]').click();

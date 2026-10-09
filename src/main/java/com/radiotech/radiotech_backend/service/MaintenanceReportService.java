@@ -51,7 +51,8 @@ public class MaintenanceReportService {
     private record SubmissionResult(String reportId, boolean created, String requestHash) {
     }
 
-    private record ReviewClaim(MaintenanceReport report, String attemptId, boolean alreadyFinalized) {
+    private record ReviewClaim(MaintenanceReport report, String attemptId, boolean alreadyFinalized,
+            List<Map<String, Object>> consumptionMaterials) {
     }
 
     public static class IdempotencyConflictException extends RuntimeException {
@@ -532,6 +533,11 @@ public class MaintenanceReportService {
     }
 
     public MaintenanceReport review(String id, boolean approve, String note, String reviewerUid) throws Exception {
+        return review(id, approve, note, reviewerUid, null);
+    }
+
+    public MaintenanceReport review(String id, boolean approve, String note, String reviewerUid,
+            Map<String, String> materialMappings) throws Exception {
         String tenantId = currentTenant();
         Firestore db = FirestoreClient.getFirestore();
         DocumentReference reportReference = db.collection(COLLECTION).document(id);
@@ -567,14 +573,14 @@ public class MaintenanceReportService {
             return getById(id);
         }
 
-        ReviewClaim claim = claimApproval(reportReference, tenantId, reviewedBy, reviewNote);
+        ReviewClaim claim = claimApproval(reportReference, tenantId, reviewedBy, reviewNote, materialMappings);
         if (claim.alreadyFinalized()) {
             return getById(id);
         }
 
         MaintenanceReport reviewed = claim.report();
         try {
-            ricambioService.consume(reviewed.getMaterialsUsed(), id);
+            ricambioService.consume(claim.consumptionMaterials(), id);
             if (!blank(reviewed.getTaskId())) {
                 taskService.updateStatus(reviewed.getTaskId(), TaskStatus.APPROVED.name(),
                         "report-approval-" + id);
@@ -593,9 +599,21 @@ public class MaintenanceReportService {
         return getById(id);
     }
 
+    public Map<String, Object> reviewContext(String id) throws Exception {
+        var report = getById(id);
+        var snapshot = FirestoreClient.getFirestore().collection(COLLECTION).document(id).get().get();
+        return Map.of("materials", report.getMaterialsUsed() == null ? List.of() : report.getMaterialsUsed(),
+                "inventory", ricambioService.getMaterialCatalog(),
+                "mappings", snapshot.get("inventoryMaterialMappings") == null ? Map.of() : snapshot.get("inventoryMaterialMappings"),
+                "locked", ricambioService.consumptionOperation(FirestoreClient.getFirestore(), currentTenant(), id).get().get().exists());
+    }
+
     private ReviewClaim claimApproval(DocumentReference reportReference, String tenantId,
-            String reviewedBy, String reviewNote) throws Exception {
+            String reviewedBy, String reviewNote, Map<String, String> materialMappings) throws Exception {
         Firestore db = FirestoreClient.getFirestore();
+        // Firestore callbacks run outside the authenticated request thread.
+        // Resolve the tenant-scoped catalog before entering the transaction.
+        var materialCatalog = ricambioService.getMaterialCatalog();
         return awaitTransaction(db.runTransaction(transaction -> {
             DocumentSnapshot snapshot = transaction.get(reportReference).get();
             if (!snapshot.exists()
@@ -606,12 +624,12 @@ public class MaintenanceReportService {
             String status = snapshot.getString("status");
             if (APPROVED.equals(status)) {
                 if (INVENTORY_COMPLETE.equals(snapshot.getString("inventoryConsumptionStatus"))) {
-                    return new ReviewClaim(null, null, true);
+                    return new ReviewClaim(null, null, true, null);
                 }
                 Object materials = snapshot.get("materialsUsed");
                 if (snapshot.get("inventoryConsumptionStatus") == null
                         && (!(materials instanceof List<?> materialList) || materialList.isEmpty())) {
-                    return new ReviewClaim(null, null, true);
+                    return new ReviewClaim(null, null, true, null);
                 }
                 throw new IllegalArgumentException(
                         "Approvazione precedente senza esito inventario: riconciliazione necessaria.");
@@ -628,6 +646,22 @@ public class MaintenanceReportService {
                 throw new IllegalArgumentException("Il report non è in stato SUBMITTED.");
             }
 
+            MaintenanceReport report = mapDocument(snapshot);
+            var storedMaterials = (List<Map<String, Object>>) snapshot.get("inventoryConsumptionMaterials");
+            var savedMappings = (Map<String, String>) snapshot.get("inventoryMaterialMappings");
+            var effectiveMappings = materialMappings == null ? savedMappings : materialMappings;
+            List<Map<String, Object>> consumptionMaterials;
+            if (materialMappings == null && storedMaterials != null) consumptionMaterials = storedMaterials;
+            else if (effectiveMappings != null || (report.getMaterialsUsed() != null && report.getMaterialsUsed().stream()
+                    .anyMatch(material -> material != null && List.of("inventoryId", "inventoryItemId", "itemId", "ricambioId", "id", "sku").stream()
+                            .noneMatch(field -> material.get(field) instanceof String value && !value.isBlank()))))
+                consumptionMaterials = ricambioService.materialsForReview(report.getMaterialsUsed(), effectiveMappings, materialCatalog);
+            else consumptionMaterials = report.getMaterialsUsed() == null ? List.of() : report.getMaterialsUsed();
+            if (materialMappings != null && storedMaterials != null) {
+                var operation = transaction.get(ricambioService.consumptionOperation(db, tenantId, snapshot.getId())).get();
+                if (operation.exists() && !REQUEST_HASH_GSON.toJsonTree(storedMaterials).equals(REQUEST_HASH_GSON.toJsonTree(consumptionMaterials)))
+                    throw new IllegalArgumentException("Il magazzino è già stato contabilizzato: gli abbinamenti non possono essere modificati.");
+            }
             Instant now = Instant.now();
             String attemptId = java.util.UUID.randomUUID().toString();
             Map<String, Object> updates = new LinkedHashMap<>();
@@ -635,15 +669,19 @@ public class MaintenanceReportService {
             updates.put("inventoryConsumptionStatus", INVENTORY_PENDING);
             updates.put("approvalAttemptId", attemptId);
             updates.put("approvalLeaseUntil", now.plus(REVIEW_LEASE_DURATION).toString());
+            updates.put("inventoryConsumptionMaterials", consumptionMaterials);
+            updates.put("inventoryMaterialMappings", effectiveMappings == null ? Map.of() : effectiveMappings);
+            if (materialMappings != null) {
+                updates.put("inventoryMaterialsReviewedBy", reviewedBy);
+                updates.put("inventoryMaterialsReviewedAt", now.toString());
+            }
             if (SUBMITTED.equals(status)) {
                 updates.put("reviewedAt", now.toString());
                 updates.put("reviewedBy", reviewedBy);
                 updates.put("reviewNote", reviewNote);
             }
             transaction.update(reportReference, updates);
-            MaintenanceReport report = snapshot.toObject(MaintenanceReport.class);
-            report.setId(snapshot.getId());
-            return new ReviewClaim(report, attemptId, false);
+            return new ReviewClaim(report, attemptId, false, consumptionMaterials);
         }));
     }
 

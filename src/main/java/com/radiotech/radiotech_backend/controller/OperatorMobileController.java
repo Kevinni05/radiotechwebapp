@@ -35,6 +35,8 @@ public class OperatorMobileController {
     private final MaintenanceReportService reportService;
     private final OperatorService operatorService;
     private final TenantInvitationService tenantInvitationService;
+    @org.springframework.beans.factory.annotation.Autowired
+    private com.radiotech.radiotech_backend.service.RicambioService inventoryService;
 
     public OperatorMobileController(TaskService taskService, MaintenanceReportService reportService,
             OperatorService operatorService, TenantInvitationService tenantInvitationService) {
@@ -365,6 +367,14 @@ public class OperatorMobileController {
     public Object myReportCount(@RequestAttribute("firebaseUid") String uid) throws Exception {
         Operator own = operatorService.getByFirebaseUid(uid);
         return Map.of("count", reportService.countByOperator(own == null ? uid : own.getId(), uid));
+    }
+
+    @GetMapping("/me/inventory")
+    public Object myInventory(@RequestAttribute("firebaseUid") String uid) throws Exception {
+        Operator own = operatorService.getByFirebaseUid(uid);
+        if (own == null || !"ATTIVO".equalsIgnoreCase(own.getStatus()))
+            throw new SecurityException("Operatore non attivo.");
+        return inventoryService.getMaterialCatalog();
     }
 
     @GetMapping("/me/reports")

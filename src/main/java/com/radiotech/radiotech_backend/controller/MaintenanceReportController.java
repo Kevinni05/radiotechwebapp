@@ -108,7 +108,7 @@ public class MaintenanceReportController {
 
     @PostMapping("/{id}/approve")
     public ResponseEntity<?> approve(@PathVariable String id, @RequestAttribute("firebaseUid") String uid,
-            @RequestBody(required = false) Map<String, String> body,
+            @RequestBody(required = false) Map<String, Object> body,
             @RequestHeader(value = "X-Tenant-Id", required = false) String tenantId) {
         try {
             requirePermission(Permission.REPORT_APPROVE, tenantId);
@@ -121,7 +121,7 @@ public class MaintenanceReportController {
 
     @PostMapping("/{id}/reject")
     public ResponseEntity<?> reject(@PathVariable String id, @RequestAttribute("firebaseUid") String uid,
-            @RequestBody(required = false) Map<String, String> body,
+            @RequestBody(required = false) Map<String, Object> body,
             @RequestHeader(value = "X-Tenant-Id", required = false) String tenantId) {
         try {
             requirePermission(Permission.REPORT_APPROVE, tenantId);
@@ -132,9 +132,27 @@ public class MaintenanceReportController {
         }
     }
 
-    private ResponseEntity<?> review(String id, boolean approve, Map<String, String> body, String reviewerUid) {
+    @GetMapping("/{id}/review-context")
+    public ResponseEntity<?> reviewContext(@PathVariable String id,
+            @RequestHeader(value = "X-Tenant-Id", required = false) String tenantId) {
+        requirePermission(Permission.REPORT_APPROVE, tenantId);
+        return ok(() -> service.reviewContext(id));
+    }
+
+    private ResponseEntity<?> review(String id, boolean approve, Map<String, Object> body, String reviewerUid) {
         try {
-            return ResponseEntity.ok(service.review(id, approve, body == null ? null : body.get("note"), reviewerUid));
+            String note = body != null && body.get("note") instanceof String value ? value : null;
+            if (body == null || body.get("materialMappings") == null)
+                return ResponseEntity.ok(service.review(id, approve, note, reviewerUid));
+            if (!approve || !(body.get("materialMappings") instanceof Map<?, ?> raw))
+                throw new IllegalArgumentException("Abbinamenti materiali non validi.");
+            var mappings = new java.util.LinkedHashMap<String, String>();
+            for (var entry : raw.entrySet()) {
+                if (!(entry.getKey() instanceof String key) || !(entry.getValue() instanceof String value))
+                    throw new IllegalArgumentException("Abbinamenti materiali non validi.");
+                mappings.put(key, value);
+            }
+            return ResponseEntity.ok(service.review(id, true, note, reviewerUid, mappings));
         } catch (IllegalArgumentException e) {
             return bad(e.getMessage());
         } catch (SecurityException e) {

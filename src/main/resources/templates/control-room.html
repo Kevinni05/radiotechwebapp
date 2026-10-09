@@ -1117,6 +1117,8 @@
     <script src="/assets/operations-upgrade.js" defer></script>
     <script src="/assets/telco-tools.js" defer></script>
     <script src="/assets/management.js" defer></script>
+    <script src="/assets/report-material-review.js" defer></script>
+    <link rel="stylesheet" href="/assets/report-material-review.css">
     <script src="/assets/design-system.js" defer></script>
     <script th:attr="nonce=${cspNonce}">
         (() => {
@@ -2043,7 +2045,16 @@
                 const note = approve ? 'Report approvato dalla centrale.' : (prompt('Motivo del rifiuto:') || '');
                 if (!approve && !note.trim()) return;
                 buttons.forEach(b => { b.disabled = true; });
-                try { await apiFetch(`/api/v1/reports/${encodeURIComponent(id)}/${approve ? 'approve' : 'reject'}`, { method: 'POST', body: JSON.stringify({ note }) }); await Promise.all([loadReports(), loadTasks(), loadStats()]); window.dispatchEvent(new Event('radiotech:tasks-changed')); toast(approve ? 'Report approvato' : 'Report rifiutato', approve ? 'Materiali aggiornati e incarico completato.' : 'L’operatore può correggere e inviare nuovamente il rapporto dagli incarichi attivi.'); } catch (e) { toast('Revisione fallita', e.message, 'error'); }
+                try {
+                    const epoch=state.sessionEpoch||0, report=state.reports.find(item=>item.id===id);
+                    let materialMappings;
+                    if(approve && report?.materialsUsed?.some(material=>!['inventoryId','inventoryItemId','itemId','ricambioId','id','sku'].some(field=>material[field]))) {
+                        materialMappings=await window.RadioTechReviewMaterials({apiFetch,report,escapeHtml});
+                        if(materialMappings===null)return;
+                    }
+                    if(epoch!==(state.sessionEpoch||0))return;
+                    await apiFetch(`/api/v1/reports/${encodeURIComponent(id)}/${approve ? 'approve' : 'reject'}`, { method: 'POST', body: JSON.stringify({ note, materialMappings }) }); await Promise.all([loadReports(), loadTasks(), loadStats()]); window.dispatchEvent(new Event('radiotech:tasks-changed')); toast(approve ? 'Report approvato' : 'Report rifiutato', approve ? 'Materiali aggiornati e incarico completato.' : 'L’operatore può correggere e inviare nuovamente il rapporto dagli incarichi attivi.');
+                } catch (e) { toast('Revisione fallita', e.message, 'error'); }
                 finally { buttons.forEach(b => { b.disabled = false; }); }
             }
 

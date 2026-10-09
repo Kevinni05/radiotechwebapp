@@ -513,6 +513,76 @@ public class RicambioService {
         consume(materials, null);
     }
 
+    public List<Map<String, Object>> getMaterialCatalog() throws Exception {
+        var result = new ArrayList<Map<String, Object>>();
+        for (var item : getAll()) {
+            if (Boolean.FALSE.equals(item.get("active"))) continue;
+            var entry = new LinkedHashMap<String, Object>();
+            for (String field : List.of("id", "sku", "name", "quantity", "unit"))
+                if (item.get(field) != null) entry.put(field, item.get(field));
+            result.add(entry);
+        }
+        return result;
+    }
+
+    /** Review decisions live outside the signed report. Never infer missing stock or quantities. */
+    public List<Map<String, Object>> materialsForReview(List<Map<String, Object>> materials,
+            Map<String, String> mappings) throws Exception {
+        return materialsForReview(materials, mappings, getMaterialCatalog());
+    }
+
+    List<Map<String, Object>> materialsForReview(List<Map<String, Object>> materials,
+            Map<String, String> mappings, List<Map<String, Object>> catalog) {
+        if (materials == null) materials = List.of();
+        mappings = mappings == null ? Map.of() : mappings;
+        for (String index : mappings.keySet()) {
+            try {
+                int parsed = Integer.parseInt(index);
+                if (parsed < 0 || parsed >= materials.size() || !String.valueOf(parsed).equals(index)) throw new NumberFormatException();
+            } catch (NumberFormatException invalid) { throw new IllegalArgumentException("Riga materiale non valida."); }
+        }
+        var result = new ArrayList<Map<String, Object>>();
+        for (int index = 0; index < materials.size(); index++) {
+            var material = materials.get(index);
+            if (material == null || !(material.get("quantity") instanceof Number quantity)
+                    || !Double.isFinite(quantity.doubleValue()) || quantity.doubleValue() <= 0
+                    || quantity.doubleValue() != quantity.intValue())
+                throw new IllegalArgumentException("Quantità del materiale non valida.");
+            String choice = mappings.get(String.valueOf(index));
+            if ("@external".equals(choice)) continue;
+            var resolved = new LinkedHashMap<String, Object>(material);
+            if (choice != null) {
+                if (catalog.stream().noneMatch(item -> choice.equals(item.get("id"))))
+                    throw new IllegalArgumentException("Articolo selezionato non disponibile nel magazzino aziendale.");
+                resolved.put("inventoryId", choice); resolved.remove("id"); resolved.remove("sku");
+            } else if (inventoryId(material).isBlank() && text(material.get("sku")).isBlank()) {
+                String name = text(material.get("name"));
+                var matches = catalog.stream().filter(item -> name.equalsIgnoreCase(text(item.get("name")))
+                        || name.equalsIgnoreCase(text(item.get("sku")))).toList();
+                if (name.isBlank() || matches.size() != 1)
+                    throw new IllegalArgumentException("Abbina in revisione il materiale «" + name + "» a un articolo del magazzino oppure indica che non è stato prelevato dal magazzino aziendale.");
+                resolved.put("inventoryId", matches.getFirst().get("id"));
+            }
+            result.add(resolved);
+        }
+        return result;
+    }
+
+    DocumentReference consumptionOperation(Firestore db, String tenant, String reportId) throws Exception {
+        return db.collection("inventoryConsumptionOperations").document(stableId(tenant + "|" + reportId));
+    }
+
+    private String inventoryId(Map<String, Object> material) {
+        for (String field : List.of("inventoryId", "inventoryItemId", "itemId", "ricambioId", "id")) {
+            String value = text(material.get(field));
+            if (!value.isBlank()) {
+                if (value.contains("/") || value.length() > 1500) throw new IllegalArgumentException("Identificativo materiale non valido.");
+                return value;
+            }
+        }
+        return "";
+    }
+
     public void consume(List<Map<String, Object>> materials, String operationId) throws Exception {
         if (materials == null || materials.isEmpty())
             return;
@@ -526,10 +596,7 @@ public class RicambioService {
             if (material == null) {
                 throw new IllegalArgumentException("Materiale non valido.");
             }
-            String inventoryId = text(material.get("inventoryId"));
-            if (inventoryId.isBlank()) {
-                inventoryId = text(material.get("id"));
-            }
+            String inventoryId = inventoryId(material);
             String sku = text(material.get("sku"));
             String name = String.valueOf(material.getOrDefault("name", "")).trim();
             int quantity = number(material.get("quantity"));
