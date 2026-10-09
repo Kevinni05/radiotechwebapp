@@ -1916,7 +1916,7 @@
             }
 
             let tasksCursor = null, reportsCursor = null;
-            let loadingTasks = false, loadingReports = false;
+            let loadingTasks = false, loadingReports = false, reloadReports = false;
             async function loadTasks(append = false) {
                 append = append === true;
                 if (loadingTasks) return;
@@ -1998,12 +1998,17 @@
             }
             async function loadReports(append = false) {
                 append = append === true;
-                if (loadingReports) return;
+                if (loadingReports) { if (!append) reloadReports = true; return; }
+                const epoch = state.sessionEpoch || 0;
                 loadingReports = true; $('reportsMoreBtn').disabled = true;
                 try {
                     const params = new URLSearchParams({limit: '50'});
+                    const statusFilter = $('reportStatusFilter')?.value || '';
+                    if (statusFilter) params.set('status', statusFilter);
                     if (append && reportsCursor) params.set('cursor', reportsCursor);
                     const response = await apiFetch(`/api/v1/reports/page?${params}`, { method: "GET" });
+                    if (epoch !== (state.sessionEpoch || 0)) return;
+                    if (statusFilter !== ($('reportStatusFilter')?.value || '')) { reloadReports = true; return; }
                     const data = response?.data ?? response;
                     const items = Array.isArray(data) ? data : (data?.items || []);
                     const reports = [...new Map([...(append ? state.reports || [] : []), ...items].map(item => [item.id, item])).values()];
@@ -2012,13 +2017,15 @@
                     $('reportsMoreBtn').hidden = !reportsCursor;
                     $('reportsPageStatus').textContent = `${reports.length} report caricati${reportsCursor ? ' · altri disponibili' : ' · fine elenco'}`;
                     attachmentViewer().clear();
-                    $("reportsList").innerHTML = reports.length ? reports.map(r => `<div class="task-row report-row" data-report-id="${escapeHtml(r.id || "")}" data-status="${escapeHtml(r.status || "SUBMITTED")}" data-operator="${escapeHtml(r.operatorName || r.operatorId || "")}" data-date="${escapeHtml((r.submittedAt || r.createdAt || "").slice(0,10))}"><div><div class="task-title">${escapeHtml(reportDisplayTitle(r))}</div><div class="task-meta">Incarico ${escapeHtml(r.taskId || "—")} · Operatore ${escapeHtml(r.operatorName || r.operatorId || "—")} · ${escapeHtml(r.operatorNotes || r.description || "Nessuna nota")}</div>${reportDetails(r)}${attachmentViewer().markup(r.attachments)}</div><div class="actions"><span class="badge ${badgeClass(r.status)}">${escapeHtml(formatStatus(r.status || "SUBMITTED"))}</span><button class="mini-btn" data-report-toggle aria-expanded="true" aria-label="Comprimi report">⌃</button>${r.status === "SUBMITTED" ? `<button class="mini-btn" data-report-approve="${escapeHtml(r.id)}">Approva</button><button class="mini-btn" data-report-reject="${escapeHtml(r.id)}">Rifiuta</button>` : ""}</div></div>`).join("") : `<div class="empty">Nessun report ricevuto.</div>`;
+                    $("reportsList").innerHTML = reports.length ? reports.map(r => `<div class="task-row report-row" data-report-id="${escapeHtml(r.id || "")}" data-status="${escapeHtml(r.status || "SUBMITTED")}" data-operator="${escapeHtml(r.operatorName || r.operatorId || "")}" data-date="${escapeHtml((r.submittedAt || r.createdAt || "").slice(0,10))}"><div><div class="task-title">${escapeHtml(reportDisplayTitle(r))}</div><div class="task-meta">Incarico ${escapeHtml(r.taskId || "—")} · Operatore ${escapeHtml(r.operatorName || r.operatorId || "—")} · ${escapeHtml(r.operatorNotes || r.description || "Nessuna nota")}</div>${reportDetails(r)}${attachmentViewer().markup(r.attachments)}</div><div class="actions"><span class="badge ${badgeClass(r.status)}">${escapeHtml(formatStatus(r.status || "SUBMITTED"))}</span><button class="mini-btn" data-report-toggle aria-expanded="true" aria-label="Comprimi report">⌃</button>${["SUBMITTED","APPROVAL_PENDING"].includes(r.status) ? `<button class="mini-btn" data-report-approve="${escapeHtml(r.id)}">${r.status === "APPROVAL_PENDING" ? "Riprendi approvazione" : "Approva"}</button>${r.status === "SUBMITTED" ? `<button class="mini-btn" data-report-reject="${escapeHtml(r.id)}">Rifiuta</button>` : ""}` : ""}</div></div>`).join("") : `<div class="empty">Nessun report ricevuto.</div>`;
                 attachmentViewer().mount($("reportsList"));
                 applyPermissions();
                     $("reportsList").querySelectorAll('[data-report-approve]').forEach(b => b.addEventListener('click', () => reviewReport(b.dataset.reportApprove, true)));
                     $("reportsList").querySelectorAll('[data-report-reject]').forEach(b => b.addEventListener('click', () => reviewReport(b.dataset.reportReject, false)));
                 } catch (e) { if (append) toast('Caricamento non riuscito', e.message, 'error'); else $("reportsList").innerHTML = `<div class="empty">Report non disponibili: ${escapeHtml(e.message)}</div>`; }
-                finally { loadingReports = false; $('reportsMoreBtn').disabled = false; }
+                finally { loadingReports = false; $('reportsMoreBtn').disabled = false;
+                    if (reloadReports) { reloadReports = false; if (state.token) loadReports(); }
+                }
             }
 
             function reportDetails(report) {

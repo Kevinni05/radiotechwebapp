@@ -66,7 +66,7 @@ public class DashboardService {
 
         for (DocumentSnapshot document : operatorsSnapshot.getDocuments()) {
 
-            String status = document.getString("status");
+            String status = OperatorService.mapOperator(document).getStatus();
 
             if ("ATTIVO".equalsIgnoreCase(status)) {
                 activeOperators++;
@@ -95,14 +95,18 @@ public class DashboardService {
         int cancelledTasks = 0;
         int overdueTasks = 0;
         int atRiskTasks = 0;
+        int activeTasks = 0;
         Instant now = Instant.now();
 
         for (DocumentSnapshot document : tasksSnapshot.getDocuments()) {
 
-            String status = document.getString("status");
+            var parsed = com.radiotech.radiotech_backend.model.TaskStatus.parse(document.getString("status"));
+            if (parsed == null) continue;
+            String status = parsed.name();
 
             String dueAt = document.getString("dueAt");
-            if (!"COMPLETED".equalsIgnoreCase(status) && !"CANCELLED".equalsIgnoreCase(status)) {
+            if (!List.of("COMPLETED", "CANCELLED", "APPROVED", "CLOSED", "REPORT_SUBMITTED").contains(status)) {
+                activeTasks++;
                 SlaPolicy.Status slaStatus = SlaPolicy.evaluate(dueAt, now,
                         Duration.ofMinutes(Math.max(0, slaWarningMinutes)));
                 if (slaStatus == SlaPolicy.Status.BREACHED) {
@@ -122,7 +126,7 @@ public class DashboardService {
 
                 case "IN_PROGRESS" -> inProgressTasks++;
 
-                case "COMPLETED" -> completedTasks++;
+                case "COMPLETED", "APPROVED", "CLOSED" -> completedTasks++;
 
                 case "CANCELLED" -> cancelledTasks++;
             }
@@ -140,6 +144,9 @@ public class DashboardService {
 
         stats.put("interventions", interventions);
         stats.put("tasks", tasks);
+        stats.put("activeTasks", activeTasks);
+        stats.put("pendingReports", tenantQuery("maintenanceReports")
+                .whereIn("status", List.of("SUBMITTED", "APPROVAL_PENDING")).count().get().get().getCount());
 
         stats.put("inventoryItems", inventoryItems);
         stats.put("lowStock", lowStock);

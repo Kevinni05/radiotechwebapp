@@ -56,6 +56,26 @@ public class OperatorService {
 
         private static final String COLLECTION = "operators";
 
+        /** Read legacy profiles without rewriting badges, identities or stored data. */
+        static Operator mapOperator(DocumentSnapshot document) {
+                var data = new java.util.LinkedHashMap<String, Object>(document.getData());
+                for (var alias : Map.of("fullName", "full_name", "birthDate", "birth_date",
+                                "createdAt", "created_at", "updatedAt", "updated_at").entrySet()) {
+                        if (data.get(alias.getKey()) == null && data.get(alias.getValue()) != null)
+                                data.put(alias.getKey(), data.get(alias.getValue()));
+                }
+                for (String field : List.of("createdAt", "updatedAt", "birthDate", "lastSeen")) {
+                        if (data.get(field) instanceof com.google.cloud.Timestamp timestamp)
+                                data.put(field, Instant.ofEpochSecond(timestamp.getSeconds(), timestamp.getNanos()).toString());
+                }
+                var gson = new com.google.gson.Gson();
+                Operator operator = gson.fromJson(gson.toJson(data), Operator.class);
+                operator.setId(document.getId());
+                if ("ACTIVE".equalsIgnoreCase(operator.getStatus())) operator.setStatus("ATTIVO");
+                if (operator.getFcmTokens() == null) operator.setFcmTokens(new ArrayList<>());
+                return operator;
+        }
+
         @org.springframework.beans.factory.annotation.Autowired(required=false)
         @org.springframework.context.annotation.Lazy
         private NotificationService badgeNotifications;
@@ -82,8 +102,6 @@ public class OperatorService {
 
                                 .whereEqualTo("tenantId", currentTenant())
 
-                                .orderBy("createdAt", Query.Direction.DESCENDING)
-
                                 .get();
 
                 List<QueryDocumentSnapshot> documents = future.get().getDocuments();
@@ -92,7 +110,7 @@ public class OperatorService {
 
                 for (QueryDocumentSnapshot document : documents) {
 
-                        Operator operator = document.toObject(Operator.class);
+                        Operator operator = mapOperator(document);
 
                         if (operator == null) {
 
@@ -112,6 +130,9 @@ public class OperatorService {
 
                 }
 
+                operators.sort(java.util.Comparator.comparingLong(
+                                (Operator operator) -> ArchiveQueries.timestamp(operator.getCreatedAt())).reversed()
+                                .thenComparing(Operator::getId));
                 return operators;
 
         }
@@ -140,7 +161,7 @@ public class OperatorService {
 
                 requireDocumentTenant(document);
 
-                Operator operator = document.toObject(Operator.class);
+                Operator operator = mapOperator(document);
 
                 if (operator == null) {
 

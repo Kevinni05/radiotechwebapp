@@ -16,7 +16,7 @@ window.RadioTechManagement = function ({ apiFetch, state, escapeHtml: esc, switc
     if (!Array.isArray(value)) throw new Error('Risposta del servizio non valida. Riprova.');
     return value;
   }
-  let tasks = [], operators = [], stock = [], requestVersion = 0;
+  let tasks = [], operators = [], stock = [], requestVersion = 0, pendingReports = 0;
   let planningReady = false, supplyReady = false;
   function createView(id, title, description, body, onOpen) {
     const section = document.createElement('section'); section.id = `view-${id}`; section.className = 'view';
@@ -35,21 +35,22 @@ window.RadioTechManagement = function ({ apiFetch, state, escapeHtml: esc, switc
   function filterReports() {
     const query = $('reportSearch').value.trim().toLowerCase(), status = $('reportStatusFilter').value;
     $('reportsList').querySelectorAll('.task-row').forEach(row => {
-      row.hidden = !row.textContent.toLowerCase().includes(query) || !!status && row.dataset.status !== status || !!$('reportOperatorFilter').value && row.dataset.operator !== $('reportOperatorFilter').value || !!$('reportDateFrom').value && (!row.dataset.date || row.dataset.date < $('reportDateFrom').value) || !!$('reportDateTo').value && (!row.dataset.date || row.dataset.date > $('reportDateTo').value);
+      row.hidden = !row.textContent.toLowerCase().includes(query) || !!status && row.dataset.status !== status && !(status === 'SUBMITTED' && row.dataset.status === 'APPROVAL_PENDING') || !!$('reportOperatorFilter').value && row.dataset.operator !== $('reportOperatorFilter').value || !!$('reportDateFrom').value && (!row.dataset.date || row.dataset.date < $('reportDateFrom').value) || !!$('reportDateTo').value && (!row.dataset.date || row.dataset.date > $('reportDateTo').value);
     });
     let empty = $('reportFilterEmpty');
     if (!empty) { empty = document.createElement('p'); empty.id = 'reportFilterEmpty'; empty.className = 'empty'; empty.textContent = 'Nessun report corrisponde ai filtri.'; reports.append(empty); }
-    empty.hidden = !$('reportsList').querySelector('.task-row') || !!$('reportsList').querySelector('.task-row:not([hidden])');
+    const hasFilters = ['reportSearch','reportStatusFilter','reportDateFrom','reportDateTo','reportOperatorFilter'].some(id => $(id).value);
+    empty.hidden = !hasFilters || !!$('reportsList').querySelector('.task-row:not([hidden])') || $('reportsList').textContent.includes('Report non disponibili:');
   }
-  $('reportSearch').addEventListener('input', filterReports); $('reportStatusFilter').addEventListener('change', filterReports);
+  $('reportSearch').addEventListener('input', filterReports); $('reportStatusFilter').addEventListener('change', () => loadReports());
   for (const id of ['reportDateFrom','reportDateTo','reportOperatorFilter']) $(id).addEventListener('change', filterReports);
-  $('reportClearFilters').addEventListener('click', () => { for (const id of ['reportSearch','reportStatusFilter','reportDateFrom','reportDateTo','reportOperatorFilter']) $(id).value = ''; filterReports(); });
+  $('reportClearFilters').addEventListener('click', () => { for (const id of ['reportSearch','reportStatusFilter','reportDateFrom','reportDateTo','reportOperatorFilter']) $(id).value = ''; loadReports(); });
   function collapseReports(value) { $('reportsList').querySelectorAll('.report-row').forEach(row => { row.classList.toggle('report-collapsed', value); const button = row.querySelector('[data-report-toggle]'); if(button){button.setAttribute('aria-expanded', String(!value));button.textContent=value?'⌄':'⌃';button.setAttribute('aria-label',value?'Espandi report':'Comprimi report');} }); }
   $('reportCollapseAll').addEventListener('click', () => collapseReports(true)); $('reportExpandAll').addEventListener('click', () => collapseReports(false));
   $('reportsList').addEventListener('click', event => { const button = event.target.closest('[data-report-toggle]'); if(!button)return; const row=button.closest('.report-row'); const value=!row.classList.contains('report-collapsed');row.classList.toggle('report-collapsed',value);button.setAttribute('aria-expanded',String(!value));button.textContent=value?'⌄':'⌃';button.setAttribute('aria-label',value?'Espandi report':'Comprimi report'); });
   new MutationObserver(() => { const selected=$('reportOperatorFilter').value; const names=[...new Set([...$('reportsList').querySelectorAll('.report-row')].map(r=>r.dataset.operator).filter(Boolean))].sort(); $('reportOperatorFilter').innerHTML='<option value="">Tutti gli operatori</option>'+names.map(n=>`<option value="${esc(n)}">${esc(n)}</option>`).join(''); $('reportOperatorFilter').value=selected; filterReports(); }).observe($('reportsList'), { childList: true });
   createView('planning', 'Agenda interventi', 'Scadenze degli incarichi, priorità e avanzamento. Le date sono mostrate nel fuso orario del dispositivo.', `
-    <div class="toolbar"><button class="btn" id="planningRefresh">Aggiorna agenda</button><button class="btn" id="planningExport" disabled>Esporta CSV</button><button class="btn primary" id="planningAssign">Assegna incarico</button></div>
+    <div class="toolbar"><button class="btn" id="planningRefresh">Aggiorna agenda</button><button class="btn" id="planningReview">Apri report da revisionare</button><button class="btn" id="planningExport" disabled>Esporta CSV</button><button class="btn primary" id="planningAssign">Assegna incarico</button></div>
     <p id="planningStatus" class="management-status" role="status"></p>
     <div id="planningMetrics" class="stats-grid"></div>
     <div class="panel"><div class="panel-body"><div class="management-filters">
@@ -65,6 +66,10 @@ window.RadioTechManagement = function ({ apiFetch, state, escapeHtml: esc, switc
     <div class="panel"><div class="panel-body"><div class="management-filters"><div class="field"><label for="suppliesSearch">Cerca articolo o fornitore</label><input id="suppliesSearch" type="search" placeholder="Nome, SKU, fornitore o posizione"></div></div><div id="suppliesList" class="management-list"></div></div></div>`, loadSupplies);
   function metric(label, value, note) { return `<div class="stat-card"><div class="stat-label">${label}</div><div class="stat-value">${esc(value)}</div><div class="stat-foot">${note}</div></div>`; }
   const operatorName = task => operators.find(o => o.id === task.operatorId)?.fullName || task.operatorName || task.operatorId || 'Non assegnato';
+  $('planningReview').addEventListener('click', () => {
+    $('reportStatusFilter').value = 'SUBMITTED';
+    switchView('reports'); loadReports();
+  });
   function selectedTasks() {
     const query = $('planningSearch').value.trim().toLowerCase(), period = $('planningPeriod').value, operator = $('planningOperator').value;
     const today = new Date(); today.setHours(0,0,0,0); const end = new Date(today); end.setDate(end.getDate() + 7);
@@ -77,7 +82,7 @@ window.RadioTechManagement = function ({ apiFetch, state, escapeHtml: esc, switc
   function renderPlanning() {
     if (!planningReady) return;
     const current = tasks.filter(active);
-    $('planningMetrics').innerHTML = metric('Incarichi attivi', current.length, 'esclusi chiusi e in revisione') + metric('Scaduti', current.filter(overdue).length, 'scadenza superata') + metric('Senza scadenza', current.filter(t => !due(t)).length, 'da pianificare') + metric('In revisione', tasks.filter(t => t.status === 'REPORT_SUBMITTED').length, 'report da verificare');
+    $('planningMetrics').innerHTML = metric('Incarichi attivi', current.length, 'esclusi chiusi e in revisione') + metric('Scaduti', current.filter(overdue).length, 'scadenza superata') + metric('Senza scadenza', current.filter(t => !due(t)).length, 'da pianificare') + metric('In revisione', pendingReports, 'report da verificare');
     let previous = '';
     $('planningList').innerHTML = selectedTasks().map(task => {
       const date = due(task), key = date ? dayKey(date) : 'UNDATED';
@@ -99,9 +104,12 @@ window.RadioTechManagement = function ({ apiFetch, state, escapeHtml: esc, switc
     for (const id of ['planningMetrics','planningList','workloadList']) $(id).replaceChildren();
     $('planningAssign').hidden = !['ADMIN','SUPER_ADMIN','CHIEF_EXECUTIVE','CAPO','NETWORK_MANAGER'].includes(state.authRole || state.user?.role);
     try {
-      const [taskData, operatorData] = await Promise.all([apiFetch('/api/v1/tasks'), apiFetch('/api/v1/operators')]);
+      const [taskData, operatorData, reportData] = await Promise.all([apiFetch('/api/v1/tasks'), apiFetch('/api/v1/operators'), apiFetch('/api/v1/reports/count?status=SUBMITTED')]);
       if (version !== requestVersion || epoch !== (state.sessionEpoch || 0)) return;
-      tasks = records(taskData); operators = records(operatorData); planningReady = true;
+      tasks = records(taskData); operators = records(operatorData);
+      pendingReports = (reportData?.data ?? reportData)?.count;
+      if (!Number.isInteger(pendingReports) || pendingReports < 0) throw new Error('Conteggio report non disponibile. Riprova.');
+      planningReady = true;
       const selected = $('planningOperator').value;
       const names = new Map(operators.map(o => [o.id, o.fullName || o.email || o.id]));
       tasks.forEach(t => { if (t.operatorId && !names.has(t.operatorId)) names.set(t.operatorId,t.operatorName || t.operatorId); });

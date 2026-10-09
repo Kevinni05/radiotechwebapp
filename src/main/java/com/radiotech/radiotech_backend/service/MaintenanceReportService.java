@@ -125,9 +125,26 @@ public class MaintenanceReportService {
     }
 
     public ArchiveQueries.Page<MaintenanceReport> getPage(int limit, String cursor, String operatorId, String firebaseUid) throws Exception {
+        return getPage(limit, cursor, operatorId, firebaseUid, null);
+    }
+
+    public ArchiveQueries.Page<MaintenanceReport> getPage(int limit, String cursor, String operatorId, String firebaseUid, String status) throws Exception {
         Query query = FirestoreClient.getFirestore().collection(COLLECTION).whereEqualTo("tenantId", currentTenant());
         if (operatorId != null) query = ArchiveQueries.operator(query, ArchiveQueries.identities(operatorId, firebaseUid));
-        return ArchiveQueries.page(query, limit, cursor, this::mapDocument);
+        return ArchiveQueries.page(filterStatus(query, status), limit, cursor, this::mapDocument);
+    }
+
+    public long count(String status) throws Exception {
+        return filterStatus(FirestoreClient.getFirestore().collection(COLLECTION)
+                .whereEqualTo("tenantId", currentTenant()), status).count().get().get().getCount();
+    }
+
+    private Query filterStatus(Query query, String status) {
+        if (status == null || status.isBlank()) return query;
+        if (SUBMITTED.equals(status)) return query.whereIn("status", List.of(SUBMITTED, APPROVAL_PENDING));
+        if (!List.of(APPROVED, REJECTED, APPROVAL_PENDING).contains(status))
+            throw new IllegalArgumentException("Stato revisione non valido.");
+        return query.whereEqualTo("status", status);
     }
 
     public long countByOperator(String operatorId, String firebaseUid) throws Exception {

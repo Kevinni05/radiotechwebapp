@@ -84,3 +84,9 @@ tasks.register('operationsMonitor', JavaExec) {
     classpath = sourceSets.main.runtimeClasspath
     mainClass = 'com.radiotech.radiotech_backend.ops.OperationalMonitorTool'
 }
+
+tasks.register('operationalReset', JavaExec) {
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.radiotech.radiotech_backend.ops.OperationalResetTool'
+    if (project.hasProperty('resetTenant')) args project.findProperty('resetMode') ?: 'dry-run', project.property('backupArchive'), project.property('backupKey'), project.property('resetTenant')
+}

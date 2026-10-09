@@ -55,6 +55,51 @@ class OperatorDataCompatibilityEmulatorTest {
         }
     }
 
+    @Test void dashboardAndOperatorListsIncludeUndatedLegacyProfilesWithoutChangingThem() throws Exception {
+        String tenant=UUID.randomUUID().toString(); authenticate(tenant);
+        try(var db=database(); var client=mockStatic(FirestoreClient.class)) {
+            client.when(FirestoreClient::getFirestore).thenReturn(db);
+            var old=db.collection("operators").document(tenant+"-old");
+            old.set(Map.of("tenantId",tenant,"full_name","Tecnico storico","birth_date","1990-01-01","status","ACTIVE")).get();
+            db.collection("operators").document(tenant+"-new").set(Map.of("tenantId",tenant,"fullName","Tecnico nuovo","status","ATTIVO","createdAt","2026-10-09T00:00:00Z")).get();
+            db.collection("operators").document(tenant+"-foreign").set(Map.of("tenantId","foreign","full_name","Altra azienda")).get();
+            var before=old.get().get().getData();
+            var service=new OperatorService(); var operators=service.getAllOperators();
+            assertEquals(2,operators.size()); assertEquals("Tecnico nuovo",operators.getFirst().getFullName());
+            assertEquals("Tecnico storico",service.getById(old.getId()).getFullName());
+            assertEquals("1990-01-01",service.getById(old.getId()).getBirthDate());
+            var stats=new DashboardService().getDashboardStats();
+            assertEquals(2,stats.get("operators")); assertEquals(2,stats.get("activeOperators"));
+            assertEquals(before,old.get().get().getData());
+        }
+    }
+
+    @Test void pendingReportCountsAndPagesIncludeInterruptedApprovalsAndExcludeOtherTenants() throws Exception {
+        String tenant=UUID.randomUUID().toString(); authenticate(tenant);
+        try(var db=database();var client=mockStatic(FirestoreClient.class)) {
+            client.when(FirestoreClient::getFirestore).thenReturn(db);
+            for(int i=0;i<55;i++) db.collection("maintenanceReports").document(tenant+"-"+i)
+                .set(Map.of("tenantId",tenant,"status","APPROVED","archiveAt",100L+i)).get();
+            for(String status:List.of("SUBMITTED","APPROVAL_PENDING"))
+                db.collection("maintenanceReports").document(tenant+status).set(Map.of("tenantId",tenant,"status",status,"archiveAt",1L)).get();
+            db.collection("maintenanceReports").document(tenant+"-foreign").set(Map.of("tenantId","foreign","status","SUBMITTED","archiveAt",2L)).get();
+            var service=new MaintenanceReportService(mock(TaskService.class),mock(AuditService.class),mock(RicambioService.class),new OperatorService());
+            assertEquals(2L,service.count("SUBMITTED"));
+            var page=service.getPage(50,null,null,null,"SUBMITTED");
+            assertEquals(2,page.items().size()); assertFalse(page.hasMore());
+            assertTrue(page.items().stream().anyMatch(report->"APPROVAL_PENDING".equals(report.getStatus())));
+            for(String status:List.of("IN LAVORAZIONE","APPROVED","REPORT_SUBMITTED"))
+                db.collection("tasks").document(tenant+status).set(Map.of("tenantId",tenant,"status",status,"dueAt","2020-01-01T00:00:00Z")).get();
+            var stats=new DashboardService().getDashboardStats();
+            assertEquals(2L,stats.get("pendingReports"));
+            assertEquals(1,stats.get("activeTasks"));
+            var taskStats=(Map<?,?>)stats.get("taskStats");
+            assertEquals(1,taskStats.get("inProgress")); assertEquals(1,taskStats.get("completed"));
+            assertEquals(1,taskStats.get("overdue"));
+            assertThrows(IllegalArgumentException.class,()->service.count("arbitrary"));
+        }
+    }
+
     @Test void reportListsIncludeLegacyDatesAndPdfAndReturnTheSameDocumentInDetail() throws Exception {
         String tenant = UUID.randomUUID().toString(), operator = UUID.randomUUID().toString();
         authenticate(tenant);

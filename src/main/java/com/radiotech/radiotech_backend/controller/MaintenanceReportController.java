@@ -46,9 +46,17 @@ public class MaintenanceReportController {
     @GetMapping("/page")
     public Object page(@RequestParam(defaultValue = "50") int limit,
             @RequestParam(required = false) String cursor,
+            @RequestParam(required = false) String status,
             @RequestHeader(value = "X-Tenant-Id", required = false) String tenantId) throws Exception {
         requirePermission(Permission.REPORT_READ, tenantId);
-        return service.getPage(limit, cursor, null, null);
+        return service.getPage(limit, cursor, null, null, status);
+    }
+
+    @GetMapping("/count")
+    public Object count(@RequestParam(required = false) String status,
+            @RequestHeader(value = "X-Tenant-Id", required = false) String tenantId) throws Exception {
+        requirePermission(Permission.REPORT_READ, tenantId);
+        return Map.of("count", service.count(status));
     }
 
     @GetMapping("/{id}")

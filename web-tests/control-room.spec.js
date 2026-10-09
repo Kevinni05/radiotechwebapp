@@ -353,6 +353,46 @@ test('all workspaces contain their content at narrow, tablet and desktop widths'
   expect(failures).toEqual([]);
 });
 
+test('agenda counts actual pending reports and opens interrupted approvals beyond the first archive page',async({page})=>{
+ const reports=[...Array.from({length:55},(_,i)=>({id:`done-${i}`,status:'APPROVED'})),{id:'waiting',status:'SUBMITTED'},{id:'interrupted',status:'APPROVAL_PENDING'}];
+ await session(page,'ADMIN',{'/reports':reports,'/tasks':{data:[{id:'stale-task',status:'REPORT_SUBMITTED'}]}});
+ await page.locator('.nav [data-view="planning"]').click();
+ await expect(page.locator('#planningMetrics .stat-card').last().locator('.stat-value')).toHaveText('2');
+ await expect(page.locator('#widgetPendingReports')).toHaveText('2');
+ await page.locator('#planningReview').click();
+ await expect(page.locator('#view-reports')).toBeVisible();
+ await expect(page.locator('#reportStatusFilter')).toHaveValue('SUBMITTED');
+ await expect(page.locator('#reportsList .report-row')).toHaveCount(2);
+ await expect(page.getByRole('button',{name:'Riprendi approvazione',exact:true})).toBeVisible();
+ await expect(page.locator('[data-report-reject="interrupted"]')).toHaveCount(0);
+ await page.locator('#reportClearFilters').click();
+ await expect(page.locator('#reportsList .report-row')).toHaveCount(50);
+});
+
+test('weather normalizes saved legacy coordinates and refresh recovers after an outage',async({page})=>{
+ await page.addInitScript(()=>localStorage.setItem('rt-weather-position',JSON.stringify({lat:'41.9',lng:'12.5',label:'Roma salvata'})));
+ let fail=true; const requests=[];
+ await session(page,'ADMIN',{respond(path,method,request){if(path==='/weather'){requests.push(new URL(request.url()).searchParams.get('latitude'));return{temperature_2m:22,weather_code:0,daily:{}};}}});
+ await page.route('**/api/v1/weather?*',route=>fail?route.fulfill({status:503,json:{message:'Temporaneamente non disponibile'}}):route.fallback());
+ await page.locator('#refreshWeather').click();
+ await expect(page.locator('#weatherCondition')).toHaveText('Meteo non disponibile');
+ fail=false;await page.locator('#refreshWeather').click();
+ await expect(page.locator('#liveWeather')).toContainText('Roma salvata · 22 °C');
+ expect(requests).toContain('41.9');
+});
+
+test('home counters include records beyond the first loaded archive page',async({page})=>{
+ await session(page,'ADMIN',{
+   '/tasks':{data:Array.from({length:120},(_,i)=>({id:`task-${i}`,status:'ASSIGNED'}))},
+   '/reports':Array.from({length:90},(_,i)=>({id:`report-${i}`,status:'SUBMITTED'})),
+   '/dashboard/stats':{operators:9,antennas:2,tasks:120,activeTasks:120,pendingReports:90,taskStats:{overdue:35},lowStock:3},
+ });
+ await expect(page.locator('#statOperators')).toHaveText('9');
+ await expect(page.locator('#widgetActiveTasks')).toHaveText('120');
+ await expect(page.locator('#widgetPendingReports')).toHaveText('90');
+ await expect(page.locator('#widgetOverdueTasks')).toHaveText('35');
+});
+
 async function session(page, role = 'ADMIN', records = {}) {
   await page.addInitScript(role => {
     sessionStorage.setItem('radiotech_control_token', 'test-token');
@@ -380,7 +420,8 @@ async function session(page, role = 'ADMIN', records = {}) {
     if (path === '/dashboard/antenne/a-new' && method === 'PUT') {
       Object.assign(antennas[0], JSON.parse(route.request().postData())); data = antennas[0];
     }
-    if (path === '/dashboard/stats') data = { antennas: 1, tasks: 1, operators: 1, availability: 100 };
+    if (path === '/dashboard/stats') data = { antennas: 1, tasks: 1, operators: 1, availability: 100, activeTasks: 1, taskStats:{overdue:1}, pendingReports: (records['/reports'] || []).filter(r=>['SUBMITTED','APPROVAL_PENDING'].includes(r.status)).length };
+    if (path === '/reports/count') data = {count: (records['/reports'] || []).filter(r => ['SUBMITTED','APPROVAL_PENDING'].includes(r.status)).length};
     if (path === '/auth/verify') data = { success: true, user: { role } };
     if (path === '/dashboard/profile' && method === 'GET') data = { fullName: 'Responsabile', company: 'RadioTech', role };
     if (path === '/capo/profile' && method === 'PUT') data = { success: true, data: JSON.parse(route.request().postData()) };
@@ -413,7 +454,11 @@ async function session(page, role = 'ADMIN', records = {}) {
     if (method === 'GET' && records[path]) data = records[path];
     if (records.respond) { const custom = await records.respond(path, method, route.request()); if (custom !== undefined) data = custom; }
     if (paged && data !== undefined) {
-      const items = Array.isArray(data) ? data : data.data;
+      let items = Array.isArray(data) ? data : data.data;
+      if (requestedPath === '/reports/page' && url.searchParams.get('status') && Array.isArray(items)) {
+        const status=url.searchParams.get('status');
+        items=items.filter(item=>item.status===status || status==='SUBMITTED' && item.status==='APPROVAL_PENDING');
+      }
       const start = Number(url.searchParams.get('cursor') || 0), limit = Number(url.searchParams.get('limit') || 50);
       if (Array.isArray(items)) data = {items:items.slice(start,start+limit),nextCursor:items.length>start+limit?String(start+limit):null,hasMore:items.length>start+limit};
     }
@@ -875,7 +920,7 @@ test('Raycast footer navigates workspaces preserves session and fits all screen 
 
 test('compact environment starts closed and operational widgets use actual records',async({page})=>{
  await page.emulateMedia({reducedMotion:'reduce'});
- await session(page,'ADMIN',{'/dashboard/stats':{antennas:0,tasks:2,operators:1,availability:100,lowStock:1},'/tasks':{data:[{id:'w1',title:'Verifica',status:'ASSIGNED',dueAt:'2020-01-01T00:00:00Z'},{id:'w2',title:'Concluso',status:'COMPLETED',dueAt:'2020-01-01T00:00:00Z'}]},'/reports':[{id:'wr1',status:'SUBMITTED'},{id:'wr2',status:'APPROVED'}],'/inventory':[{id:'wi1',name:'Ricambio',quantity:2,minimumThreshold:3},{id:'wi2',name:'Riserva',quantity:20,minimumThreshold:3}]});
+ await session(page,'ADMIN',{'/dashboard/stats':{antennas:0,tasks:2,operators:1,availability:100,lowStock:1,activeTasks:1,pendingReports:1,taskStats:{overdue:1}},'/tasks':{data:[{id:'w1',title:'Verifica',status:'ASSIGNED',dueAt:'2020-01-01T00:00:00Z'},{id:'w2',title:'Concluso',status:'COMPLETED',dueAt:'2020-01-01T00:00:00Z'}]},'/reports':[{id:'wr1',status:'SUBMITTED'},{id:'wr2',status:'APPROVED'}],'/inventory':[{id:'wi1',name:'Ricambio',quantity:2,minimumThreshold:3},{id:'wi2',name:'Riserva',quantity:20,minimumThreshold:3}]});
  await expect(page.locator('#weatherForecast')).toBeHidden();await expect(page.locator('#widgetActiveTasks')).toHaveText('1');await expect(page.locator('#widgetOverdueTasks')).toHaveText('1');await expect(page.locator('#widgetPendingReports')).toHaveText('1');await expect(page.locator('#widgetLowStock')).toHaveText('1');
  for(const width of [1440,768,390,320]){await page.setViewportSize({width,height:900});const widget=page.locator('.environment-widget');await widget.scrollIntoViewIfNeeded();expect(await widget.evaluate(n=>n.scrollWidth<=n.clientWidth+1)).toBe(true);expect(await widget.locator('button,input,.environment-details>div,.environment-operations>button').evaluateAll(nodes=>nodes.filter(n=>n.getClientRects().length).some(n=>{const r=n.getBoundingClientRect();return r.left<0||r.right>innerWidth+1;}))).toBe(false);}
  await page.locator('#weatherOutlook summary').click();await expect(page.locator('#weatherForecast')).toBeVisible();await page.locator('#weatherOutlook summary').click();await expect(page.locator('#weatherForecast')).toBeHidden();
