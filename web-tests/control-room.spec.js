@@ -17,6 +17,14 @@ test('glass surfaces align cards and brand returns home without losing the sessi
   const boxes=await page.locator('.stats .stat').evaluateAll(nodes=>nodes.map(n=>{const r=n.getBoundingClientRect();return {width:r.width,height:r.height};}));
   expect(boxes).toHaveLength(6);expect(Math.abs(boxes[0].width-boxes[1].width)).toBeLessThan(1);expect(Math.abs(boxes[0].height-boxes[1].height)).toBeLessThan(1);
   await expect(page.locator('.stats .stat').first()).toHaveCSS('backdrop-filter',/blur/);
+  const desktopAlignment = await page.locator('.stats .stat').evaluateAll(nodes=>nodes.map(n=>({
+    label:n.querySelector('.stat-top')?.getBoundingClientRect().top,
+    value:n.querySelector('.stat-value')?.getBoundingClientRect().top,
+    footer:n.querySelector('.subtle')?.getBoundingClientRect().bottom
+  })));
+  expect(new Set(desktopAlignment.map(x=>Math.round(x.label)))).toHaveProperty('size',1);
+  expect(new Set(desktopAlignment.map(x=>Math.round(x.value)))).toHaveProperty('size',1);
+  expect(new Set(desktopAlignment.map(x=>Math.round(x.footer)))).toHaveProperty('size',1);
   await page.locator('[data-view="inventory"]').click();
   await page.locator('#brandHome').click();await expect(page.locator('#view-dashboard')).toHaveClass(/active/);
   expect(await page.evaluate(()=>sessionStorage.getItem('radiotech_control_token'))).toBe('test-token');
@@ -30,6 +38,8 @@ test('glass surfaces align cards and brand returns home without losing the sessi
   await page.locator('#mobileMenu').click();await page.locator('#brandHome').focus();await page.keyboard.press('Enter');
   await expect(page.locator('#view-dashboard')).toHaveClass(/active/);await expect(page.locator('#mobileMenu')).toHaveAttribute('aria-expanded','false');
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+  await expect(page.locator('#quickAntennaBtn')).toBeVisible();
+  await expect(page.locator('#quickNotificationBtn')).toBeVisible();
 });
 
 test('Signal customer portal preserves login, requests and logout on small screens', async ({page}) => {
