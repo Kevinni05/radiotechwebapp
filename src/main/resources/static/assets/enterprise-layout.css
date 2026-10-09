@@ -102,8 +102,8 @@
 @media (max-width: 700px) {
   #app .content { padding: var(--ui-space-5) var(--ui-space-4) var(--ui-space-8); }
   #app .topbar { gap: var(--ui-space-3); padding: var(--ui-space-3) var(--ui-space-4); }
-  #app .top-actions { width: 100%; gap: var(--ui-space-2); }
-  #app .top-actions .quick { flex: 1 1 auto; }
+  #app .top-actions { width: 100%; gap: var(--ui-space-2); flex-wrap: wrap; }
+  #app .top-actions .quick { display: inline-flex; flex: 1 1 140px; }
   #app .panel-head, #app .panel-body { padding: var(--ui-space-4); }
   #app .stats .stat { padding: var(--ui-space-4); min-height: 118px; }
   #app .workspace-link { min-height: 70px; }
