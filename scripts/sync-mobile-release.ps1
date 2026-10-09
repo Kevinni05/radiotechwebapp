@@ -21,7 +21,7 @@ try {
   Invoke-WebRequest -Uri $expectedUrl -OutFile $temporaryApk -TimeoutSec 180
   if ((Get-FileHash -LiteralPath $temporaryApk -Algorithm SHA256).Hash.ToLowerInvariant() -ne $manifest.sha256) { throw 'The published APK checksum differs from its manifest.' }
   $certificateReport = (& $ApkSigner verify --verbose --print-certs $temporaryApk 2>&1 | Out-String)
-  if ($LASTEXITCODE -ne 0 -or $certificateReport -notmatch 'Signer #1 certificate SHA-256 digest: ([a-f0-9]+)' -or $Matches[1] -ne $expectedCertificate -or $certificateReport -match 'Android Debug') { throw 'The published APK signature is invalid.' }
+  if ($LASTEXITCODE -ne 0 -or $certificateReport -notmatch '(?:Signer #1|V[234](?:\.\d+)? Signer):? certificate SHA-256 digest: ([a-f0-9]+)' -or $Matches[1] -ne $expectedCertificate -or $certificateReport -match 'Android Debug') { throw 'The published APK signature is invalid.' }
   $manifest.available = $true
   if (!$ValidateOnly) { $manifest | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $root 'src/main/resources/mobile-release.json') -Encoding utf8 }
   Write-Output "Published APK verified: $Tag. Commit and push the backend manifest to activate mobile updates."
