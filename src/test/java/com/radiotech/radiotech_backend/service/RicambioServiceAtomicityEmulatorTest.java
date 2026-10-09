@@ -27,6 +27,30 @@ import static org.mockito.ArgumentMatchers.*;
 @EnabledIfEnvironmentVariable(named = "FIRESTORE_EMULATOR_HOST", matches = ".+")
 class RicambioServiceAtomicityEmulatorTest {
 
+    @Test
+    void invalidQuantitiesCannotBeTruncatedOrPartiallyConsumeStock() throws Exception {
+        authenticateTenantA();
+        String id = "whole-units-" + java.util.UUID.randomUUID();
+        try (Firestore firestore = emulatorFirestore(); var client = mockStatic(FirestoreClient.class)) {
+            client.when(FirestoreClient::getFirestore).thenReturn(firestore);
+            var item = firestore.collection("inventory").document(id);
+            item.set(Map.of("tenantId", "tenant-a", "name", "Cavo RF", "quantity", 5)).get();
+            var inventory = new RicambioService(mock(AuditService.class));
+            for (Object quantity : List.of(1.5, Double.NaN, Double.POSITIVE_INFINITY,
+                    (long) Integer.MAX_VALUE + 1, 4294967297L, "1")) {
+                String operation = "invalid-units-" + java.util.UUID.randomUUID();
+                assertThrows(IllegalArgumentException.class, () -> inventory.consume(List.of(
+                        Map.of("inventoryId", id, "quantity", 1),
+                        Map.of("inventoryId", id, "quantity", quantity)), operation));
+                assertEquals(5L, item.get().get().getLong("quantity"));
+                assertEquals(0, firestore.collection("inventoryMovements")
+                        .whereEqualTo("operationId", operation).get().get().size());
+                assertEquals(0, firestore.collection("inventoryConsumptionOperations")
+                        .whereEqualTo("operationId", operation).get().get().size());
+            }
+        }
+    }
+
     @AfterEach
     void clearSecurityContext() {
         SecurityContextHolder.clearContext();

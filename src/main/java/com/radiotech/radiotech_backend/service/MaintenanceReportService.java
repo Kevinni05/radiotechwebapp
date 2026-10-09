@@ -154,7 +154,7 @@ public class MaintenanceReportService {
                 .whereEqualTo("tenantId", currentTenant()), ArchiveQueries.identities(operatorId, firebaseUid)));
     }
 
-    private long activeCount(Query query) throws Exception {
+    static long activeCount(Query query) throws Exception {
         // Keep legacy documents with no removedAt field, without downloading the whole archive.
         var all = query.count().get();
         var removed = query.whereGreaterThan("removedAt", "").count().get();
@@ -620,7 +620,7 @@ public class MaintenanceReportService {
                 if (!SUBMITTED.equals(snapshot.getString("status"))) {
                     throw new IllegalArgumentException("Il report non è in stato SUBMITTED.");
                 }
-                String taskId = snapshot.getString("taskId");
+                String taskId = readString(snapshot, "taskId", snapshot.getString("task_id"));
                 DocumentSnapshot task = blank(taskId) ? null
                         : transaction.get(db.collection("tasks").document(taskId)).get();
                 String now = Instant.now().toString();

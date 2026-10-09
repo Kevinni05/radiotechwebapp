@@ -145,8 +145,8 @@ public class DashboardService {
         stats.put("interventions", interventions);
         stats.put("tasks", tasks);
         stats.put("activeTasks", activeTasks);
-        stats.put("pendingReports", tenantQuery("maintenanceReports")
-                .whereIn("status", List.of("SUBMITTED", "APPROVAL_PENDING")).count().get().get().getCount());
+        stats.put("pendingReports", MaintenanceReportService.activeCount(tenantQuery("maintenanceReports")
+                .whereIn("status", List.of("SUBMITTED", "APPROVAL_PENDING"))));
 
         stats.put("inventoryItems", inventoryItems);
         stats.put("lowStock", lowStock);

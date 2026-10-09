@@ -1,0 +1,117 @@
+{
+  "tokens": {
+    "--ui-control-height": "40px",
+    "--box-gap": "20px",
+    "--border": "#2b2c32",
+    "--ui-space-4": "16px",
+    "--yellow": "#edc389",
+    "--panel-2": "#191a1e",
+    "--green": "#79ddb4",
+    "--ui-space-5": "20px",
+    "--shadow-soft": "0 8px 24px #0003",
+    "--radius": "14px",
+    "--muted-2": "#92929e",
+    "--panel-solid": "#121316",
+    "--border-strong": "#50515c",
+    "--ui-space-2": "8px",
+    "--red": "#ff959f",
+    "--cyan": "#8fbaff",
+    "--glass-fill": "linear-gradient(135deg,#232332b8,#12131dc9)",
+    "--ui-space-3": "12px",
+    "--bg": "#08090b",
+    "--panel": "#121316",
+    "--muted": "#ababb5",
+    "--text": "#f4f4f5",
+    "--sidebar": "260px",
+    "--ui-space-1": "4px",
+    "--ui-space-8": "32px",
+    "--ui-radius-lg": "16px",
+    "--ui-content-width": "1520px",
+    "--ui-space-12": "48px",
+    "--shadow": "0 24px 80px #0008",
+    "--ui-surface-border": "#b8b3dc2e",
+    "--ui-radius-sm": "8px",
+    "--glass-border": "#b8b3dc2e",
+    "--ui-space-6": "24px",
+    "--primary": "#ff8383",
+    "--topbar": "80px",
+    "--ui-radius-md": "12px",
+    "--primary-2": "#ff6363",
+    "--ui-space-10": "40px",
+    "--bg-soft": "#0e0f12"
+  },
+  "components": {
+    "body": {
+      "color": "rgb(244, 244, 245)",
+      "backgroundColor": "rgba(0, 0, 0, 0)",
+      "backgroundImage": "linear-gradient(135deg, rgb(16, 16, 25), rgb(12, 14, 24) 55%, rgb(21, 16, 26))",
+      "borderColor": "rgb(244, 244, 245)",
+      "boxShadow": "none",
+      "fontFamily": "Inter, system-ui, sans-serif",
+      "backdropFilter": "none"
+    },
+    ".signature-topbar": {
+      "color": "rgb(244, 244, 245)",
+      "backgroundColor": "rgba(16, 17, 26, 0.792)",
+      "backgroundImage": "none",
+      "borderColor": "rgba(184, 179, 220, 0.18)",
+      "boxShadow": "none",
+      "fontFamily": "Inter, system-ui, sans-serif",
+      "backdropFilter": "blur(22px)"
+    },
+    ".sidebar": {
+      "color": "rgb(244, 244, 245)",
+      "backgroundColor": "rgba(17, 18, 27, 0.85)",
+      "backgroundImage": "none",
+      "borderColor": "rgba(184, 179, 220, 0.14)",
+      "boxShadow": "none",
+      "fontFamily": "Inter, system-ui, sans-serif",
+      "backdropFilter": "blur(22px)"
+    },
+    ".session-notes": {
+      "color": "rgb(244, 244, 245)",
+      "backgroundColor": "rgba(0, 0, 0, 0)",
+      "backgroundImage": "linear-gradient(135deg, rgba(35, 35, 50, 0.72), rgba(18, 19, 29, 0.79))",
+      "borderColor": "rgba(184, 179, 220, 0.18)",
+      "boxShadow": "rgba(255, 255, 255, 0.07) 0px 1px 0px 0px inset, rgba(0, 0, 0, 0.133) 0px 12px 36px 0px",
+      "fontFamily": "Inter, system-ui, sans-serif",
+      "backdropFilter": "blur(18px) saturate(1.25)"
+    },
+    "#sessionNotesClear": {
+      "color": "rgb(229, 229, 235)",
+      "backgroundColor": "rgba(0, 0, 0, 0)",
+      "backgroundImage": "linear-gradient(rgb(34, 35, 42), rgb(26, 27, 33))",
+      "borderColor": "rgb(58, 59, 68)",
+      "boxShadow": "rgba(255, 255, 255, 0.043) 0px 1px 0px 0px inset, rgba(0, 0, 0, 0.133) 0px 2px 3px 0px",
+      "fontFamily": "Inter, system-ui, sans-serif",
+      "backdropFilter": "none"
+    },
+    "#refreshBtn": {
+      "color": "rgb(229, 229, 235)",
+      "backgroundColor": "rgba(0, 0, 0, 0)",
+      "backgroundImage": "linear-gradient(rgb(34, 35, 42), rgb(26, 27, 33))",
+      "borderColor": "rgb(58, 59, 68)",
+      "boxShadow": "rgba(255, 255, 255, 0.043) 0px 1px 0px 0px inset, rgba(0, 0, 0, 0.133) 0px 2px 3px 0px",
+      "fontFamily": "Inter, system-ui, sans-serif",
+      "backdropFilter": "none"
+    },
+    "#notificationBell": {
+      "color": "rgb(229, 229, 235)",
+      "backgroundColor": "rgba(0, 0, 0, 0)",
+      "backgroundImage": "linear-gradient(rgb(34, 35, 42), rgb(26, 27, 33))",
+      "borderColor": "rgb(58, 59, 68)",
+      "boxShadow": "rgba(255, 255, 255, 0.043) 0px 1px 0px 0px inset, rgba(0, 0, 0, 0.133) 0px 2px 3px 0px",
+      "fontFamily": "Inter, system-ui, sans-serif",
+      "backdropFilter": "none"
+    },
+    ".map-shell": {
+      "color": "rgb(244, 244, 245)",
+      "backgroundColor": "rgb(19, 20, 26)",
+      "backgroundImage": "none",
+      "borderColor": "rgb(244, 244, 245)",
+      "boxShadow": "none",
+      "fontFamily": "Inter, system-ui, sans-serif",
+      "backdropFilter": "none"
+    }
+  }
+}

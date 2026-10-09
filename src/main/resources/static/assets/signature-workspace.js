@@ -18,7 +18,7 @@ window.RadioTechSignatureWorkspace = function ({ state, switchView, initials }) 
   };
   const authorized = button => button && !button.hidden && !button.disabled && !button.closest('[hidden]:not(.workspace-menu)');
   const visible = button => authorized(button) && getComputedStyle(button).display !== 'none';
-  const setStatus = (text, error = false) => { status.textContent = text; status.dataset.error = String(error); };
+  const setStatus = (text, error = false) => { status.textContent = text; status.dataset.error = String(error); $('sessionNotesRetry').hidden = !(error && dirty && owner); };
   function metadata() {
     $('sessionNotesCount').textContent = `${editor.value.length} / 8000`;
     $('sessionNotesClear').disabled = !owner || !editor.value;
@@ -37,7 +37,7 @@ window.RadioTechSignatureWorkspace = function ({ state, switchView, initials }) 
       setStatus(editor.value ? 'Salvato nella sessione' : 'Nessuna nota');
       metadata();
     } catch (_) {
-      setStatus('Salvataggio non riuscito. La nota resta aperta; riprova modificandola.', true);
+      setStatus('Salvataggio non riuscito. La nota resta aperta; premi Riprova.', true);
     }
   }
   function syncIdentity() {
@@ -82,6 +82,7 @@ window.RadioTechSignatureWorkspace = function ({ state, switchView, initials }) 
     dirty = true; metadata(); setStatus('Salvataggio in corso…');
     clearTimeout(timer); timer = setTimeout(save, 350);
   });
+  $('sessionNotesRetry').addEventListener('click', save);
   editor.addEventListener('blur', save);
   window.addEventListener('pagehide', save);
   document.addEventListener('visibilitychange', () => { if (document.hidden) save(); });
@@ -137,7 +138,7 @@ window.RadioTechSignatureWorkspace = function ({ state, switchView, initials }) 
       const copy = button.cloneNode(true); copy.querySelectorAll('.nav-icon,svg').forEach(icon => icon.remove());
       return { label: copy.textContent.trim(), category: 'Sezione', button, available: () => visible(button) };
     });
-    for (const [id, label] of [['quickAntennaBtn', 'Nuova antenna'], ['quickNotificationBtn', 'Invia notifica'], ['refreshBtn', 'Aggiorna dati']]) {
+    for (const [id, label] of [['quickAntennaBtn', 'Nuova antenna'], ['quickNotificationBtn', 'Invia notifica'], ['refreshBtn', 'Aggiorna dati'], ['newInventoryItemBtn', 'Nuovo articolo magazzino'], ['newOperatorBtn', 'Nuovo operatore'], ['editProfileBtn', 'Modifica profilo']]) {
       const button = $(id); if (authorized(button)) entries.push({label, category: 'Azione', button, available: () => authorized(button)});
     }
     return entries;
@@ -157,7 +158,7 @@ window.RadioTechSignatureWorkspace = function ({ state, switchView, initials }) 
     });
   }
   function openSearch() {
-    if (!state.token || !$('app').classList.contains('ready')) return;
+    if (!state.token || !$('app').classList.contains('ready') || document.querySelector('dialog[open]') || document.querySelector('.modal-backdrop.open')) return;
     closeMenus(); returnFocus = document.activeElement; search.value = ''; renderCommands(); dialog.showModal(); search.focus();
   }
   $('workspaceShortcut').textContent = /Mac|iPhone|iPad/.test(navigator.platform) ? '⌘ K' : 'Ctrl K';

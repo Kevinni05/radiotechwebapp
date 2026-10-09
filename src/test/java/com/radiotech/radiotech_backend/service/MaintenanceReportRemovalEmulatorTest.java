@@ -100,6 +100,62 @@ class MaintenanceReportRemovalEmulatorTest {
         }
     }
 
+    @Test void dashboardAndReviewCountersExcludeRemovedPendingReportsAndOtherTenants() throws Exception {
+        String tenant = UUID.randomUUID().toString();
+        authenticate(tenant, "ADMIN");
+        try (var db = firestore(); var client = mockStatic(FirestoreClient.class)) {
+            client.when(FirestoreClient::getFirestore).thenReturn(db);
+            var reports = service();
+            var removedIds = new java.util.ArrayList<String>();
+            for (String status : List.of("SUBMITTED", "APPROVAL_PENDING", "APPROVED", "REJECTED")) {
+                for (boolean removed : List.of(false, true)) {
+                    String id = UUID.randomUUID().toString();
+                    db.collection("maintenanceReports").document(id).set(Map.of("tenantId", tenant,
+                            "status", status, "archiveAt", 123L, "operatorRefs", List.of("op"))).get();
+                    if (removed) {
+                        reports.remove(id, "manager");
+                        removedIds.add(id);
+                    }
+                }
+            }
+            db.collection("maintenanceReports").document().set(Map.of("tenantId", "other-" + tenant,
+                    "status", "SUBMITTED", "archiveAt", 123L)).get();
+            assertEquals(4, reports.count(null));
+            assertEquals(2, reports.count("SUBMITTED"));
+            assertEquals(1, reports.count("APPROVAL_PENDING"));
+            assertEquals(4, reports.countByOperator("op", null));
+            assertEquals(2L, new DashboardService().getDashboardStats().get("pendingReports"));
+            var pending = reports.getPage(10, null, null, null, "SUBMITTED");
+            assertEquals(2, pending.items().size());
+            assertTrue(pending.items().stream().noneMatch(report -> removedIds.contains(report.getId())));
+            for (var report : pending.items()) reports.remove(report.getId(), "manager");
+            assertEquals(0, reports.count("SUBMITTED"));
+            assertEquals(0L, new DashboardService().getDashboardStats().get("pendingReports"));
+        }
+    }
+
+    @Test void rejectionReleasesLegacyTaskForCorrectionWithoutChangingSignedEvidence() throws Exception {
+        String tenant = UUID.randomUUID().toString();
+        authenticate(tenant, "ADMIN");
+        try (var db = firestore(); var client = mockStatic(FirestoreClient.class)) {
+            client.when(FirestoreClient::getFirestore).thenReturn(db);
+            String taskId = UUID.randomUUID().toString();
+            var task = db.collection("tasks").document(taskId);
+            task.set(Map.of("tenantId", tenant, "status", "REPORT_SUBMITTED")).get();
+            String id = UUID.randomUUID().toString();
+            var report = db.collection("maintenanceReports").document(id);
+            report.set(Map.of("tenantId", tenant, "status", "SUBMITTED", "task_id", taskId,
+                    "digitalSignature", "original-signature", "integrityHash", "original-hash",
+                    "attachments", List.of("signed.pdf"))).get();
+            assertEquals("REJECTED", service().review(id, false, "Da correggere", "manager").getStatus());
+            assertEquals("COMPLETED", task.get().get().getString("status"));
+            var retained = report.get().get();
+            assertEquals("original-signature", retained.getString("digitalSignature"));
+            assertEquals("original-hash", retained.getString("integrityHash"));
+            assertEquals(List.of("signed.pdf"), retained.get("attachments"));
+        }
+    }
+
     @Test void removalDoesNotStrandPreviouslyStartedApprovalOrReverseInventory() throws Exception {
         String tenant = UUID.randomUUID().toString();
         authenticate(tenant, "ADMIN");
@@ -117,6 +173,43 @@ class MaintenanceReportRemovalEmulatorTest {
             assertNotNull(snapshot.getString("removedAt"));
             assertEquals("COMPLETE", snapshot.getString("inventoryConsumptionStatus"));
             assertEquals("retained-signature", snapshot.getString("digitalSignature"));
+            assertTrue(reports.getAll().isEmpty());
+        }
+    }
+
+    @Test void removalDuringApprovalRetainsCommittedStockLedgerAndFinishesClaimedWorkflow() throws Exception {
+        String tenant = UUID.randomUUID().toString();
+        authenticate(tenant, "ADMIN");
+        try (var db = firestore(); var client = mockStatic(FirestoreClient.class)) {
+            client.when(FirestoreClient::getFirestore).thenReturn(db);
+            String itemId = UUID.randomUUID().toString();
+            var item = db.collection("inventory").document(itemId);
+            item.set(Map.of("tenantId", tenant, "name", "Connettore N", "sku", itemId, "quantity", 4)).get();
+            String id = UUID.randomUUID().toString();
+            var reference = db.collection("maintenanceReports").document(id);
+            var materials = List.of(Map.<String, Object>of("inventoryId", itemId, "quantity", 1));
+            reference.set(Map.of("tenantId", tenant, "status", "SUBMITTED", "materialsUsed", materials,
+                    "digitalSignature", "signed-original", "integrityHash", "original-hash")).get();
+            var inventory = spy(new RicambioService(mock(AuditService.class)));
+            var reports = new MaintenanceReportService(mock(TaskService.class), mock(AuditService.class),
+                    inventory, mock(OperatorService.class));
+            doAnswer(invocation -> {
+                invocation.callRealMethod();
+                reports.remove(id, "manager");
+                return null;
+            }).when(inventory).consume(anyList(), eq(id));
+            assertEquals("APPROVED", reports.review(id, true, "", "manager").getStatus());
+            var retained = reference.get().get();
+            assertNotNull(retained.getString("removedAt"));
+            assertEquals("COMPLETE", retained.getString("inventoryConsumptionStatus"));
+            assertEquals("signed-original", retained.getString("digitalSignature"));
+            assertEquals("original-hash", retained.getString("integrityHash"));
+            assertEquals(3L, item.get().get().getLong("quantity"));
+            assertEquals(1, db.collection("inventoryMovements").whereEqualTo("operationId", id).get().get().size());
+            assertTrue(inventory.consumptionOperation(db, tenant, id).get().get().exists());
+            assertThrows(IllegalArgumentException.class, () -> reports.review(id, true, "retry", "manager"));
+            assertEquals(3L, item.get().get().getLong("quantity"));
+            assertEquals(0, reports.count(null));
             assertTrue(reports.getAll().isEmpty());
         }
     }

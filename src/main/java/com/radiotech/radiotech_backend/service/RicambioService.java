@@ -599,8 +599,13 @@ public class RicambioService {
             String inventoryId = inventoryId(material);
             String sku = text(material.get("sku"));
             String name = String.valueOf(material.getOrDefault("name", "")).trim();
-            int quantity = number(material.get("quantity"));
-            if (inventoryId.isBlank() && sku.isBlank() || quantity <= 0) {
+            Object rawQuantity = material.get("quantity");
+            if (!(rawQuantity instanceof Number amount) || !Double.isFinite(amount.doubleValue())
+                    || amount.doubleValue() <= 0 || amount.doubleValue() != amount.intValue()) {
+                throw new IllegalArgumentException("La quantità del materiale deve essere un numero intero positivo.");
+            }
+            int quantity = ((Number) rawQuantity).intValue();
+            if (inventoryId.isBlank() && sku.isBlank()) {
                 throw new IllegalArgumentException("ID o SKU stabile del materiale e quantità sono obbligatori.");
             }
             String key = !inventoryId.isBlank() ? "id:" + inventoryId

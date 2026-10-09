@@ -35,10 +35,63 @@
 .environment-widget .weather-outlook{grid-column:1/-1;border-top:1px solid #ffffff10;padding-top:18px}.weather-forecast{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px}.weather-day{display:flex;flex-direction:column;gap:8px;padding:14px;border:1px solid #ffffff12;border-radius:14px;background:linear-gradient(145deg,#ffffff05,#8660e908);min-width:0;overflow-wrap:anywhere;font-size:12px}.weather-day strong{font-size:18px}.weather-day span:last-child{color:var(--muted,#b9bbc9)}.weather-credit{display:inline-block;margin-top:12px;font-size:11px;color:var(--muted,#b9bbc9)}.sr-only{position:absolute;width:1px;height:1px;padding:0;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap}
 @media(max-width:900px){.environment-widget{grid-template-columns:1fr}.weather-forecast{grid-template-columns:repeat(3,minmax(0,1fr))}}@media(max-width:480px){.weather-forecast{grid-template-columns:repeat(2,minmax(0,1fr))}.environment-details{grid-template-columns:repeat(2,minmax(0,1fr))}.clock-row{gap:12px}.analog-clock{width:64px;height:64px}.environment-widget #liveTime{font-size:28px}}
 
-/* Shared Raycast footer: quiet glass surfaces and genuine workspace navigation. */
-.footer.app-footer{display:block;padding:28px 28px 20px;margin-top:36px;border:1px solid #ffffff12;border-radius:20px;background:linear-gradient(135deg,#8660e90b,#ffffff03 55%,#ff817408);backdrop-filter:blur(18px);font-size:12px;line-height:1.7;letter-spacing:0;color:var(--muted,#b9bbc9);min-width:0}
-.footer-grid{display:grid;grid-template-columns:minmax(0,1.5fr) repeat(3,minmax(0,1fr));gap:28px}.footer-grid>*{min-width:0}.app-footer button{font:inherit;cursor:pointer;color:inherit;background:transparent;border:0;text-align:left;max-width:100%;white-space:normal;overflow-wrap:anywhere;border-radius:8px;transition:color .18s,background .18s}.app-footer button:focus-visible{outline:2px solid #ff8174;outline-offset:4px}.app-footer button:hover{color:#f5f3ff;background:#ffffff06}.app-footer .footer-brand{display:flex;align-items:center;gap:12px;padding:0}.footer-brand img{flex:none;object-fit:contain}.footer-brand strong{display:block;font-size:20px;font-weight:650;color:#f0edf7;letter-spacing:-.03em}.footer-brand small{display:block;font-size:11px;color:var(--muted,#b9bbc9)}.footer-identity p{font-size:12px;margin:16px 0;line-height:1.8;overflow-wrap:anywhere}.app-footer .footer-service{display:flex;gap:8px;align-items:center;padding:8px 10px;border:1px solid #ffffff10;font-size:11px}.footer-service>span:nth-child(2){min-width:0}.footer-status-dot{height:6px;width:6px;border-radius:50%;background:#b9bbc9;flex:none}.footer-service[data-status=up] .footer-status-dot{background:#6bdda7;box-shadow:0 0 10px #6bdda730}.footer-service[data-status=down] .footer-status-dot{background:#ff8174}.footer-group h3{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:#eeeaf6;margin:4px 0 12px}.footer-group button{display:block;padding:6px 8px;margin-left:-8px;width:fit-content;line-height:1.6}.footer-bottom{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:16px;margin-top:26px;padding-top:18px;border-top:1px solid #ffffff10;font-size:11px}.footer-bottom>*{min-width:0;overflow-wrap:anywhere}.footer-sync{display:flex;flex-direction:column}.footer-sync time{font-variant-numeric:tabular-nums}.app-footer #footerBackTop{padding:8px 10px;display:flex;align-items:center;gap:10px}
-@media(max-width:1100px){.footer-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:24px}.footer-identity{grid-column:1/-1}.footer-identity p{margin:12px 0}}@media(max-width:600px){.footer.app-footer{padding:22px 18px 18px;border-radius:16px}.footer-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:24px 16px}.footer-group:last-child{grid-column:1/-1}.footer-bottom{align-items:flex-start;flex-direction:column;gap:14px}.footer-group button{font-size:12px}.footer-identity p br{display:none}}@media(prefers-reduced-motion:reduce){.app-footer button{transition:none}}
+/* Shared Raycast footer: geometry and navigation use the existing product identity. */
+.footer.app-footer {
+  display: block; padding: 24px 24px 20px; margin-top: 28px;
+  border: 1px solid #ffffff12; border-radius: 20px;
+  background: linear-gradient(135deg,#8660e90b,#ffffff03 55%,#ff817408);
+  backdrop-filter: blur(18px); font-size: 12px; line-height: 1.7;
+  letter-spacing: 0; color: var(--muted,#b9bbc9); min-width: 0;
+}
+.footer-grid { display: grid; grid-template-columns: minmax(0,1.5fr) repeat(3,minmax(0,1fr)); gap: 24px; }
+.footer-grid > * { min-width: 0; }
+.app-footer button {
+  font: inherit; cursor: pointer; color: inherit; background: transparent;
+  border: 0; text-align: left; max-width: 100%; white-space: normal;
+  overflow-wrap: anywhere; border-radius: 8px; transition: color .18s,background .18s;
+}
+.app-footer button:focus-visible { outline: 2px solid #ff8174; outline-offset: 4px; }
+.app-footer button:hover { color: #f5f3ff; background: #ffffff06; }
+.app-footer .footer-brand { display: flex; align-items: center; gap: 12px; padding: 0; }
+.footer-brand img { flex: none; object-fit: contain; }
+.footer-brand strong { display: block; font-size: 20px; font-weight: 650; color: #f0edf7; letter-spacing: -.03em; }
+.footer-brand small { display: block; font-size: 11px; color: var(--muted,#b9bbc9); }
+.footer-identity p { font-size: 12px; margin: 12px 0; line-height: 1.8; overflow-wrap: anywhere; }
+.app-footer .footer-service { display: flex; gap: 8px; align-items: center; padding: 8px 10px; border: 1px solid #ffffff10; font-size: 11px; }
+.footer-service > span:nth-child(2) { min-width: 0; }
+.footer-status-dot { height: 6px; width: 6px; border-radius: 50%; background: #b9bbc9; flex: none; }
+.footer-service[data-status=up] .footer-status-dot { background: #6bdda7; box-shadow: 0 0 10px #6bdda730; }
+.footer-service[data-status=down] .footer-status-dot { background: #ff8174; }
+.footer-group h3 { font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: #eeeaf6; margin: 4px 0 8px; }
+.footer-group button { display: block; padding: 6px 8px; margin-left: -8px; width: fit-content; line-height: 1.6; }
+.footer-bottom {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
+  gap: 12px; margin-top: 20px; padding-top: 16px;
+  border-top: 1px solid #ffffff10; font-size: 11px;
+}
+.footer-bottom > * { min-width: 0; overflow-wrap: anywhere; }
+.footer-sync { display: flex; flex-direction: column; }
+.footer-sync time { font-variant-numeric: tabular-nums; }
+.app-footer #footerBackTop { padding: 8px 10px; display: flex; align-items: center; gap: 10px; }
+@media (max-width: 1100px) {
+  .footer-grid { grid-template-columns: repeat(3,minmax(0,1fr)); gap: 20px; }
+  .footer-identity { grid-column: 1/-1; }
+}
+@media (max-width: 600px) {
+  .footer.app-footer { padding: 16px; border-radius: 16px; }
+  .footer-grid { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 12px; }
+  .footer-identity p { margin: 8px 0; line-height: 1.6; }
+  .footer-identity p br { display: none; }
+  .app-footer .footer-service { min-height: 44px; }
+  .footer-group { display: grid; grid-template-columns: minmax(0,1fr); align-content: start; }
+  .footer-group:last-child { grid-column: 1/-1; grid-template-columns: repeat(2,minmax(0,1fr)); column-gap: 12px; }
+  .footer-group h3 { grid-column: 1/-1; margin: 0 0 4px; }
+  .footer-group button { width: 100%; margin: 0; padding: 8px 0; min-height: 44px; font-size: 12px; }
+  .footer-bottom { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 10px 12px; align-items: center; margin-top: 16px; padding-top: 12px; line-height: 1.5; }
+  .footer-bottom > :first-child { grid-column: 1/-1; }
+  .app-footer #footerBackTop { min-height: 44px; padding-inline: 0; }
+}
+@media (prefers-reduced-motion: reduce) { .app-footer button { transition: none; } }
 
 /* Compact environment summary; forecasts are opt-in via a native disclosure. */
 .environment-widget{padding:18px 20px;gap:14px 22px;grid-template-columns:minmax(0,.7fr) minmax(0,1.3fr);margin-bottom:18px}.environment-widget .section-kicker{margin-bottom:8px}.environment-widget #liveDateTime{font-size:16px}.environment-widget #liveTime{font-size:28px}.analog-clock{width:62px;height:62px}.clock-row{gap:12px}.environment-widget #liveWeather{font-size:14px;line-height:1.5}.weather-search input{padding:8px 10px}.weather-toolbar{margin:8px 0;gap:6px}.weather-toolbar .mini-btn{padding:6px 8px;font-size:11px}.environment-details{grid-template-columns:repeat(6,minmax(0,1fr));gap:6px;margin-top:10px}.environment-details>div{padding:6px 8px;border-radius:9px}.environment-details small{font-size:10px}.environment-details strong{font-size:12px}.weather-credit{font-size:10px;margin-top:6px}
