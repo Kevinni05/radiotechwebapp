@@ -32,10 +32,10 @@ app:
     seed-tenant-id: ${RADIOTECH_FIRESTORE_SEED_TENANT_ID:}
   firebase:
     enabled: ${RADIOTECH_FIREBASE_ENABLED:true}
-    project-id: ${FIREBASE_PROJECT_ID:gestionale-radio}
+    project-id: ${FIREBASE_PROJECT_ID:demo-radiotech}
     storage-bucket: ${FIREBASE_STORAGE_BUCKET:}
     service-account-path: ${FIREBASE_SERVICE_ACCOUNT_PATH:}
-    database-url: ${FIREBASE_DATABASE_URL:https://gestionale-radio-default-rtdb.europe-west1.firebasedatabase.app}
+    database-url: ${FIREBASE_DATABASE_URL:}
 
 radiotech:
   brand:
