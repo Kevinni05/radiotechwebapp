@@ -13,9 +13,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     env:
-      FIREBASE_PROJECT_ID: gestionale-radio
-      FIREBASE_STORAGE_BUCKET: ''
-      RADIOTECH_BACKUP_ARCHIVE: .dist/backups/radiotech-${{ github.run_id }}.rtbackup
+      FIREBASE_PROJECT_ID: ${{ vars.FIREBASE_PROJECT_ID }}
+      FIREBASE_STORAGE_BUCKET: ${{ vars.FIREBASE_STORAGE_BUCKET }}
+      RADIOTECH_BACKUP_ARCHIVE: .dist/backups/customer-${{ github.run_id }}.rtbackup
       RADIOTECH_BACKUP_DESTINATION: GITHUB_ACTIONS
     steps:
       - uses: actions/checkout@v4
@@ -36,7 +36,7 @@ jobs:
           const fs = require('node:fs'), path = require('node:path');
           if (!process.env.BACKUP_ACCOUNT_JSON || !process.env.BACKUP_KEY_BASE64) throw new Error('Configure FIREBASE_BACKUP_SERVICE_ACCOUNT and FIREBASE_BACKUP_KEY_BASE64 before enabling backups.');
           const account = JSON.parse(process.env.BACKUP_ACCOUNT_JSON), key = Buffer.from(process.env.BACKUP_KEY_BASE64, 'base64');
-          if (account.project_id !== 'gestionale-radio' || key.length !== 32) throw new Error('Backup configuration does not match this project.');
+          if (!process.env.FIREBASE_PROJECT_ID || account.project_id !== process.env.FIREBASE_PROJECT_ID || key.length !== 32) throw new Error('Backup configuration does not match the configured buyer project.');
           const credential = path.join(process.env.RUNNER_TEMP, 'backup-account.json'), keyFile = path.join(process.env.RUNNER_TEMP, 'backup.key');
           fs.writeFileSync(credential, process.env.BACKUP_ACCOUNT_JSON, {mode: 0o600});
           fs.writeFileSync(keyFile, key, {mode: 0o600});
@@ -53,7 +53,7 @@ jobs:
       - name: Store encrypted offsite backup
         uses: actions/upload-artifact@v4
         with:
-          name: radiotech-encrypted-backup-${{ github.run_id }}
+          name: encrypted-backup-${{ github.run_id }}
           path: |
             .dist/backups/*.rtbackup
             .dist/backup-drill-result.json
