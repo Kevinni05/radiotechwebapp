@@ -42,6 +42,35 @@ test('glass surfaces align cards and brand returns home without losing the sessi
   await expect(page.locator('#quickNotificationBtn')).toBeVisible();
 });
 
+test('Enterprise operational pages keep consistent spacing and notification composer layout',async({page})=>{
+  await page.emulateMedia({reducedMotion:'reduce'});
+  await page.setViewportSize({width:1440,height:960});
+  await session(page,'ADMIN');
+  for(const view of ['antennas','operations','notifications','tools','inventory','profile','system']){
+    await page.locator('[data-view="'+view+'"]').first().click();
+    const active=page.locator('#view-'+view);
+    await expect(active).toHaveClass(/active/);
+    await expect(active).toBeVisible();
+    expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+  }
+  await page.locator('[data-view="notifications"]').first().click();
+  const workspace=page.locator('#view-notifications .notification-workspace');
+  await expect(workspace).toBeVisible();
+  const panels=await workspace.locator(':scope > .panel').evaluateAll(nodes=>nodes.map(n=>({top:n.getBoundingClientRect().top,width:n.getBoundingClientRect().width})));
+  expect(panels).toHaveLength(2);
+  expect(Math.abs(panels[0].top-panels[1].top)).toBeLessThan(2);
+  expect(panels[0].width).toBeGreaterThan(panels[1].width);
+  const fields=await page.locator('#view-notifications .notification-compose-body > .field').evaluateAll(nodes=>nodes.map(n=>({top:n.getBoundingClientRect().top,bottom:n.getBoundingClientRect().bottom})));
+  expect(fields).toHaveLength(3);
+  for(let i=1;i<fields.length;i++) expect(fields[i].top-fields[i-1].bottom).toBeGreaterThanOrEqual(16);
+  for(const width of [768,390,320]){
+    await page.setViewportSize({width,height:850});
+    expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+    await expect(page.locator('#notificationTarget')).toBeVisible();
+    await expect(page.locator('#sendNotificationBtn')).toBeVisible();
+  }
+});
+
 test('Signal customer portal preserves login, requests and logout on small screens', async ({page}) => {
   const errors=[],records=[],calls=[];page.on('pageerror',e=>errors.push(e.message));
   await page.emulateMedia({reducedMotion:'reduce'});
