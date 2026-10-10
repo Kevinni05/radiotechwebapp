@@ -28,7 +28,7 @@ test('glass surfaces align cards and brand returns home without losing the sessi
   expect(new Set(desktopAlignment.map(x=>Math.round(x.footer)))).toHaveProperty('size',1);
   await page.locator('[data-view="inventory"]').click();
   await page.locator('#brandHome').click();await expect(page.locator('#view-dashboard')).toHaveClass(/active/);
-  expect(await page.evaluate(()=>sessionStorage.getItem('radiotech_control_token'))).toBe('test-token');
+  expect(await page.evaluate(()=>sessionStorage.getItem('radiotech_control_token'))).toBeNull();
   const panels=await page.locator('#view-dashboard .grid-2 > .panel').evaluateAll(nodes=>nodes.map(n=>{const r=n.getBoundingClientRect();return {width:r.width,height:r.height};}));
   expect(Math.abs(panels[0].width-panels[1].width)).toBeLessThan(2);expect(panels.every(panel=>panel.height>0)).toBe(true);
   await expect(page.locator('.footer')).toContainText('RadioTech');
@@ -905,7 +905,7 @@ test('Raycast footer navigates workspaces preserves session and fits all screen 
  const footer=page.locator('footer.app-footer');await expect(footer).toContainText('© 2026 RadioTech. Tutti i diritti riservati.');await expect(page.locator('#footerServiceStatus')).toHaveText('Backend disponibile');
  for(const width of [1440,1024,768,390,320]){await page.setViewportSize({width,height:1000});await footer.scrollIntoViewIfNeeded();expect(await footer.locator('button,.footer-group,.footer-brand,.footer-bottom').evaluateAll(nodes=>nodes.filter(n=>n.getClientRects().length).some(n=>{const r=n.getBoundingClientRect();return r.left<0||r.right>innerWidth+1;}))).toBe(false);expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);}
  for(const view of ['reports','planning','inventory','pro','access','system','dashboard']){await footer.locator(`[data-footer-view="${view}"]`).first().click();await expect(page.locator(`#view-${view}`)).toBeVisible();}
- expect(await page.evaluate(()=>sessionStorage.getItem('radiotech_control_token'))).toBe('test-token');await footer.scrollIntoViewIfNeeded();await page.locator('#footerBackTop').click();await expect(page.locator('.topbar')).toBeInViewport();await expect.poll(()=>page.evaluate(()=>document.scrollingElement.scrollTop)).toBe(0);
+ expect(await page.evaluate(()=>sessionStorage.getItem('radiotech_control_token'))).toBeNull();await footer.scrollIntoViewIfNeeded();await page.locator('#footerBackTop').click();await expect(page.locator('.topbar')).toBeInViewport();await expect.poll(()=>page.evaluate(()=>document.scrollingElement.scrollTop)).toBe(0);
  await page.locator('#backendStatus').evaluate(n=>n.textContent='ERROR');await expect(page.locator('#footerServiceStatus')).toHaveText('Backend non disponibile');expect(errors).toEqual([]);
  await footer.scrollIntoViewIfNeeded();await page.screenshot({path:'build/reports/web/footer-320.png'});
 });

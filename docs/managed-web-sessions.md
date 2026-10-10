@@ -1,0 +1,11 @@
+# Managed web authentication
+
+The application no longer writes its ID tokens, refresh tokens or authenticated profiles to localStorage/sessionStorage. Previous `radiotech_control_*` token/profile entries are removed on boot and after login. Users with only a legacy stored session must sign in again; the application does not silently import an unverified stored identity.
+
+Password login now uses Firebase Auth whenever the browser API key is configured. Provider buttons remain controlled by the existing federated-login flag. Firebase manages persistence, renewal and auth-state restoration: session persistence by default, local persistence only when the user selects remember me. The SDK's own storage remains part of Firebase's security model; this change removes application-owned raw credentials, not the need to prevent XSS.
+
+The backend resolves application authorization on restore/login; a newly issued ID token is forced after that resolution so newly assigned claims are available. Only the current SDK user may finish an exchange. Logout and SDK account changes clear application workspaces and invalidate pending responses. The customer portal supports managed restoration and applies the same session-generation checks. Legacy server login, when SDK configuration is unavailable, keeps credentials only for the current page lifetime and cannot restore them after reload.
+
+Node contract tests execute the actual client entry source with SDK dependencies mocked. They cover persistence selection, initialization waiting, refresh-token omission, disabled identities and a delayed response after logout/account replacement. Browser UI workflows mock the authentication boundary rather than seed product credential keys; dedicated browser tests verify that legacy credentials are removed and that a session-end event closes private workspace state. Backend configuration tests separate managed password availability from provider enablement.
+
+Acceptance still required: sign-in/refresh/logout across real browser tabs and private-browser storage modes, authorized Firebase domains, real MFA enrollment and project-level revocation/App Check configuration. Automated SDK boundary mocks do not certify these deployment settings. Existing per-request server authorization remains the security boundary.

@@ -1278,19 +1278,27 @@
                 return Number.isFinite(n) ? n : null;
             }
 
-            function getStoredSession() {
-                const remember = localStorage.getItem(CONFIG.STORAGE_REMEMBER) === "true";
-                const token = remember ? localStorage.getItem(CONFIG.STORAGE_TOKEN) : sessionStorage.getItem(CONFIG.STORAGE_TOKEN);
-                const refreshToken = remember ? localStorage.getItem(CONFIG.STORAGE_REFRESH) : sessionStorage.getItem(CONFIG.STORAGE_REFRESH);
-                const user = remember ? localStorage.getItem(CONFIG.STORAGE_USER) : sessionStorage.getItem(CONFIG.STORAGE_USER);
-                if (!token) return false;
-                state.token = token;
-                state.refreshToken = refreshToken;
-                try { state.user = user ? JSON.parse(user) : null; state.authRole = state.user?.role; } catch (_) { state.user = null; }
-                return true;
+            function purgeLegacyTokens() {
+                for (const storage of [localStorage, sessionStorage]) {
+                    for (const key of [CONFIG.STORAGE_TOKEN, CONFIG.STORAGE_REFRESH, CONFIG.STORAGE_USER]) {
+                        try { storage.removeItem(key); } catch (_) { /* Memory-only session remains usable. */ }
+                    }
+                }
             }
 
-            function saveSession(token, user, remember, refreshToken = state.refreshToken) {
+            async function getStoredSession() {
+                purgeLegacyTokens();
+                const epoch = state.sessionEpoch || 0;
+                try {
+                    const result = await window.RadioTechFederation?.restoreSession();
+                    if (!result || epoch !== (state.sessionEpoch || 0)) return false;
+                    if (result.role === "CUSTOMER") { window.location.assign("/portal"); return false; }
+                    saveSession(result.token, { ...result.user, role: result.role }, localStorage.getItem(CONFIG.STORAGE_REMEMBER) === "true");
+                    return true;
+                } catch (_) { return false; }
+            }
+
+            function saveSession(token, user, remember, refreshToken = null) {
                 const identityOf = account => JSON.stringify([account?.tenantId, account?.uid || account?.id || account?.email]);
                 if (state.user && identityOf(state.user) !== identityOf(user)) {
                     state.sessionEpoch = (state.sessionEpoch || 0) + 1;
@@ -1298,26 +1306,19 @@
                     document.querySelectorAll(".report-delete-dialog, .report-material-review").forEach(dialog => dialog.close());
                 }
                 state.token = token;
-                state.refreshToken = refreshToken || null;
+                // Legacy server login may renew during this page lifetime; never persist its refresh token.
+                state.refreshToken = refreshToken;
                 state.user = user || null;
                 state.authRole = user?.role || null;
                 signatureWorkspace?.syncIdentity();
-
-                if (remember) {
-                    localStorage.setItem(CONFIG.STORAGE_TOKEN, token);
-                    if (refreshToken) localStorage.setItem(CONFIG.STORAGE_REFRESH, refreshToken);
-                    localStorage.setItem(CONFIG.STORAGE_USER, JSON.stringify(user || {}));
-                    localStorage.setItem(CONFIG.STORAGE_REMEMBER, "true");
-                } else {
-                    sessionStorage.setItem(CONFIG.STORAGE_TOKEN, token);
-                    if (refreshToken) sessionStorage.setItem(CONFIG.STORAGE_REFRESH, refreshToken);
-                    sessionStorage.setItem(CONFIG.STORAGE_USER, JSON.stringify(user || {}));
-                    localStorage.removeItem(CONFIG.STORAGE_TOKEN);
-                    localStorage.removeItem(CONFIG.STORAGE_REFRESH);
-                    localStorage.removeItem(CONFIG.STORAGE_USER);
-                    localStorage.setItem(CONFIG.STORAGE_REMEMBER, "false");
-                }
+                purgeLegacyTokens();
+                try { localStorage.setItem(CONFIG.STORAGE_REMEMBER, String(remember)); } catch (_) {}
             }
+
+            window.addEventListener("radiotech:auth-ended", () => {
+                clearSession();
+                showLogin("Sessione terminata o account cambiato. Accedi nuovamente.");
+            });
 
             function clearSession() {
                 signatureWorkspace?.reset();
@@ -1333,20 +1334,11 @@
                 proSuite?.reset();
                 proSecurity?.reset();
                 management?.reset();
-                localStorage.removeItem(CONFIG.STORAGE_TOKEN);
-                localStorage.removeItem(CONFIG.STORAGE_REFRESH);
-                localStorage.removeItem(CONFIG.STORAGE_USER);
-                localStorage.removeItem(CONFIG.STORAGE_REMEMBER);
-                sessionStorage.removeItem(CONFIG.STORAGE_TOKEN);
-                sessionStorage.removeItem(CONFIG.STORAGE_REFRESH);
-                sessionStorage.removeItem(CONFIG.STORAGE_USER);
+                purgeLegacyTokens();
+                try { localStorage.removeItem(CONFIG.STORAGE_REMEMBER); } catch (_) {}
             }
 
-            function getSessionToken() {
-                return state.token ||
-                    localStorage.getItem(CONFIG.STORAGE_TOKEN) ||
-                    sessionStorage.getItem(CONFIG.STORAGE_TOKEN);
-            }
+            function getSessionToken() { return state.token; }
 
             let sessionRefresh = null;
             function refreshSession() {
@@ -1356,7 +1348,17 @@
             async function performSessionRefresh() {
                 const epoch = state.sessionEpoch || 0;
                 const remember = localStorage.getItem(CONFIG.STORAGE_REMEMBER) === "true";
-                const refreshToken = state.refreshToken || (remember ? localStorage.getItem(CONFIG.STORAGE_REFRESH) : sessionStorage.getItem(CONFIG.STORAGE_REFRESH));
+                if (window.RadioTechFederation?.refreshSession) {
+                    try {
+                        const restored = await window.RadioTechFederation.refreshSession();
+                        if (restored) {
+                            if (epoch !== (state.sessionEpoch || 0)) return false;
+                            saveSession(restored.token, { ...restored.user, role: restored.role }, remember);
+                            return true;
+                        }
+                    } catch (_) { return false; }
+                }
+                const refreshToken = state.refreshToken;
                 if (!refreshToken) return false;
                 const response = await fetch(CONFIG.AUTH_REFRESH, {
                     method: "POST",
@@ -1455,7 +1457,7 @@
                      * modifica questa sola sezione.
                      */
                     const federationReady = window.RadioTechFederation && await window.RadioTechFederation.initialize();
-                    const result = federationReady ? new Response(JSON.stringify(await window.RadioTechFederation.login(null,email,password)), {status:200,headers:{"Content-Type":"application/json"}}) : await fetch(CONFIG.AUTH_LOGIN, {
+                    const result = federationReady ? new Response(JSON.stringify(await window.RadioTechFederation.login(null,email,password,remember)), {status:200,headers:{"Content-Type":"application/json"}}) : await fetch(CONFIG.AUTH_LOGIN, {
                         method: "POST",
                         headers: { "Content-Type": "application/json", "Accept": "application/json" },
                         body: JSON.stringify({ email, password })
@@ -1484,6 +1486,7 @@
 
                     const user = { ...(body?.user || body?.data?.user || { email }), role: body?.role || body?.data?.role || body?.user?.role };
 
+                    if (user.role === "CUSTOMER") { window.location.assign("/portal"); return; }
                     saveSession(token, user, remember, body?.refreshToken || body?.data?.refreshToken);
                     $("loginPassword").value = "";
                     await startApplication();
@@ -1568,10 +1571,7 @@
                 setText("sessionPersistence", localStorage.getItem(CONFIG.STORAGE_REMEMBER) === "true" ? "ATTIVA" : "SESSIONE");
             }
 
-            function persistUser() {
-                const storage = localStorage.getItem(CONFIG.STORAGE_REMEMBER) === "true" ? localStorage : sessionStorage;
-                storage.setItem(CONFIG.STORAGE_USER, JSON.stringify(state.user));
-            }
+            function persistUser() { /* Profile belongs to the current in-memory session. */ }
             async function loadProfile() {
                 try {
                     const profile = await api("/profile");
@@ -3046,6 +3046,7 @@
             });
 
             function signOut() {
+                window.RadioTechFederation?.logout().catch(() => {});
                 clearSession();
                 state.tasks = []; state.antennas = []; state.operators = []; state.notifications = []; state.inventory = [];
                 $("loginPassword").value = "";
@@ -3082,7 +3083,7 @@
                  * Per sicurezza, il token persistente viene riutilizzato
                  * solamente se "Mantieni l'accesso" era stato scelto.
                  */
-                if (getStoredSession()) {
+                if (await getStoredSession()) {
                     try {
                         await startApplication();
                         return;
