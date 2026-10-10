@@ -66,9 +66,10 @@ public class ProIdentityController {
       after.put("customerId", request.customerId);
     else
       after.remove("customerId");
+    var event = audit.beginIdentityAction("IDENTITY_BIND", tenant, SecurityContextAccessor.currentUid(), uid, before, after);
     auth.setCustomUserClaims(uid, after);
     auth.revokeRefreshTokens(uid);
-    audit.record("IDENTITY_BIND", tenant, SecurityContextAccessor.currentUid(), "users", uid, "SUCCESS", before, after);
+    audit.completeIdentityAction(event);
     return Map.of("uid", uid, "role", role.name(), "reauthenticationRequired", true);
   }
 
@@ -79,8 +80,10 @@ public class ProIdentityController {
     var user = auth.getUser(uid);
     if (!tenant.equals(user.getCustomClaims().get("tenantId")))
       throw new SecurityException("Account non autorizzato.");
+    var event = audit.beginIdentityAction("SESSION_REVOKE", tenant, SecurityContextAccessor.currentUid(), uid,
+        user.getCustomClaims(), user.getCustomClaims());
     auth.revokeRefreshTokens(uid);
-    audit.record("SESSION_REVOKE", tenant, SecurityContextAccessor.currentUid(), "users", uid, "SUCCESS", null, null);
+    audit.completeIdentityAction(event);
     return Map.of("revoked", true);
   }
 }
