@@ -32,7 +32,7 @@ public class ProAutomation {
      if(collection.equals("pro_plans")&&"ACTIVE".equals(doc.getString("status"))&&!Instant.parse(doc.getString("nextDueAt")).isAfter(Instant.now()))service.action("plans",doc.getId(),new ProService.Action(((Number)doc.get("version")).longValue(),"auto_"+doc.getId()+"_"+doc.get("version"),"GENERATE",0,""));
      if(collection.equals("pro_sla"))escalate(db,doc.getReference(),tenant);
      if(collection.equals("proWebhookOutbox")&&!Set.of("DELIVERED","FAILED").contains(doc.getString("status")))webhooks.deliver(doc.getId());
-     if(collection.equals("notificationHistory")&&Set.of("PENDING","SENDING").contains(doc.getString("deliveryStatus")==null?"":doc.getString("deliveryStatus")))notifications.deliverRecorded(doc.getId());
+     if(collection.equals("notificationHistory")&&Set.of("PENDING","SENDING","PARTIAL").contains(doc.getString("deliveryStatus")==null?"":doc.getString("deliveryStatus")))notifications.deliverRecorded(doc.getId());
     }catch(Exception error){log.warn("Enterprise automation failed: collection={}, resource={}",collection,doc.getId(),error);}finally{SecurityContextHolder.setContext(previous);}
    }
   }catch(Exception error){if(pauseForQuota(error))return;log.warn("Enterprise scan failed: collection={}",collection,error);}

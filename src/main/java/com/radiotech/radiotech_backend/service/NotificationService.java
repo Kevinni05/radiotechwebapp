@@ -281,20 +281,135 @@ public class NotificationService {
                 return TenantAccessPolicy.requireTenantAccess(SecurityContextAccessor.currentTenantId(), null);
         }
 
-        /** Deliver an existing inbox item without creating a second history entry. */
+        /** Deliver a durable inbox item. Per-device receipts stay in a backend-only subcollection. */
         public void deliverRecorded(String id) throws Exception {
-                var db=FirestoreClient.getFirestore();var ref=db.collection("notificationHistory").document(id);String tenant=currentTenant();String lease=java.util.UUID.randomUUID().toString();
-                boolean claimed=db.runTransaction(tx->{var doc=tx.get(ref).get();if(!doc.exists()||!tenant.equals(doc.getString("tenantId")))return false;
-                        String status=doc.getString("deliveryStatus");if(!"PENDING".equals(status)&&!"SENDING".equals(status))return false;
-                        if("SENDING".equals(status)&&doc.getString("leaseUntil")!=null&&Instant.parse(doc.getString("leaseUntil")).isAfter(Instant.now()))return false;
-                        tx.update(ref,Map.of("deliveryStatus","SENDING","lease",lease,"leaseUntil",Instant.now().plusSeconds(120).toString()));return true;}).get();
-                if(!claimed)return;var doc=ref.get().get();var tokens=new ArrayList<String>();String target=doc.getString("target");
-                if("BROADCAST".equals(target)){for(var op:operatorService.getAllOperators())if(op.getFcmTokens()!=null)tokens.addAll(op.getFcmTokens());}
-                else if(!target.startsWith("UID:")){var op=operatorService.getById(target);if(op!=null&&op.getFcmTokens()!=null)tokens.addAll(op.getFcmTokens());}
-                var payload=new java.util.LinkedHashMap<String,String>();payload.put("notificationId",id);if(doc.getString("taskId")!=null)payload.put("taskId",doc.getString("taskId"));if(doc.getString("type")!=null)payload.put("type",doc.getString("type"));
-                try{int delivered=sendNotification(tokens.stream().filter(t->t!=null&&!t.isBlank()).distinct().toList(),doc.getString("title"),doc.getString("message"),payload);
-                        db.runTransaction(tx->{var current=tx.get(ref).get();if(lease.equals(current.getString("lease")))tx.update(ref,Map.of("deliveryStatus",tokens.isEmpty()?"NO_TOKENS":"SENT","delivered",delivered,"deliveryAttemptAt",Instant.now().toString()));return true;}).get();
-                }catch(Exception error){ref.update(Map.of("deliveryStatus","PENDING","lastFailureAt",Instant.now().toString())).get();throw error;}
+                var db = FirestoreClient.getFirestore();
+                var ref = db.collection("notificationHistory").document(id);
+                String tenant = currentTenant(), lease = java.util.UUID.randomUUID().toString();
+                boolean claimed = db.runTransaction(tx -> {
+                        var doc = tx.get(ref).get();
+                        if (!doc.exists() || !tenant.equals(doc.getString("tenantId"))) return false;
+                        String status = doc.getString("deliveryStatus");
+                        if (!java.util.Set.of("PENDING", "SENDING", "PARTIAL").contains(java.util.Objects.toString(status, ""))) return false;
+                        Instant now = Instant.now();
+                        if (doc.getString("nextAttemptAt") != null && Instant.parse(doc.getString("nextAttemptAt")).isAfter(now)) return false;
+                        if ("SENDING".equals(status) && doc.getString("leaseUntil") != null && Instant.parse(doc.getString("leaseUntil")).isAfter(now)) return false;
+                        long attempts = doc.getLong("deliveryAttempts") == null ? 0 : doc.getLong("deliveryAttempts");
+                        if (attempts >= 8) { tx.update(ref, "deliveryStatus", "DEAD_LETTER"); return false; }
+                        tx.update(ref, Map.of("deliveryStatus", "SENDING", "lease", lease,
+                                "leaseUntil", now.plusSeconds(120).toString(), "deliveryAttempts", attempts + 1));
+                        return true;
+                }).get();
+                if (!claimed) return;
+                try {
+                        var doc = ref.get().get();
+                        var tokens = new java.util.LinkedHashSet<String>();
+                        String target = doc.getString("target");
+                        if ("BROADCAST".equals(target)) {
+                                for (var op : operatorService.getAllOperators()) {
+                                        if (tenant.equals(op.getTenantId()) && op.getFcmTokens() != null) tokens.addAll(op.getFcmTokens());
+                                }
+                        } else if (target != null && !target.startsWith("UID:")) {
+                                var op = operatorService.getById(target);
+                                if (op != null && tenant.equals(op.getTenantId()) && op.getFcmTokens() != null) tokens.addAll(op.getFcmTokens());
+                        }
+                        tokens.removeIf(token -> token == null || token.isBlank());
+                        var receipts = ref.collection("pushDeliveries");
+                        var accepted = new java.util.HashSet<String>();
+                        var invalid = new java.util.HashSet<String>();
+                        for (var receipt : receipts.get().get().getDocuments()) {
+                                if ("ACCEPTED".equals(receipt.getString("status"))) accepted.add(receipt.getId());
+                                if ("INVALID".equals(receipt.getString("status"))) invalid.add(receipt.getId());
+                        }
+                        var pending = new ArrayList<String>();
+                        for (String token : tokens) if (!accepted.contains(tokenId(token)) && !invalid.contains(tokenId(token))) pending.add(token);
+                        var payload = new java.util.LinkedHashMap<String, String>();
+                        payload.put("notificationId", id);
+                        for (String field : List.of("taskId", "type")) if (doc.getString(field) != null) payload.put(field, doc.getString(field));
+                        for (int start = 0; start < pending.size(); start += 200) {
+                                List<String> batch = pending.subList(start, Math.min(start + 200, pending.size()));
+                                // Renew the owned lease before the external request. Never overwrite a successor's lease.
+                                boolean owned = db.runTransaction(tx -> {
+                                        var current = tx.get(ref).get();
+                                        if (!lease.equals(current.getString("lease"))) return false;
+                                        tx.update(ref, "leaseUntil", Instant.now().plusSeconds(120).toString());
+                                        return true;
+                                }).get();
+                                if (!owned) return;
+                                var response = FirebaseMessaging.getInstance().sendEachForMulticast(
+                                        multicast(batch, doc.getString("title"), doc.getString("message"), payload));
+                                if (response.getResponses().size() != batch.size()) throw new IllegalStateException("FCM recipient result count mismatch.");
+                                boolean recorded = db.runTransaction(tx -> {
+                                        var current = tx.get(ref).get();
+                                        if (!lease.equals(current.getString("lease"))) return false;
+                                        for (int i = 0; i < batch.size(); i++) {
+                                                var outcome = response.getResponses().get(i);
+                                                String code = outcome.isSuccessful() ? "" : messagingCode(outcome);
+                                                String status = outcome.isSuccessful() ? "ACCEPTED" : "UNREGISTERED".equals(code) ? "INVALID" : "RETRY";
+                                                tx.set(receipts.document(tokenId(batch.get(i))), Map.of("tenantId", tenant,
+                                                        "status", status, "errorCode", code, "attemptedAt", Instant.now().toString()));
+                                        }
+                                        return true;
+                                }).get();
+                                if (!recorded) return;
+                                removeInvalidTokens(batch, response);
+                        }
+                        var results = receipts.get().get().getDocuments();
+                        long delivered = results.stream().filter(r -> "ACCEPTED".equals(r.getString("status"))).count();
+                        long failed = results.stream().filter(r -> !"ACCEPTED".equals(r.getString("status"))).count();
+                        boolean retryable = results.stream().anyMatch(r -> "RETRY".equals(r.getString("status")));
+                        db.runTransaction(tx -> {
+                                var current = tx.get(ref).get();
+                                if (!lease.equals(current.getString("lease"))) return false;
+                                long attempts = current.getLong("deliveryAttempts");
+                                String status = results.isEmpty() ? "NO_TOKENS" : failed == 0 ? "SENT"
+                                        : retryable && attempts < 8 ? "PARTIAL" : "DEAD_LETTER";
+                                tx.update(ref, Map.of("deliveryStatus", status, "delivered", delivered, "failedRecipients", failed,
+                                        "deliveryAttemptAt", Instant.now().toString(), "nextAttemptAt", retryAt(attempts)));
+                                return true;
+                        }).get();
+                } catch (Exception error) {
+                        db.runTransaction(tx -> {
+                                var current = tx.get(ref).get();
+                                if (lease.equals(current.getString("lease"))) {
+                                        long attempts = current.getLong("deliveryAttempts");
+                                        tx.update(ref, Map.of("deliveryStatus", attempts >= 8 ? "DEAD_LETTER" : "PENDING",
+                                                "lastFailureAt", Instant.now().toString(), "nextAttemptAt", retryAt(attempts)));
+                                }
+                                return true;
+                        }).get();
+                        throw error;
+                }
+        }
+
+        private static String retryAt(long attempts) {
+                long delay = Math.min(3600, 30L << Math.min(attempts, 6));
+                return Instant.now().plusSeconds(delay + java.util.concurrent.ThreadLocalRandom.current().nextLong(15)).toString();
+        }
+
+        private static String tokenId(String token) {
+                try { return java.util.HexFormat.of().formatHex(java.security.MessageDigest.getInstance("SHA-256")
+                        .digest(token.getBytes(java.nio.charset.StandardCharsets.UTF_8))); }
+                catch (java.security.NoSuchAlgorithmException error) { throw new IllegalStateException(error); }
+        }
+
+        private static String messagingCode(SendResponse response) {
+                return response.getException() == null || response.getException().getMessagingErrorCode() == null
+                        ? "UNKNOWN" : response.getException().getMessagingErrorCode().name();
+        }
+
+        private static MulticastMessage multicast(List<String> tokens, String title, String body, Map<String, String> data) {
+                var builder = MulticastMessage.builder().putAllData(data).addAllTokens(tokens);
+                if ("BADGE_UPDATED".equals(data.get("type"))) {
+                        builder.setAndroidConfig(AndroidConfig.builder().setPriority(AndroidConfig.Priority.HIGH).build());
+                        builder.setApnsConfig(com.google.firebase.messaging.ApnsConfig.builder().putHeader("apns-push-type", "background")
+                                .putHeader("apns-priority", "5").setAps(com.google.firebase.messaging.Aps.builder().setContentAvailable(true).build()).build());
+                } else {
+                        builder.setNotification(Notification.builder().setTitle(title).setBody(body).build())
+                                .setAndroidConfig(AndroidConfig.builder().setPriority(AndroidConfig.Priority.HIGH)
+                                        .setNotification(AndroidNotification.builder().setChannelId("radiotech_alerts").setSound("default").build()).build());
+                }
+                return builder.build();
         }
 
         /**
@@ -384,25 +499,25 @@ public class NotificationService {
                                         continue;
                                 }
 
-                                String errorCode = sendResponse
-                                                .getException()
-                                                .getMessagingErrorCode()
-                                                .name();
-
-                                if ("UNREGISTERED".equals(errorCode)
-                                                || "INVALID_ARGUMENT".equals(errorCode)) {
-
+                                // INVALID_ARGUMENT can describe a bad payload; it is not proof that a token is invalid.
+                                if ("UNREGISTERED".equals(messagingCode(sendResponse))) {
                                         String invalidToken = tokens.get(i);
-
-                                        /*
-                                         * Il token può appartenere a più operatori,
-                                         * quindi non possiamo rimuoverlo direttamente
-                                         * senza conoscere l'operatore.
-                                         *
-                                         * La pulizia viene gestita separatamente.
-                                         */
-                                        log.info(
-                                                        "Token FCM non valido rilevato; pulizia richiesta.");
+                                        String tenant = currentTenant();
+                                        for (Operator operator : operatorService.getAllOperators()) {
+                                                if (tenant.equals(operator.getTenantId()) && operator.getFcmTokens() != null
+                                                        && operator.getFcmTokens().contains(invalidToken)) {
+                                                        var db = FirestoreClient.getFirestore();
+                                                        var reference = db.collection("operators").document(operator.getId());
+                                                        db.runTransaction(tx -> {
+                                                                var current = tx.get(reference).get();
+                                                                if (current.exists() && tenant.equals(current.getString("tenantId"))) {
+                                                                        tx.update(reference, "fcmTokens", com.google.cloud.firestore.FieldValue.arrayRemove(invalidToken),
+                                                                                "updatedAt", Instant.now().toString());
+                                                                }
+                                                                return true;
+                                                        }).get();
+                                                }
+                                        }
                                 }
                         }
 
