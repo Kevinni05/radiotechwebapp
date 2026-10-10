@@ -18,8 +18,8 @@ Repository mobile: [gestionale_radio](https://github.com/Kevinni05/gestionale_ra
 - Rate limit: [PR16](https://github.com/Kevinni05/radiotechwebapp/pull/16), [CI riuscita](https://github.com/Kevinni05/radiotechwebapp/actions/runs/38089626012). Alias /api e /api/v1 e riferimenti verifica report condividono budget. Replica/proxy reale non provati.
 - Audit report/materiali: [PR17](https://github.com/Kevinni05/radiotechwebapp/pull/17), [cinque job CI riusciti](https://github.com/Kevinni05/radiotechwebapp/actions/runs/38089758505). Eventi nello stesso batch/transaction della mutazione, identità esplicita, replay senza eventi/consumi doppi; consumo fallito senza audit di successo.
 - Notifiche: [PR18](https://github.com/Kevinni05/radiotechwebapp/pull/18), [cinque job CI riusciti](https://github.com/Kevinni05/radiotechwebapp/actions/runs/38089933072). Ricevute per token con hash, retry solo falliti, PARTIAL, lease, backoff/jitter, DEAD_LETTER; rimozione effettiva UNREGISTERED. I vecchi invii immediati non sono tutti migrati. FCM può accettare prima di un errore di persistenza: resta semantica almeno una volta.
-- Audit identità: [PR19](https://github.com/Kevinni05/radiotechwebapp/pull/19). Intento durevole prima di Firebase Auth, conferma sincrona, PENDING dopo interruzione. Non implementa ancora riconciliazione e allarme dei pendenti.
-- Updater personalizzato: [mobile PR21](https://github.com/Kevinni05/gestionale_radio/pull/21). Identità installata e nome app nativi, stesso contratto filename del workflow, rifiuto app diversa e firma incompatibile. Il digest dei byte scaricati non viene verificato nell'app.
+- Audit identità: [PR19](https://github.com/Kevinni05/radiotechwebapp/pull/19). Intento durevole prima di Firebase Auth, conferma sincrona, PENDING dopo interruzione. [CI completa riuscita con nuovi test realmente selezionati](https://github.com/Kevinni05/radiotechwebapp/actions/runs/38090853049). Non implementa ancora riconciliazione e allarme dei pendenti.
+- Updater personalizzato: [mobile PR21](https://github.com/Kevinni05/gestionale_radio/pull/21). Identità installata e nome app nativi, stesso contratto filename del workflow, rifiuto app diversa e firma incompatibile. [Analisi, test e compilazione Android riusciti](https://github.com/Kevinni05/gestionale_radio/actions/runs/38090371861). Il digest dei byte scaricati non viene verificato nell'app.
 
 ## Backlog unico — backend
 | ID | Stato | Criteri ancora aperti |
@@ -78,19 +78,26 @@ Repository mobile: [gestionale_radio](https://github.com/Kevinni05/gestionale_ra
 5. Approvazione/rimozione concorrenti: acceptance completa aperta.
 6. Logout A/login B: pannello e scope testati; coda/bozze/device reale aperti.
 7. Revoca/sospensione/cambio ruolo: audit intenzione testato; E2E reale aperta.
-8. FCM parziale/token scaduti: test emulatori riuscito; FCM e avvio a freddo reali aperti.
+8. FCM parziale/token scaduti: test emulatori riuscito nella CI 38090853049; FCM e avvio a freddo reali aperti.
 9. Upgrade firmato conserva coda/bozze, firma errata respinta: aperto.
 10. Restore dati/claims/allegati attuali isolato riuscito; ripristino identità produzione e client aperti.
 11. Meteo/quota: test esistenti non equivalgono alla prova integrata richiesta; aperto.
-12. Render SHA/artifact/API approvati: non verificato; canale Android aggiornato da verificare tramite run CI.
+12. Render: commit 9d54b44e6d21f477a047fff18a17e948ecf7f6ee confermato live dal deploy dep-db5bm08u01pc73ehm0lg, terminato alle 22:27:28 UTC. È una verifica della revisione del deploy, non un'attestazione del digest del JAR. La successiva revisione dei metadati di release richiede nuova verifica live.
 
 ## Gate esterni e consegna
-Non esporre segreti in issue, log, PR o documentazione. Servono accessi autorizzati ai progetti Firebase/Render e uno staging isolato prima di applicare migrazioni/regole o fare prove con carico.
+Non esporre segreti in issue, log, PR o documentazione. Render è collegato e il servizio esistente è stato identificato dal repository e dall'URL. L'integrazione Firebase non risulta ancora installata. Servono accessi autorizzati al progetto Firebase e uno staging isolato prima di applicare migrazioni/regole o fare prove con carico.
 - Confermare/deployare regole e indici e verificare IAM, App Check enforcement, billing/quote/alert, ownership e backup chiavi.
-- Identificare revisione e artefatto effettivi su Render; smoke autenticato prima/dopo deploy.
+- Render reale: autoDeployTrigger=commit e healthCheckPath vuoto, mentre render.yaml richiede checksPass e /actuator/health/readiness. Allineare queste impostazioni dalla Dashboard (la connessione corrente non espone un'operazione di modifica dei parametri del servizio), quindi verificare nuovo deploy e smoke autenticato. Identificazione dell'artefatto ancora aperta.
 - Eseguire collaudo Android su almeno due dispositivi e prova upgrade con dati locali.
 - Misurare carico concordato (50 utenti/1.000 asset/10.000 report), p95/p99, memoria, letture, sincronizzazione, crash e costi; nessun target è già certificato.
 - Provisioning secondo ambiente, dati demo sintetici, export/reimport byte+digest, manuali verificati con utente nuovo, simulazione supporto.
 - Scegliere licenza/cessione, ambiente/canale Android, responsabilità e owner supporto; revisione privacy/GPS/foto/firme/retention e licenze terze parti.
 - Tre scenari economici, budget/alert e handover account/firma/backup.
 - Pilota almeno due settimane o campione equivalente esplicitamente concordato; registro incidenti/feedback.
+
+## Verifiche conclusive delle correzioni implementate
+- [CI web combinata 38091508753](https://github.com/Kevinni05/radiotechwebapp/actions/runs/38091508753): cinque job riusciti, incluse regole/emulatori, browser, JAR riproducibile e container. La selezione dei test ora comprende automaticamente *EmulatorTest, conservando i test con nomi non standard.
+- [Metadati release PR21](https://github.com/Kevinni05/radiotechwebapp/pull/21): health espone apiVersion, sourceRevision e revisionSource. Accetta solo SHA completo; Render ha precedenza; assenza/valore invalido restituisce UNKNOWN/UNVERIFIED senza mostrare input. Non è attestazione dei byte dell'artefatto.
+- [APK firmato distribuito 38089950365](https://github.com/Kevinni05/gestionale_radio/actions/runs/38089950365): invio effettivo ai tester Firebase riuscito per segnale urgente, isolamento pannello offline e ENGINEER. La build successiva con updater è stata firmata e distribuita ai tester con successo in [38091027745](https://github.com/Kevinni05/gestionale_radio/actions/runs/38091027745); non confondere App Distribution con il canale commerciale.
+- Render, osservazione 22:31 UTC: nessun log ERROR restituito dalla query da 22:27:28; memoria campionata ~294 MB su limite 512 MB. Serie HTTP p95 e conteggio richieste vuote: prestazioni e capacità NON misurate nel carico di riferimento.
+- Connessione Render verificata sul workspace con unico servizio radiotechwebapp e repository Kevinni05/radiotechwebapp. Nessun nuovo servizio, cambio piano, bucket o fatturazione effettuato.
