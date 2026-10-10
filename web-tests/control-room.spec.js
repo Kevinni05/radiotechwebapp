@@ -642,6 +642,9 @@ test('preventive planning offers evidence without a chat surface', async ({ page
   await page.locator('[data-view="ai"]').click();
   await expect(page.locator('#aiRiskCount')).toHaveText('1');
   await expect(page.locator('#aiRisks')).toContainText('Storico insufficiente');
+  const planningPanelWidth = await page.locator('#view-ai .preventive-planning-panel').evaluate(node => node.getBoundingClientRect().width);
+  const planningGridWidth = await page.locator('#view-ai .preventive-planning-grid').evaluate(node => node.getBoundingClientRect().width);
+  expect(planningPanelWidth).toBeCloseTo(planningGridWidth, 0);
   await expect(page.locator('#aiMessage')).toHaveCount(0);
   await expect(page.locator('#aiChatForm')).toHaveCount(0);
   await expect(page.locator('#aiRisks')).toContainText('Ponte Bari');

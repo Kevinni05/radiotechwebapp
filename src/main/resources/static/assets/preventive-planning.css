@@ -1,0 +1,11 @@
+#app #view-ai .preventive-planning-grid {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+#app #view-ai .preventive-planning-panel {
+  width: 100%;
+}
+
+#app #view-ai #aiRisks {
+  width: 100%;
+}
