@@ -317,3 +317,135 @@
   #app #view-notifications #sendNotificationBtn { flex: 1 1 100%; }
   #app #view-notifications #notificationMessage { min-height: 135px; }
 }
+
+/*
+ * Final containment pass: controls and panels stay in normal flow when
+ * labels, data or translated text become longer than the desktop baseline.
+ */
+#app .content > .view.active {
+  display: block;
+  min-width: 0;
+}
+
+#app .view > :is(.panel, .grid-2, .grid-equal, .enterprise-grid, .notification-grid,
+  .stats-grid, .dashboard-tools, .dashboard-network, .operations-actions,
+  .telco-calculators, .management-load) + :is(.panel, .grid-2, .grid-equal,
+  .enterprise-grid, .notification-grid, .stats-grid, .dashboard-tools,
+  .dashboard-network, .operations-actions, .telco-calculators, .management-load) {
+  margin-top: var(--ui-space-6);
+}
+
+#app :is(.panel, .stat, .stat-card, .inventory-card, .workspace-link,
+  .enterprise-section, .pro-record, .task-row, .notification-item) {
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+#app :is(.panel-head, .section-head, .toolbar, .actions, .panel-foot,
+  .modal-foot, .report-file-actions) {
+  min-width: 0;
+  max-width: 100%;
+  flex-wrap: wrap;
+}
+
+#app :is(.panel-head, .section-head) > :is(div, .actions, .toolbar) {
+  min-width: 0;
+  max-width: 100%;
+}
+
+#app :is(.panel-head, .section-head) > :is(.actions, .toolbar) {
+  flex: 0 1 auto;
+}
+
+#app :is(.actions, .toolbar) > :is(.btn, .mini-btn, .icon-btn, button,
+  input, select, textarea) {
+  max-width: 100%;
+  min-width: 0;
+}
+
+#app :is(.actions, .toolbar) > :is(.btn, .mini-btn, button) {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+#app .panel-body > :is(.actions, .toolbar) {
+  margin-top: var(--ui-space-4);
+}
+
+#app .panel-body > :is(.actions, .toolbar):first-child {
+  margin-top: 0;
+}
+
+#app :is(.form-grid, .management-filters, .profile-grid, .branding-grid) > * {
+  min-width: 0;
+}
+
+#app .table-wrap {
+  isolation: isolate;
+}
+
+#app .table-wrap table {
+  min-width: max-content;
+}
+
+#app .table-wrap td > :is(.actions, .toolbar) {
+  min-width: 0;
+  max-width: 100%;
+}
+
+#app .table-wrap td .actions {
+  justify-content: flex-start;
+}
+
+#app .table-wrap td .actions > :is(.btn, .mini-btn, button, select) {
+  flex: 0 1 auto;
+}
+
+#app .panel > .panel-body + .panel-body {
+  border-top: 1px solid var(--ui-surface-border);
+}
+
+#app .panel-body > .table-wrap,
+#app .panel-body > .empty,
+#app .panel-body > .enterprise-empty {
+  min-width: 0;
+  max-width: 100%;
+}
+
+#app .footer.app-footer {
+  clear: both;
+  position: relative;
+  z-index: 0;
+}
+
+@media (max-width: 700px) {
+  #app :is(.panel-head, .section-head) > :is(.actions, .toolbar) {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  #app :is(.panel-head, .section-head) > :is(.actions, .toolbar) > :is(.btn, .mini-btn, button) {
+    flex: 1 1 140px;
+  }
+
+  #app .panel-body > :is(.actions, .toolbar) > :is(.btn, .mini-btn, button) {
+    flex: 1 1 140px;
+  }
+
+  #app .panel-body > .form-grid + :is(.actions, .toolbar, button, .btn) {
+    margin-top: var(--ui-space-6);
+  }
+
+  #app .footer-grid,
+  #app .footer-bottom {
+    min-width: 0;
+  }
+}
+
+@media (max-width: 420px) {
+  #app :is(.panel-head, .section-head) > :is(.actions, .toolbar) > :is(.btn, .mini-btn, button),
+  #app .panel-body > :is(.actions, .toolbar) > :is(.btn, .mini-btn, button) {
+    flex-basis: 100%;
+  }
+}
