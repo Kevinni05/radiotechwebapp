@@ -13,7 +13,7 @@ import java.util.concurrent.ExecutionException;
 @Service
 public class ProService {
     @org.springframework.beans.factory.annotation.Autowired(required=false) private ProWebhookService webhooks;
-    private static final Set<Role> MANAGERS=Set.of(Role.ADMIN,Role.SUPER_ADMIN,Role.CHIEF_EXECUTIVE,Role.NETWORK_MANAGER);
+    private static final Set<Role> MANAGERS=Set.of(Role.ADMIN,Role.SUPER_ADMIN,Role.CHIEF_EXECUTIVE,Role.NETWORK_MANAGER,Role.ENGINEER);
     public record Change(long expectedVersion, String operationId, Map<String,Object> fields) {}
     public record Action(long expectedVersion, String operationId, String action, double quantity, String reason) {}
     private record Actor(String tenant, String uid, boolean manager, String customer, List<String> permissions, boolean viewer) {}

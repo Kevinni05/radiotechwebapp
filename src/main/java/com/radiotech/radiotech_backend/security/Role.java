@@ -15,14 +15,14 @@ public enum Role {
     SUPER_ADMIN, ADMIN, CHIEF_EXECUTIVE, NETWORK_MANAGER, ENGINEER, OPERATOR, VIEWER, CUSTOMER, NONE;
 
     /** Ruoli che possono usare le API della Control Room. */
-    public static final String[] MANAGERS = { "SUPER_ADMIN", "ADMIN", "CHIEF_EXECUTIVE", "NETWORK_MANAGER" };
+    public static final String[] MANAGERS = { "SUPER_ADMIN", "ADMIN", "CHIEF_EXECUTIVE", "NETWORK_MANAGER", "ENGINEER" };
 
     /**
      * Manager e viewer ammessi alle route Control Room; method checks govern
      * writes.
      */
     public static final String[] CONTROL_ROOM_API = {
-            "SUPER_ADMIN", "ADMIN", "CHIEF_EXECUTIVE", "NETWORK_MANAGER", "VIEWER"
+            "SUPER_ADMIN", "ADMIN", "CHIEF_EXECUTIVE", "NETWORK_MANAGER", "ENGINEER", "VIEWER"
     };
 
     /** Ruoli che possono gestire gli account Firebase degli operatori. */
@@ -33,7 +33,7 @@ public enum Role {
 
     /** Ruoli abilitati alla consultazione e gestione degli incident operativi. */
     public static final String[] INCIDENT_API = {
-            "SUPER_ADMIN", "ADMIN", "CHIEF_EXECUTIVE", "NETWORK_MANAGER", "OPERATOR"
+            "SUPER_ADMIN", "ADMIN", "CHIEF_EXECUTIVE", "NETWORK_MANAGER", "ENGINEER", "OPERATOR"
     };
 
     public static Role parse(String raw) {

@@ -19,7 +19,7 @@ import java.util.concurrent.ExecutionException;
 public class WorkforceService {
     private final AuditService audit;
     private final NotificationService notifications;
-    private static final Set<Role> MANAGERS = Set.of(Role.SUPER_ADMIN, Role.ADMIN, Role.CHIEF_EXECUTIVE, Role.NETWORK_MANAGER);
+    private static final Set<Role> MANAGERS = Set.of(Role.SUPER_ADMIN, Role.ADMIN, Role.CHIEF_EXECUTIVE, Role.NETWORK_MANAGER, Role.ENGINEER);
     public WorkforceService(AuditService audit) { this(audit, null); }
     @Autowired
     public WorkforceService(AuditService audit, NotificationService notifications) {

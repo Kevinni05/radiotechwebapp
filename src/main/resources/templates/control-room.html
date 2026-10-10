@@ -1528,7 +1528,7 @@
             /* ---------- USER / PROFILE ---------- */
 
             function applyPermissions() {
-                const allowed = ["ADMIN", "SUPER_ADMIN", "CHIEF_EXECUTIVE", "CAPO", "NETWORK_MANAGER"].includes(state.authRole || state.user?.role);
+                const allowed = ["ADMIN", "SUPER_ADMIN", "CHIEF_EXECUTIVE", "CAPO", "NETWORK_MANAGER", "ENGINEER"].includes(state.authRole || state.user?.role);
                 for (const id of ["quickAntennaBtn", "quickNotificationBtn", "newAntennaBtn", "newOperatorBtn", "syncOperatorBtn", "createTaskBtn", "newNotificationBtn", "sendNotificationBtn", "newInventoryItemBtn", "editProfileBtn"]) {
                     if ($(id)) $(id).hidden = !allowed;
                 }

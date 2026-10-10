@@ -8,7 +8,7 @@ service firebase.storage {
         && request.auth.token.tenantId.size() > 0;
     }
     function role() { return signedIn() && request.auth.token.role != null ? request.auth.token.role : ''; }
-    function manager() { return signedIn() && role() in ['SUPER_ADMIN', 'ADMIN', 'CHIEF_EXECUTIVE', 'CAPO', 'NETWORK_MANAGER']; }
+    function manager() { return signedIn() && role() in ['SUPER_ADMIN', 'ADMIN', 'CHIEF_EXECUTIVE', 'CAPO', 'NETWORK_MANAGER', 'ENGINEER']; }
     function operator() { return signedIn() && role() in ['OPERATOR', 'OPERATORE']; }
 
     match /tenants/{tenantId}/maintenance-reports/{operatorId}/{allPaths=**} {

@@ -41,7 +41,7 @@ public class ProIdentityController {
     if (uid == null || uid.length() > 128 || uid.contains("/"))
       throw new IllegalArgumentException("UID non valido.");
     Role role = Role.parse(request.role);
-    if (!Set.of(Role.CUSTOMER, Role.OPERATOR, Role.VIEWER, Role.NETWORK_MANAGER).contains(role))
+    if (!Set.of(Role.CUSTOMER, Role.OPERATOR, Role.VIEWER, Role.NETWORK_MANAGER, Role.ENGINEER).contains(role))
       throw new IllegalArgumentException("Ruolo non assegnabile da questa sezione.");
     var auth = FirebaseAuth.getInstance();
     var user = auth.getUser(uid);

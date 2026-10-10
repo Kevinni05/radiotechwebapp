@@ -1132,7 +1132,7 @@ public class OperatorService {
 
                                 || "CHIEF_EXECUTIVE".equals(role) || "CAPO".equals(role)
 
-                                || "NETWORK_MANAGER".equals(role);
+                                || "NETWORK_MANAGER".equals(role) || "ENGINEER".equals(role);
 
         }
 
