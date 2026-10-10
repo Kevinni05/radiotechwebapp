@@ -102,7 +102,7 @@ window.RadioTechManagement = function ({ apiFetch, state, escapeHtml: esc, switc
     planningReady = false; $('planningExport').disabled = true;
     for (const id of ['planningStatus','workloadStatus']) $(id).textContent = 'Caricamento in corso…';
     for (const id of ['planningMetrics','planningList','workloadList']) $(id).replaceChildren();
-    $('planningAssign').hidden = !['ADMIN','SUPER_ADMIN','CHIEF_EXECUTIVE','CAPO','NETWORK_MANAGER'].includes(state.authRole || state.user?.role);
+    $('planningAssign').hidden = !['ADMIN','SUPER_ADMIN','CHIEF_EXECUTIVE','CAPO','NETWORK_MANAGER','ENGINEER'].includes(state.authRole || state.user?.role);
     try {
       const [taskData, operatorData, reportData] = await Promise.all([apiFetch('/api/v1/tasks'), apiFetch('/api/v1/operators'), apiFetch('/api/v1/reports/count?status=SUBMITTED')]);
       if (version !== requestVersion || epoch !== (state.sessionEpoch || 0)) return;

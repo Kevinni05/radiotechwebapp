@@ -107,6 +107,18 @@ test('Tenant A can read its task but cannot read or query Tenant B', async () =>
     )));
 });
 
+test('ENGINEER has network management reads confined to its tenant and no direct business writes', async () => {
+    const database = environment.authenticatedContext('engineer-a', {
+        role: 'ENGINEER', tenantId: 'tenant-a',
+    }).firestore();
+    for (const collectionName of ['tasks', 'antennas', 'inventory', 'auditLogs', 'maintenanceReports']) {
+        const id = collectionName === 'tasks' ? 'task' : collectionName;
+        await assertSucceeds(getDoc(doc(database, `${collectionName}/${id}-a`)));
+        await assertFails(getDoc(doc(database, `${collectionName}/${id}-b`)));
+        await assertFails(updateDoc(doc(database, `${collectionName}/${id}-a`), { title: 'blocked' }));
+    }
+});
+
 test('Tenant A cannot modify Tenant B or create a document claiming Tenant B', async () => {
     const database = environment.authenticatedContext('user-a', {
         role: 'ADMIN',

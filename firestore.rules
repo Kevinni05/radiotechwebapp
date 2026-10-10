@@ -12,7 +12,7 @@ service cloud.firestore {
     }
     function role() { return signedIn() && request.auth.token.role != null ? request.auth.token.role : ''; }
     function manager() {
-      return signedIn() && role() in ['SUPER_ADMIN', 'ADMIN', 'CHIEF_EXECUTIVE', 'CAPO', 'NETWORK_MANAGER'];
+      return signedIn() && role() in ['SUPER_ADMIN', 'ADMIN', 'CHIEF_EXECUTIVE', 'CAPO', 'NETWORK_MANAGER', 'ENGINEER'];
     }
     function viewer() { return signedIn() && role() == 'VIEWER'; }
     function operator() { return signedIn() && role() in ['OPERATOR', 'OPERATORE']; }

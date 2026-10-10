@@ -263,7 +263,7 @@ public class AuthService {
                  */
 
                 var signedRole=com.radiotech.radiotech_backend.security.Role.fromClaims(decodedToken.getClaims());
-                if(java.util.Set.of(com.radiotech.radiotech_backend.security.Role.ADMIN,com.radiotech.radiotech_backend.security.Role.SUPER_ADMIN,com.radiotech.radiotech_backend.security.Role.NETWORK_MANAGER,com.radiotech.radiotech_backend.security.Role.VIEWER).contains(signedRole)){
+                if(java.util.Set.of(com.radiotech.radiotech_backend.security.Role.ADMIN,com.radiotech.radiotech_backend.security.Role.SUPER_ADMIN,com.radiotech.radiotech_backend.security.Role.NETWORK_MANAGER,com.radiotech.radiotech_backend.security.Role.ENGINEER,com.radiotech.radiotech_backend.security.Role.VIEWER).contains(signedRole)){
                         response.put("role",signedRole.name());response.put("operatorFound",false);
                         response.put("user",Map.of("uid",firebaseUid,"email",decodedToken.getEmail()==null?"":decodedToken.getEmail(),"name",decodedToken.getName()==null?"":decodedToken.getName(),"role",signedRole.name()));return response;
                 }

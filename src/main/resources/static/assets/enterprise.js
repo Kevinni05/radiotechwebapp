@@ -3,7 +3,7 @@ window.RadioTechEnterprise = function ({ apiFetch, state, escapeHtml: esc, toast
     const $ = id => document.getElementById(id);
     const unwrap = body => body?.data ?? body;
     const list = body => { const data = unwrap(body); return Array.isArray(data) ? data : []; };
-    const managers = new Set(["SUPER_ADMIN", "ADMIN", "CHIEF_EXECUTIVE", "CAPO", "NETWORK_MANAGER"]);
+    const managers = new Set(["SUPER_ADMIN", "ADMIN", "CHIEF_EXECUTIVE", "CAPO", "NETWORK_MANAGER", "ENGINEER"]);
     const canManage = () => managers.has(String(state.authRole || state.user?.role || "").toUpperCase());
     let incidents = [], alerts = [], skills = [];
     let refreshPromise = null;

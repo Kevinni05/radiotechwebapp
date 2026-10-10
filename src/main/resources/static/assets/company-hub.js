@@ -1,7 +1,7 @@
 "use strict";
 window.RadioTechCompanyHub = function ({ apiFetch, state, escapeHtml: esc, toast, switchView }) {
   const $ = id => document.getElementById(id); 
-  const manager = () => ["SUPER_ADMIN", "ADMIN", "CAPO", "CHIEF_EXECUTIVE", "NETWORK_MANAGER"].includes(state.authRole || state.user?.role);
+  const manager = () => ["SUPER_ADMIN", "ADMIN", "CAPO", "CHIEF_EXECUTIVE", "NETWORK_MANAGER", "ENGINEER"].includes(state.authRole || state.user?.role);
   const label = value => ({ ACTIVE: "Al lavoro", BREAK: "In pausa", OFF_DUTY: "Fuori turno", READY: "Disponibile", NEEDS_BREAK: "Richiede pausa", REQUEST_SUPPORT: "Richiede supporto", OPEN: "Da prendere in carico", ACKNOWLEDGED: "In carico", RESOLVED: "Risolto", HAZARD: "Pericolo", NEAR_MISS: "Quasi incidente", SUPPORT_REQUEST: "Supporto", CRITICAL: "Critico", HIGH: "Alto", MEDIUM: "Medio", LOW: "Basso" }[value] || value);
   let shift = null, signals = [], risks = [];
   function addView(name, title, markup) {
