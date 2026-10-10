@@ -311,11 +311,18 @@ public class MaintenanceReportService {
         DocumentReference ref = db.collection(COLLECTION).document();
         report.setId(ref.getId());
         report.setIntegrityHash(reportIntegrityHash(report));
+        DocumentReference submissionAudit = db.collection("auditLogs").document("report-submitted-" + ref.getId());
+        Map<String, Object> submissionEvent = AuditService.transactionEntry("REPORT_SUBMITTED", tenantId,
+                authenticatedUid, "MAINTENANCE_REPORT", report.getId(), "SUCCESS", report.getSubmittedAt(),
+                null, Map.of("status", SUBMITTED));
         String keyDocumentId = idempotencyDocumentId(tenantId, authenticatedUid, idempotencyKey);
         boolean created = true;
         MaintenanceReport resultReport = report;
         if (keyDocumentId == null) {
-            ref.set(report).get();
+            var batch = db.batch();
+            batch.set(ref, report);
+            batch.set(submissionAudit, submissionEvent);
+            batch.commit().get();
         } else {
             DocumentReference keyReference = db.collection(IDEMPOTENCY_COLLECTION).document(keyDocumentId);
             SubmissionResult result;
@@ -339,6 +346,7 @@ public class MaintenanceReportService {
                     }
 
                     transaction.set(ref, report);
+                    transaction.set(submissionAudit, submissionEvent);
                     Map<String, Object> keyEntry = new LinkedHashMap<>();
                     keyEntry.put("tenantId", tenantId);
                     keyEntry.put("actorUid", authenticatedUid);
@@ -379,8 +387,6 @@ public class MaintenanceReportService {
 
         if (created) {
             incrementMetric("radiotech.report.submissions", "result", "created");
-            auditService.record("REPORT_SUBMITTED", tenantId, authenticatedUid, "MAINTENANCE_REPORT", report.getId(),
-                    "SUCCESS", null, null);
         }
 
         if (created && operator != null) {
@@ -610,6 +616,7 @@ public class MaintenanceReportService {
         String reviewedBy = reviewerUid == null ? null : reviewerUid.trim();
         String reviewNote = note == null ? "" : note.trim();
         if (!approve) {
+            DocumentReference rejectionAudit = db.collection("auditLogs").document();
             awaitTransaction(db.runTransaction(transaction -> {
                 DocumentSnapshot snapshot = transaction.get(reportReference).get();
                 if (!snapshot.exists()
@@ -629,14 +636,15 @@ public class MaintenanceReportService {
                         "reviewedAt", now,
                         "reviewedBy", reviewedBy,
                         "reviewNote", reviewNote);
+                transaction.set(rejectionAudit, AuditService.transactionEntry("REPORT_REJECTED", tenantId,
+                        reviewedBy, "MAINTENANCE_REPORT", id, REJECTED, now,
+                        Map.of("status", SUBMITTED), Map.of("status", REJECTED, "reviewNote", reviewNote)));
                 if (task != null && task.exists() && tenantId.equals(task.getString("tenantId"))
                         && TaskStatus.parse(task.getString("status")) == TaskStatus.REPORT_SUBMITTED) {
                     transaction.update(task.getReference(), "status", TaskStatus.COMPLETED.name(), "updatedAt", now);
                 }
                 return null;
             }));
-            auditService.record("REPORT_REJECTED", tenantId, reviewerUid,
-                    "MAINTENANCE_REPORT", id, REJECTED, null, null);
             return getById(id);
         }
 
@@ -661,8 +669,6 @@ public class MaintenanceReportService {
             }
             throw exception;
         }
-        auditService.record("REPORT_APPROVED", tenantId, reviewerUid,
-                "MAINTENANCE_REPORT", id, APPROVED, null, null);
         return getById(id);
     }
 
@@ -758,6 +764,7 @@ public class MaintenanceReportService {
     private void finalizeApproval(DocumentReference reportReference, String tenantId, String attemptId)
             throws Exception {
         Firestore db = FirestoreClient.getFirestore();
+        DocumentReference approvalAudit = db.collection("auditLogs").document("report-approved-" + reportReference.getId());
         awaitTransaction(db.runTransaction(transaction -> {
             DocumentSnapshot snapshot = transaction.get(reportReference).get();
             if (!snapshot.exists()
@@ -771,6 +778,10 @@ public class MaintenanceReportService {
                     "inventoryConsumptionStatus", INVENTORY_COMPLETE,
                     "approvalAttemptId", FieldValue.delete(),
                     "approvalLeaseUntil", FieldValue.delete());
+            transaction.set(approvalAudit, AuditService.transactionEntry("REPORT_APPROVED", tenantId,
+                    snapshot.getString("reviewedBy"), "MAINTENANCE_REPORT", reportReference.getId(), APPROVED,
+                    Instant.now().toString(), Map.of("status", APPROVAL_PENDING),
+                    Map.of("status", APPROVED, "inventoryConsumptionStatus", INVENTORY_COMPLETE)));
             return null;
         }));
     }

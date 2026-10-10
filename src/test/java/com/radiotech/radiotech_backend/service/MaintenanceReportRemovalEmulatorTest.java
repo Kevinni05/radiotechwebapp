@@ -149,6 +149,10 @@ class MaintenanceReportRemovalEmulatorTest {
                     "attachments", List.of("signed.pdf"))).get();
             assertEquals("REJECTED", service().review(id, false, "Da correggere", "manager").getStatus());
             assertEquals("COMPLETED", task.get().get().getString("status"));
+            var audit = db.collection("auditLogs").whereEqualTo("resourceId", id).get().get().getDocuments();
+            assertEquals(1, audit.size());
+            assertEquals("REPORT_REJECTED", audit.getFirst().getString("action"));
+            assertEquals("manager", audit.getFirst().getString("actor"));
             var retained = report.get().get();
             assertEquals("original-signature", retained.getString("digitalSignature"));
             assertEquals("original-hash", retained.getString("integrityHash"));

@@ -618,6 +618,7 @@ public class RicambioService {
         String tenantId = currentTenant();
 
         Map<String, DocumentReference> referencesByKey = new LinkedHashMap<>();
+        String auditActor = SecurityContextAccessor.currentUid();
         for (String key : requestedByKey.keySet()) {
             InventoryLookup lookup = lookupByKey.get(key);
             DocumentSnapshot item;
@@ -738,6 +739,11 @@ public class RicambioService {
                         movement.put("operationId", operationId);
                     }
                     transaction.set(movementReferences.get(key), movement);
+                    transaction.set(db.collection("auditLogs").document("inventory-consumed-" + movementReferences.get(key).getId()),
+                            AuditService.transactionEntry("INVENTORY_CONSUMED", tenantId, auditActor, "INVENTORY",
+                                    consumptionReferences.get(key).getId(), "SUCCESS", now,
+                                    Map.of("quantity", available), Map.of("quantity", available - consumed,
+                                            "consumed", consumed, "movementId", movementReferences.get(key).getId())));
                 }
                 if (operationReference != null) {
                     transaction.set(operationReference, Map.of(
@@ -756,19 +762,6 @@ public class RicambioService {
             throw exception;
         }
 
-        for (String key : consumptionQuantities.keySet()) {
-            if (operationId != null && !applied) {
-                continue;
-            }
-            InventoryLookup lookup = consumptionLookups.get(key);
-            DocumentReference inventoryReference = consumptionReferences.get(key);
-            DocumentReference movementReference = movementReferences.get(key);
-            auditService.record("INVENTORY_CONSUMED", tenantId, SecurityContextAccessor.currentUid(), "INVENTORY",
-                    inventoryReference.getId(), "SUCCESS", null, Map.of(
-                            "name", lookup.displayValue(),
-                            "quantity", consumptionQuantities.get(key),
-                            "movementId", movementReference.getId()));
-        }
     }
 
     private String stableMovementId(String tenantId, String operationId, String inventoryId) throws Exception {
