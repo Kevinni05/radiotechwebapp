@@ -273,11 +273,12 @@
                             <div class="panel-body">
                                 <div class="health-card">
                                     <div>
-                                        <div class="subtle">Disponibilità</div>
-                                        <div class="health-value" id="availabilityValue">—</div>
+                                        <div class="subtle">Asset in stato attivo</div>
+                                        <div class="health-value" id="availabilityValue" aria-describedby="assetAvailabilityMeaning">—</div>
                                     </div>
                                     <span class="badge green" id="availabilityBadge">—</span>
                                 </div>
+                                <p class="field-help" id="assetAvailabilityMeaning">Percentuale degli asset con stato ATTIVA sul totale registrato. Lo stato gestionale non misura il tempo di funzionamento della rete.</p>
 
                                 <div class="progress-wrap">
                                     <div class="progress-row">
@@ -1711,9 +1712,7 @@
                 $("inactiveProgress").style.width = `${total ? Math.min(100, (inactive / total) * 100) : 0}%`;
 
                 const availabilityBadge = $("availabilityBadge");
-                availabilityBadge.textContent =
-                    availability >= 95 ? "OTTIMA" :
-                        availability >= 80 ? "ATTENZIONE" : "CRITICA";
+                availabilityBadge.textContent = total ? `${active} / ${total} attive` : "NESSUN ASSET";
                 availabilityBadge.className =
                     `badge ${availability >= 95 ? "green" : availability >= 80 ? "yellow" : "red"}`;
 
@@ -1732,7 +1731,9 @@
                 setText("opsActive", active);
                 setText("opsInactive", inactive);
 
-                setText("lastUpdate", new Date().toLocaleString("it-IT"));
+                const calculatedAt = stats?.asOf ? new Date(stats.asOf) : null;
+                setText("lastUpdate", calculatedAt && Number.isFinite(calculatedAt.getTime())
+                    ? calculatedAt.toLocaleString("it-IT") : "Ora del dato non disponibile");
                 setBackendState(true);
                 loadSystemHealth().catch(() => { });
             }

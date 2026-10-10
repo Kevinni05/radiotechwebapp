@@ -165,6 +165,7 @@ public class DashboardService {
         stats.put("lowStock", lowStock);
 
         stats.put("activeAntennas", activeAntennas);
+        stats.put("inactiveAntennas", antennas - activeAntennas);
         stats.put("maintenanceAntennas", maintenanceAntennas);
         stats.put("offlineAntennas", offlineAntennas);
 
