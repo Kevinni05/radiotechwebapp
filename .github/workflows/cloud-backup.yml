@@ -3,6 +3,11 @@ on:
   schedule:
     - cron: '13 3 * * *'
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/cloud-backup.yml'
+      - 'scripts/prepare-backup-credentials.cjs'
 permissions:
   contents: read
 concurrency:
@@ -31,17 +36,7 @@ jobs:
         env:
           BACKUP_ACCOUNT_JSON: ${{ secrets.FIREBASE_BACKUP_SERVICE_ACCOUNT }}
           BACKUP_KEY_BASE64: ${{ secrets.FIREBASE_BACKUP_KEY_BASE64 }}
-        run: |
-          node - <<'NODE'
-          const fs = require('node:fs'), path = require('node:path');
-          if (!process.env.BACKUP_ACCOUNT_JSON || !process.env.BACKUP_KEY_BASE64) throw new Error('Configure FIREBASE_BACKUP_SERVICE_ACCOUNT and FIREBASE_BACKUP_KEY_BASE64 before enabling backups.');
-          const account = JSON.parse(process.env.BACKUP_ACCOUNT_JSON), key = Buffer.from(process.env.BACKUP_KEY_BASE64, 'base64');
-          if (!process.env.FIREBASE_PROJECT_ID || account.project_id !== process.env.FIREBASE_PROJECT_ID || key.length !== 32) throw new Error('Backup configuration does not match the configured buyer project.');
-          const credential = path.join(process.env.RUNNER_TEMP, 'backup-account.json'), keyFile = path.join(process.env.RUNNER_TEMP, 'backup.key');
-          fs.writeFileSync(credential, process.env.BACKUP_ACCOUNT_JSON, {mode: 0o600});
-          fs.writeFileSync(keyFile, key, {mode: 0o600});
-          fs.appendFileSync(process.env.GITHUB_ENV, `FIREBASE_SERVICE_ACCOUNT_PATH=${credential}\nRADIOTECH_BACKUP_KEY_FILE=${keyFile}\n`);
-          NODE
+        run: node scripts/prepare-backup-credentials.cjs
       - name: Export and authenticate encrypted archive
         run: |
           bash gradlew backupTool --console=plain -PbackupMode=export -PbackupArchive="$RADIOTECH_BACKUP_ARCHIVE" -PbackupKey="$RADIOTECH_BACKUP_KEY_FILE"
@@ -61,3 +56,6 @@ jobs:
           retention-days: 90
       - name: Record successful offsite upload and restore test
         run: bash gradlew backupTool --console=plain -PbackupMode=record-success -PbackupArchive="$RADIOTECH_BACKUP_ARCHIVE" -PbackupKey="$RADIOTECH_BACKUP_KEY_FILE"
+      - name: Remove temporary credentials
+        if: always()
+        run: rm -f "$RUNNER_TEMP/backup-account.json" "$RUNNER_TEMP/backup.key"
