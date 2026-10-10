@@ -60,6 +60,8 @@ public class MaintenanceReport {
     private String operatorNotes;
     private Map<String, Boolean> checklist;
     private String digitalSignature;
+    /** Server-owned, versioned technical context captured once at submission. */
+    private Map<String, Object> technicalSnapshot;
     @JsonIgnore
     private String integrityHash;
 }

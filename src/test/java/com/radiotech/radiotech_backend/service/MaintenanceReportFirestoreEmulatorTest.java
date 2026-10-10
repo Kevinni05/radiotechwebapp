@@ -59,6 +59,105 @@ class MaintenanceReportFirestoreEmulatorTest {
     }
 
     @Test
+    void taskReportCannotSubstituteAnotherAntennaInTheSameTenant() throws Exception {
+        String tenant = "tenant-" + UUID.randomUUID();
+        String antenna = UUID.randomUUID().toString();
+        String otherAntenna = UUID.randomUUID().toString();
+        String task = UUID.randomUUID().toString();
+        String key = "mismatch-" + UUID.randomUUID();
+        authenticate(tenant);
+        try (Firestore db = emulatorFirestore(); var client = mockStatic(FirestoreClient.class)) {
+            client.when(FirestoreClient::getFirestore).thenReturn(db);
+            seedTask(db, tenant, antenna, task, "IN_PROGRESS");
+            db.collection("antennas").document(otherAntenna).set(Map.of("tenantId", tenant)).get();
+            OperatorService operators = mock(OperatorService.class);
+            MaintenanceReportService reports = new MaintenanceReportService(
+                    taskService(operators, mock(AuditService.class)), mock(AuditService.class),
+                    mock(RicambioService.class), operators);
+            assertThrows(SecurityException.class,
+                    () -> reports.submit(report(task, otherAntenna, "Wrong asset"), OPERATOR_UID, key));
+            assertEquals(0, db.collection("maintenanceReports").whereEqualTo("tenantId", tenant).get().get().size());
+            assertEquals(0, db.collection("auditLogs").whereEqualTo("tenantId", tenant).get().get().size());
+            assertTrue(!db.collection("apiIdempotencyKeys").document(
+                    MaintenanceReportService.idempotencyDocumentId(tenant, OPERATOR_UID, key)).get().get().exists());
+            assertEquals("IN_PROGRESS", db.collection("tasks").document(task).get().get().getString("status"));
+        }
+    }
+
+    @Test
+    void technicalSnapshotSurvivesSourceChangesAndCannotBeTamperedOrRemoved() throws Exception {
+        String tenant = "tenant-" + UUID.randomUUID();
+        String antenna = UUID.randomUUID().toString();
+        String task = UUID.randomUUID().toString();
+        String key = "snapshot-" + UUID.randomUUID();
+        authenticate(tenant);
+        try (Firestore db = emulatorFirestore(); var client = mockStatic(FirestoreClient.class)) {
+            client.when(FirestoreClient::getFirestore).thenReturn(db);
+            seedTask(db, tenant, antenna, task, "IN_PROGRESS");
+            var asset = db.collection("antennas").document(antenna);
+            asset.update("name", "Original site", "specs", Map.of("frequenza", 5800.0,
+                    "Potenza", 20.0, "privateKey", "never-copy-this")).get();
+            db.collection("tasks").document(task).update("title", "Original inspection",
+                    "metadata", Map.of("checklist", "Inspect feeder", "checklistVersion", "2026-01",
+                            "privateToken", "never-copy-this")).get();
+            OperatorService operators = mock(OperatorService.class);
+            MaintenanceReportService reports = new MaintenanceReportService(
+                    taskService(operators, mock(AuditService.class)), mock(AuditService.class),
+                    mock(RicambioService.class), operators);
+            ReflectionTestUtils.setField(reports, "verificationSecret", VERIFICATION_SECRET);
+            ReflectionTestUtils.setField(reports, "publicBaseUrl", "https://reports.example.test");
+            MaintenanceReport request = report(task, antenna, "Technical inspection");
+            request.setTechnicalSnapshot(Map.of("asset", "forged-by-client"));
+            MaintenanceReport submitted = reports.submit(request, OPERATOR_UID, key);
+            String url = reports.verificationUrl(submitted);
+            String token = url.substring(url.lastIndexOf('/') + 1);
+            assertTrue(submitted.getIntegrityHash().startsWith("v2:"));
+            assertEquals(true, reports.verifyPublicToken(token).get("valid"));
+            String originalSnapshot = submitted.getTechnicalSnapshot().toString();
+            assertTrue(originalSnapshot.contains("Original site"));
+            assertTrue(originalSnapshot.contains("5800.0"));
+            assertTrue(originalSnapshot.contains("2026-01"));
+            assertTrue(!originalSnapshot.contains("never-copy-this"));
+            assertTrue(!originalSnapshot.contains("forged-by-client"));
+            asset.update("name", "Renamed site", "specs", Map.of("Frequenza", 2400.0)).get();
+            db.collection("tasks").document(task).update("title", "Changed title").get();
+            MaintenanceReport retry = reports.submit(report(task, antenna, "Technical inspection"), OPERATOR_UID, key);
+            assertEquals(submitted.getTechnicalSnapshot(), retry.getTechnicalSnapshot());
+            assertEquals("Original site", retry.getAntennaName());
+            assertEquals(true, reports.verifyPublicToken(token).get("valid"));
+            var stored = db.collection("maintenanceReports").document(submitted.getId());
+            stored.update("antennaName", "Tampered display name").get();
+            assertThrows(IllegalArgumentException.class, () -> reports.verifyPublicToken(token));
+            stored.update("antennaName", "Original site", "technicalSnapshot",
+                    com.google.cloud.firestore.FieldValue.delete()).get();
+            assertThrows(IllegalArgumentException.class, () -> reports.verifyPublicToken(token));
+        }
+    }
+
+    @Test
+    void legacyReportVerificationRetainsTheOriginalHashFormat() throws Exception {
+        String tenant = "tenant-" + UUID.randomUUID();
+        authenticate(tenant);
+        try (Firestore db = emulatorFirestore(); var client = mockStatic(FirestoreClient.class)) {
+            client.when(FirestoreClient::getFirestore).thenReturn(db);
+            MaintenanceReport legacy = report(null, "legacy-asset", "Original legacy report");
+            legacy.setId(UUID.randomUUID().toString());
+            legacy.setTenantId(tenant);
+            legacy.setSubmittedAt(Instant.now().toString());
+            String hash = ReflectionTestUtils.invokeMethod(MaintenanceReportService.class, "reportIntegrityHash", legacy);
+            assertTrue(hash.matches("[a-f0-9]{64}"));
+            legacy.setIntegrityHash(hash);
+            db.collection("maintenanceReports").document(legacy.getId()).set(legacy).get();
+            MaintenanceReportService reports = new MaintenanceReportService(mock(TaskService.class),
+                    mock(AuditService.class), mock(RicambioService.class), mock(OperatorService.class));
+            ReflectionTestUtils.setField(reports, "verificationSecret", VERIFICATION_SECRET);
+            ReflectionTestUtils.setField(reports, "publicBaseUrl", "https://reports.example.test");
+            String url = reports.verificationUrl(legacy);
+            assertEquals(true, reports.verifyPublicToken(url.substring(url.lastIndexOf('/') + 1)).get("valid"));
+        }
+    }
+
+    @Test
     void repeatedSubmissionCreatesOneReportAndChecksOutTaskOnce() throws Exception {
         String tenantId = "tenant-" + UUID.randomUUID();
         String antennaId = UUID.randomUUID().toString();
