@@ -1,10 +1,20 @@
 import { expect } from '@playwright/test';
+import { readFile } from 'node:fs/promises';
 
 export async function session(page, role = 'ADMIN', records = {}) {
   await page.addInitScript(role => {
-    sessionStorage.setItem('radiotech_control_token', 'test-token');
-    sessionStorage.setItem('radiotech_control_user', JSON.stringify({ role, name: 'Responsabile', email: 'admin@example.test', tenantId: 'test-tenant' }));
+    sessionStorage.setItem('rt-test-identity', JSON.stringify({ role, name: 'Responsabile', email: 'admin@example.test', tenantId: 'test-tenant' }));
   }, role);
+  // Mock the authentication boundary for UI workflows; SDK contract tests exercise the source separately.
+  const dialog = await readFile(new URL('../../src/main/resources/static/assets/mfa-dialog.js', import.meta.url), 'utf8');
+  await page.route('**/assets/auth-client.js', route => route.fulfill({contentType:'application/javascript',body:dialog+`
+    window.RadioTechFederation={
+      initialize:async()=>false,
+      restoreSession:async()=>{const user=JSON.parse(sessionStorage.getItem('rt-test-identity')||'null');return user?{token:'test-token',user,role:user.role}:null;},
+      refreshSession:async()=>{const response=await fetch('/api/v1/auth/refresh',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({refreshToken:'fixture-refresh'})});if(!response.ok)return null;const data=await response.json();return {...data,role:data.role||data.user?.role};},
+      enrollTotp:async()=>{throw new Error('Accedi con email o SSO prima di configurare MFA.');},
+      logout:async()=>{sessionStorage.removeItem('rt-test-identity');}
+    };`}));
   const incidents = [{ id: 'i1', title: 'Backhaul indisponibile', severity: 'HIGH', status: 'DETECTED' }];
   const antennas = records.antennas || [];
   let shift = { status: 'OFF_DUTY', readiness: 'READY', version: 0, workMinutes: 0, restMinutes: 0 };

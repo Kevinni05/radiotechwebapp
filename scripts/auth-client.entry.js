@@ -1,17 +1,27 @@
 import {initializeApp} from 'firebase/app';
 import {getFirestore,collection,query,where,onSnapshot} from 'firebase/firestore';
-import {getAuth, signInWithPopup, GoogleAuthProvider, OAuthProvider, EmailAuthProvider, reauthenticateWithCredential, reauthenticateWithPopup, signInWithEmailAndPassword, getMultiFactorResolver, TotpMultiFactorGenerator, multiFactor, setPersistence, inMemoryPersistence, signOut} from 'firebase/auth';
+import {getAuth, signInWithPopup, GoogleAuthProvider, OAuthProvider, EmailAuthProvider, reauthenticateWithCredential, reauthenticateWithPopup, signInWithEmailAndPassword, getMultiFactorResolver, TotpMultiFactorGenerator, multiFactor, setPersistence, browserLocalPersistence, browserSessionPersistence, onAuthStateChanged, signOut} from 'firebase/auth';
 import QRCode from 'qrcode';
 import '../src/main/resources/static/assets/mfa-dialog.js';
-let auth=null, initialization=null;
+let auth=null, initialization=null, federationEnabled=false;
 async function initialize(){
+ if(initialization)return initialization;
  if(auth)return true;
  if(!initialization)initialization=(async()=>{
   const r=await fetch('/api/v1/auth/public-config',{signal:AbortSignal.timeout(15000)});
   if(!r.ok)throw new Error('Configurazione accesso non disponibile.');
   const c=await r.json();if(!c.enabled)return false;
+  federationEnabled=c.federatedLoginEnabled===true;
   auth=getAuth(initializeApp({apiKey:c.apiKey,authDomain:c.authDomain,projectId:c.projectId}));
-  try{await setPersistence(auth,inMemoryPersistence);}catch(e){auth=null;throw e;}return true;
+  try{
+   await auth.authStateReady();
+   let uid=auth.currentUser?.uid;
+   onAuthStateChanged(auth,user=>{
+    const next=user?.uid;
+    if(uid&&uid!==next)window.dispatchEvent(new Event('radiotech:auth-ended'));
+    uid=next;
+   });
+  }catch(e){auth=null;throw e;}return true;
  })().finally(()=>{initialization=null;});
  return initialization;
 }
@@ -38,17 +48,35 @@ async function challenge(error){
   catch(e){throw safeAuthError(e);}
  }});
 }
-async function login(provider,email,password){
+async function exchange(user){
+ const token=await user.getIdToken();
+ const response=await fetch('/api/v1/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({idToken:token}),signal:AbortSignal.timeout(20000)});
+ const data=await response.json();
+ if(auth.currentUser!==user)throw new DOMException('Sessione cambiata.','AbortError');
+ if(!response.ok){await signOut(auth);throw new Error(data.message||'Account aziendale non autorizzato.');}
+ // Backend login can assign claims to a newly linked account. Use the refreshed identity.
+ const identity=await user.getIdTokenResult(true);
+ if(auth.currentUser!==user)throw new DOMException('Sessione cambiata.','AbortError');
+ const {refreshToken:discarded,token:discardedToken,...profile}=data;
+ return{...profile,token:identity.token,user:{...data.user,uid:user.uid,tenantId:identity.claims.tenantId,role:data.role}};
+}
+async function restoreSession(){
+ if(!await initialize()||!auth.currentUser)return null;
+ return exchange(auth.currentUser);
+}
+async function refreshSession(){
+ if(!auth?.currentUser)return null;
+ await auth.currentUser.getIdToken(true);
+ return exchange(auth.currentUser);
+}
+async function login(provider,email,password,remember=false){
  if(!auth&&!await initialize())throw new Error('Accesso federato non configurato dal responsabile.');
+ if(provider&&!federationEnabled)throw new Error('Accesso federato non configurato dal responsabile.');
+ await setPersistence(auth,remember?browserLocalPersistence:browserSessionPersistence);
  let credential;
  try{credential=provider?await signInWithPopup(auth,provider==='google'?new GoogleAuthProvider():new OAuthProvider('microsoft.com')):await signInWithEmailAndPassword(auth,email,password);}
  catch(e){credential=await challenge(e);}
- const token=await credential.user.getIdToken();
- const refreshToken=credential.user.refreshToken;
- const response=await fetch('/api/v1/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({idToken:token}),signal:AbortSignal.timeout(20000)});
- const data=await response.json();
- if(!response.ok){await signOut(auth);throw new Error(data.message||'Account aziendale non autorizzato.');}
- return{...data,token,refreshToken};
+ return exchange(credential.user);
 }
 async function reauthenticate(user){
  const providers=user.providerData.map(item=>item.providerId);
@@ -95,15 +123,15 @@ async function watchInventory(tenant,changed,failed){
  if(identity.claims.tenantId!==tenant)return null;
  return onSnapshot(query(collection(getFirestore(auth.app),'inventory'),where('tenantId','==',tenant)),()=>changed(),()=>failed());
 }
-window.RadioTechFederation={initialize,login,enrollTotp,watchInventory,logout:async()=>{if(auth)await signOut(auth);}};
+window.RadioTechFederation={initialize,login,restoreSession,refreshSession,enrollTotp,watchInventory,logout:async()=>{if(auth)await signOut(auth);}};
 document.addEventListener('DOMContentLoaded',async()=>{
  try{
-  if(!await initialize())return;const form=document.getElementById('loginForm');if(!form)return;
+  if(!await initialize()||!federationEnabled)return;const form=document.getElementById('loginForm');if(!form)return;
   for(const[provider,label]of[['google','Accedi con Google'],['microsoft','Accedi con Microsoft']]){
    const button=document.createElement('button');button.type='button';button.className='btn';button.textContent=label;
    button.onclick=async()=>{
     button.disabled=true;
-    try{const result=await login(provider);window.dispatchEvent(new CustomEvent('radiotech:sso',{detail:result}));}
+    try{const result=await login(provider,null,null,document.getElementById('rememberLogin')?.checked===true);window.dispatchEvent(new CustomEvent('radiotech:sso',{detail:result}));}
     catch(e){document.getElementById('loginStatus').textContent=e.name==='AbortError'?'Accesso annullato.':e.message;}
     finally{button.disabled=false;}
    };form.append(button);

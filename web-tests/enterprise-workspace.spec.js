@@ -55,7 +55,6 @@ test('logout cancels pending note writes, clears the owner state and closes acco
 
 test('token refresh with a changed tenant isolates notes',async({page})=>{
   await session(page);await notes(page).fill('Tenant originale');await saved(page);
-  await page.evaluate(()=>sessionStorage.setItem('radiotech_control_refresh','fixture-refresh'));
   let denied=false;
   await page.route('**/api/v1/auth/refresh',route=>route.fulfill({json:{token:'new-token',refreshToken:'new-refresh',user:{email:'admin@example.test',role:'ADMIN',tenantId:'other-tenant',name:'Secondo tenant'}}}));
   await page.route('**/api/v1/dashboard/stats',route=>{
@@ -71,7 +70,7 @@ test('token refresh with a changed tenant isolates notes',async({page})=>{
 
 test('a different account in the same tenant never sees the previous account notes',async({page})=>{
   await session(page);await notes(page).fill('Solo per il primo account');await saved(page);
-  await page.addInitScript(()=>sessionStorage.setItem('radiotech_control_user',JSON.stringify({role:'ADMIN',name:'Altro account',email:'second@example.test',tenantId:'test-tenant'})));
+  await page.addInitScript(()=>sessionStorage.setItem('rt-test-identity',JSON.stringify({role:'ADMIN',name:'Altro account',email:'second@example.test',tenantId:'test-tenant'})));
   await page.reload();await expect(notes(page)).toHaveValue('');
   await notes(page).fill('Secondo account');await saved(page);
   const entries=await page.evaluate(()=>Object.entries(sessionStorage).filter(([key])=>key.startsWith('radiotech_session_notes_v1:')).map(([key,value])=>[key,JSON.parse(value).text]));
