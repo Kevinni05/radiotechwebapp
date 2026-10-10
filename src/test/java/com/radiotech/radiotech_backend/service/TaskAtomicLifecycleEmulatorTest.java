@@ -55,7 +55,7 @@ class TaskAtomicLifecycleEmulatorTest {
    assertEquals(java.util.Set.of("TASK_CHECKED_IN","TASK_STATUS_CHANGED","TASK_CHECKED_OUT"),
     events.stream().map(event->event.getString("action")).collect(java.util.stream.Collectors.toSet()));
    for(var event:events){assertEquals("operator-a",event.getString("actor"));assertEquals("SUCCESS",event.getString("result"));}
-   assertEquals(1,db.collection("apiIdempotencyKeys").whereEqualTo("tenantId",tenant).get().get().size());
+   assertEquals(1,db.collection("taskStatusIdempotencyKeys").whereEqualTo("tenantId",tenant).get().get().size());
    authenticate(tenant,"manager-a","NETWORK_MANAGER");service.deleteTask(task);
    assertFalse(db.collection("tasks").document(task).get().get().exists());
    var deletions=db.collection("auditLogs").whereEqualTo("tenantId",tenant).whereEqualTo("action","TASK_DELETED").get().get().getDocuments();
