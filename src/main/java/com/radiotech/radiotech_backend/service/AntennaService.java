@@ -159,6 +159,52 @@ public class AntennaService {
         return result;
     }
 
+    /** Tenant-scoped shared notes: append-only records with server-side author identity. */
+    public List<Map<String, Object>> getSharedNotes(String antennaId) throws Exception {
+        validateId(antennaId);
+        Firestore db = FirestoreClient.getFirestore();
+        DocumentSnapshot antenna = db.collection(COLLECTION).document(antennaId.trim()).get().get();
+        requireExistingTenantAntenna(antenna);
+        List<Map<String, Object>> notes = new ArrayList<>();
+        for (QueryDocumentSnapshot doc : db.collection(COLLECTION).document(antennaId.trim())
+                .collection("sharedNotes").orderBy("createdAt").limit(200).get().get().getDocuments()) {
+            Map<String, Object> note = new LinkedHashMap<>(doc.getData());
+            note.put("id", doc.getId());
+            notes.add(note);
+        }
+        return notes;
+    }
+
+    public Map<String, Object> addSharedNote(String antennaId, String rawText) throws Exception {
+        validateId(antennaId);
+        String text = rawText == null ? "" : rawText.trim();
+        if (text.isEmpty() || text.length() > 2000) {
+            throw new IllegalArgumentException("La nota deve contenere da 1 a 2000 caratteri.");
+        }
+        String uid = SecurityContextAccessor.currentUid();
+        if (uid == null) {
+            throw new SecurityException("Identità operatore non disponibile.");
+        }
+        Firestore db = FirestoreClient.getFirestore();
+        DocumentReference antennaRef = db.collection(COLLECTION).document(antennaId.trim());
+        requireExistingTenantAntenna(antennaRef.get().get());
+        Map<String, Object> note = new LinkedHashMap<>();
+        note.put("text", text);
+        note.put("authorUid", uid);
+        note.put("tenantId", currentTenant());
+        note.put("createdAt", Instant.now().toString());
+        DocumentReference noteRef = antennaRef.collection("sharedNotes").document();
+        noteRef.create(note).get();
+        note.put("id", noteRef.getId());
+        return note;
+    }
+
+    private void requireExistingTenantAntenna(DocumentSnapshot doc) {
+        if (doc == null || !doc.exists() || !currentTenant().equals(doc.getString("tenantId"))) {
+            throw new IllegalArgumentException("Antenna non trovata.");
+        }
+    }
+
     private String firstNonBlank(String... values) {
         for (String value : values) {
             if (value != null && !value.isBlank()) {

@@ -57,6 +57,41 @@ public class AntennaController {
         }
     }
 
+    @GetMapping("/{id}/notes")
+    public ResponseEntity<?> notes(@PathVariable String id,
+            @RequestHeader(value = "X-Tenant-Id", required = false) String tenantId) {
+        try {
+            requirePermission(Permission.ASSET_READ, tenantId);
+            return ResponseEntity.ok(Map.of("notes", antennaService.getSharedNotes(id)));
+        } catch (IllegalArgumentException e) {
+            return error(HttpStatus.NOT_FOUND, e.getMessage());
+        } catch (SecurityException e) {
+            return error(HttpStatus.FORBIDDEN, e.getMessage());
+        } catch (Exception e) {
+            return error(HttpStatus.INTERNAL_SERVER_ERROR, "Impossibile caricare le note antenna.");
+        }
+    }
+
+    @PostMapping("/{id}/notes")
+    public ResponseEntity<?> addNote(@PathVariable String id,
+            @RequestBody Map<String, Object> body,
+            @RequestHeader(value = "X-Tenant-Id", required = false) String tenantId) {
+        try {
+            requirePermission(Permission.ASSET_READ, tenantId);
+            String text = body.get("text") instanceof String value ? value : "";
+            if (text.trim().isEmpty() || text.length() > 2000) {
+                return error(HttpStatus.BAD_REQUEST, "La nota deve contenere da 1 a 2000 caratteri.");
+            }
+            return ResponseEntity.status(HttpStatus.CREATED).body(antennaService.addSharedNote(id, text));
+        } catch (IllegalArgumentException e) {
+            return error(HttpStatus.NOT_FOUND, e.getMessage());
+        } catch (SecurityException e) {
+            return error(HttpStatus.FORBIDDEN, e.getMessage());
+        } catch (Exception e) {
+            return error(HttpStatus.INTERNAL_SERVER_ERROR, "Impossibile salvare la nota antenna.");
+        }
+    }
+
     @GetMapping("/{id}/history")
     public ResponseEntity<?> history(@PathVariable String id,
             @RequestHeader(value = "X-Tenant-Id", required = false) String tenantId) {
