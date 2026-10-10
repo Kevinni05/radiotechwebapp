@@ -44,7 +44,18 @@ class TaskIdempotencyEmulatorTest {
             assertThrows(TaskService.IdempotencyConflictException.class, () -> service.updateStatus(taskId, "IN_PROGRESS", "accept-1"));
             assertThrows(IllegalArgumentException.class, () -> service.updateStatus(taskId, "CLOSED", "close-1"));
             assertEquals("EN_ROUTE", service.getById(taskId).getStatus());
-            verify(audit, times(2)).record(eq("TASK_STATUS_CHANGED"), eq(tenant), eq("operator-1"), eq("TASK"), eq(taskId), anyString(), isNull(), isNull());
+            var events = firestore.collection("auditLogs").whereEqualTo("tenantId", tenant)
+                    .whereEqualTo("resourceId", taskId).get().get().getDocuments();
+            assertEquals(2, events.size());
+            for (var event : events) {
+                assertEquals("TASK_STATUS_CHANGED", event.getString("action"));
+                assertEquals("operator-1", event.getString("actor"));
+                assertEquals("SUCCESS", event.getString("result"));
+            }
+            verifyNoInteractions(audit);
+            firestore.collection("tasks").document(taskId).update("operatorId", "different-operator").get();
+            assertThrows(SecurityException.class, () -> service.updateStatus(taskId, "CANCELLED", "cancel-other"));
+            assertEquals("EN_ROUTE", service.getById(taskId).getStatus());
         }
     }
 }
