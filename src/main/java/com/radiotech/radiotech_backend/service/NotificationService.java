@@ -72,25 +72,10 @@ public class NotificationService {
                                         "Operatore non trovato.");
                 }
 
-                List<String> tokens = operator.getFcmTokens();
-
-                if (tokens == null || tokens.isEmpty()) {
-
-                        log.info(
-                                        "Nessun token FCM per l'operatore: "
-                                                        + operatorId);
-
-                        record(title, body, 0, operatorId, data);
-                        return 0;
+                if (!currentTenant().equals(operator.getTenantId())) {
+                        throw new SecurityException("Operatore non appartenente al tenant autenticato.");
                 }
-
-                int delivered = sendNotification(tokens, title, body, data);
-                record(title, body, delivered, operatorId, data);
-
-                log.info(
-                                "Notifica FCM inviata all'operatore: "
-                                                + operatorId);
-                return delivered;
+                return persistAndDeliver(operatorId.trim(), title, body, data);
         }
 
         /**
@@ -110,48 +95,7 @@ public class NotificationService {
                                         "Corpo notifica obbligatorio.");
                 }
 
-                List<Operator> operators = operatorService.getAllOperators();
-
-                List<String> tokens = new ArrayList<>();
-
-                for (Operator operator : operators) {
-
-                        if (operator == null) {
-                                continue;
-                        }
-
-                        List<String> operatorTokens = operator.getFcmTokens();
-
-                        if (operatorTokens == null) {
-                                continue;
-                        }
-
-                        for (String token : operatorTokens) {
-
-                                if (token == null || token.isBlank()) {
-                                        continue;
-                                }
-
-                                String normalized = token.trim();
-
-                                if (!tokens.contains(normalized)) {
-                                        tokens.add(normalized);
-                                }
-                        }
-                }
-
-                if (tokens.isEmpty()) {
-
-                        log.info(
-                                        "Nessun token FCM disponibile.");
-
-                        record(title, body, 0, "BROADCAST", Map.of());
-                        return 0;
-                }
-
-                int delivered = sendNotification(tokens, title, body, Map.of());
-                record(title, body, delivered, "BROADCAST", Map.of());
-                return delivered;
+                return persistAndDeliver("BROADCAST", title, body, Map.of());
         }
 
         public String recordWorkforceSignal(
@@ -263,17 +207,29 @@ public class NotificationService {
                 }).get();
         }
 
-        private void record(String title, String body, int delivered, String target, Map<String, String> payload) {
+        static Map<String, Object> inboxEntry(String tenant, String target, String title, String body,
+                        Map<String, String> payload) {
+                Map<String, Object> item = new java.util.LinkedHashMap<>(Map.of(
+                                "tenantId", tenant, "title", title, "message", body, "target", target,
+                                "delivered", 0, "deliveryStatus", "PENDING", "createdAt", Instant.now().toString()));
+                for (String field : List.of("taskId", "type")) {
+                        if (payload != null && payload.get(field) != null) item.put(field, payload.get(field));
+                }
+                return item;
+        }
+
+        private int persistAndDeliver(String target, String title, String body, Map<String, String> payload) throws Exception {
+                var reference = FirestoreClient.getFirestore().collection("notificationHistory").document();
+                // Persistence failure reaches the caller before any external FCM request.
+                reference.create(inboxEntry(currentTenant(), target, title, body, payload)).get();
                 try {
-                        Map<String, Object> item = new java.util.LinkedHashMap<>(Map.of(
-                                        "tenantId", currentTenant(),
-                                        "title", title, "message", body, "target", target,
-                                        "delivered", delivered, "createdAt", Instant.now().toString()));
-                        if (payload != null && payload.get("taskId") != null) item.put("taskId", payload.get("taskId"));
-                        if (payload != null && payload.get("type") != null) item.put("type", payload.get("type"));
-                        FirestoreClient.getFirestore().collection("notificationHistory").add(item).get();
-                } catch (Exception error) {
-                        log.error("Salvataggio storico notifica non riuscito", error);
+                        deliverRecorded(reference.getId());
+                        Long accepted = reference.get().get().getLong("delivered");
+                        return Math.toIntExact(accepted == null ? 0 : accepted);
+                } catch (Exception deliveryError) {
+                        // The same durable item is retried by the scanner. Do not invite caller replay.
+                        log.warn("Push delivery deferred for durable notification {}", reference.getId());
+                        return 0;
                 }
         }
 
@@ -410,74 +366,6 @@ public class NotificationService {
                                         .setNotification(AndroidNotification.builder().setChannelId("radiotech_alerts").setSound("default").build()).build());
                 }
                 return builder.build();
-        }
-
-        /**
-         * Metodo comune per l'invio FCM.
-         */
-        private int sendNotification(
-                        List<String> tokens,
-                        String title,
-                        String body,
-                        Map<String, String> data) throws Exception {
-
-                if (tokens == null || tokens.isEmpty()) {
-                        return 0;
-                }
-
-                Notification notification = Notification.builder()
-                                .setTitle(title)
-                                .setBody(body)
-                                .build();
-
-                AndroidConfig androidConfig = AndroidConfig.builder()
-                                .setPriority(AndroidConfig.Priority.HIGH)
-                                .setNotification(AndroidNotification.builder()
-                                                .setChannelId("radiotech_alerts")
-                                                .setSound("default")
-                                                .build())
-                                .build();
-
-                int successCount = 0;
-
-                /*
-                 * Firebase Multicast supporta un numero limitato
-                 * di token per singola richiesta.
-                 *
-                 * Dividiamo quindi i token in blocchi.
-                 */
-                int batchSize = 500;
-
-                for (int start = 0; start < tokens.size(); start += batchSize) {
-
-                        int end = Math.min(
-                                        start + batchSize,
-                                        tokens.size());
-
-                        List<String> batch = tokens.subList(start, end);
-
-                        var builder = MulticastMessage.builder().putAllData(data == null ? Map.of() : data).addAllTokens(batch);
-                        if (data != null && "BADGE_UPDATED".equals(data.get("type"))) {
-                            builder.setAndroidConfig(AndroidConfig.builder().setPriority(AndroidConfig.Priority.HIGH).build());
-                            builder.setApnsConfig(com.google.firebase.messaging.ApnsConfig.builder().putHeader("apns-push-type","background").putHeader("apns-priority","5").setAps(com.google.firebase.messaging.Aps.builder().setContentAvailable(true).build()).build());
-                        } else builder.setNotification(notification).setAndroidConfig(androidConfig);
-                        MulticastMessage message = builder.build();
-
-                        BatchResponse response = FirebaseMessaging
-                                        .getInstance()
-                                        .sendEachForMulticast(message);
-
-                        successCount += response.getSuccessCount();
-
-                        /*
-                         * Rimuoviamo eventuali token non più validi.
-                         */
-                        removeInvalidTokens(
-                                        batch,
-                                        response);
-                }
-
-                return successCount;
         }
 
         /**
