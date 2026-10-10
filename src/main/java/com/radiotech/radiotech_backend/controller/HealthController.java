@@ -28,6 +28,7 @@ public class HealthController {
         response.put("success", true);
         response.put("status", "UP");
         response.put("service", "radiotech-backend");
+        response.put("release", com.radiotech.radiotech_backend.ops.ReleaseMetadata.current());
         response.put("timestamp", Instant.now().toString());
 
         return ResponseEntity.ok(response);
