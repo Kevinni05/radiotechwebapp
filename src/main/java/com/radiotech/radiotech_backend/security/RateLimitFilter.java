@@ -76,7 +76,7 @@ public class RateLimitFilter extends OncePerRequestFilter {
                         FilterChain filterChain) throws ServletException, IOException {
 
                 long now = System.currentTimeMillis();
-                String key = request.getRemoteAddr() + "|" + request.getRequestURI();
+                String key = request.getRemoteAddr() + "|" + normalizedRoute(request.getRequestURI());
 
                 Window window;
                 int count;
@@ -109,6 +109,13 @@ public class RateLimitFilter extends OncePerRequestFilter {
                 }
 
                 filterChain.doFilter(request, response);
+        }
+
+        static String normalizedRoute(String path) {
+                String canonical = path.startsWith("/api/v1/")
+                                ? "/api/" + path.substring("/api/v1/".length()) : path;
+                if (canonical.startsWith("/api/reports/verify/")) return "/api/reports/verify/:reference";
+                return canonical;
         }
 
         private void writeRateLimitResponse(HttpServletResponse response, long retryAfter)
