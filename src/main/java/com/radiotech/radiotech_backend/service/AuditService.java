@@ -38,6 +38,31 @@ public class AuditService {
         return entry;
     }
 
+    /** Firebase Auth and Firestore cannot share a transaction. Persist intent before changing identity. */
+    public DocumentReference beginIdentityAction(String action, String tenantId, String actor, String uid,
+            Map<String, Object> before, Map<String, Object> after) throws Exception {
+        DocumentReference reference = FirestoreClient.getFirestore().collection("auditLogs").document();
+        Map<String, Object> entry = transactionEntry(action, tenantId, actor, "users", uid, "PENDING",
+                Instant.now().toString(), identitySnapshot(before), identitySnapshot(after));
+        entry.put("externalSystem", "FIREBASE_AUTH");
+        entry.put("reconciliationRequired", true);
+        reference.create(entry).get();
+        return reference;
+    }
+
+    public void completeIdentityAction(DocumentReference reference) throws Exception {
+        reference.update("result", "SUCCESS", "completedAt", Instant.now().toString(),
+                "reconciliationRequired", false).get();
+    }
+
+    private static Map<String, Object> identitySnapshot(Map<String, Object> claims) {
+        Map<String, Object> snapshot = new LinkedHashMap<>();
+        if (claims != null) for (String field : List.of("tenantId", "role", "customerId", "mfaRequired", "proPermissions")) {
+            if (claims.containsKey(field) && claims.get(field) != null) snapshot.put(field, claims.get(field));
+        }
+        return snapshot;
+    }
+
     public void record(String action, String actor, String resource, String resourceId, String result) {
         record(action, null, actor, resource, resourceId, result, null, null);
     }

@@ -43,7 +43,9 @@ class NotificationDeliveryEmulatorTest {
             database.when(FirestoreClient::getFirestore).thenReturn(db); fcm.when(FirebaseMessaging::getInstance).thenReturn(messaging);
             var ref = db.collection("notificationHistory").document(UUID.randomUUID().toString());
             ref.set(Map.of("tenantId", tenant, "target", operator.getId(), "title", "Test", "message", "Text", "deliveryStatus", "PENDING")).get();
-            when(messaging.sendEachForMulticast(any())).thenReturn(batch(success(), failure(MessagingErrorCode.UNAVAILABLE)), batch(success()));
+            var partialBatch = batch(success(), failure(MessagingErrorCode.UNAVAILABLE));
+            var successfulRetry = batch(success());
+            when(messaging.sendEachForMulticast(any())).thenReturn(partialBatch, successfulRetry);
             var notifications = new NotificationService(operators);
             notifications.deliverRecorded(ref.getId());
             assertEquals("PARTIAL", ref.get().get().getString("deliveryStatus"));
@@ -61,7 +63,8 @@ class NotificationDeliveryEmulatorTest {
             stored.set(Map.of("tenantId", tenant, "fcmTokens", List.of("expired-token", "fresh-token"))).get();
             var expired = db.collection("notificationHistory").document(UUID.randomUUID().toString());
             expired.set(Map.of("tenantId", tenant, "target", operator.getId(), "title", "Test", "message", "Text", "deliveryStatus", "PENDING")).get();
-            when(messaging.sendEachForMulticast(any())).thenReturn(batch(failure(MessagingErrorCode.UNREGISTERED)));
+            var invalidBatch = batch(failure(MessagingErrorCode.UNREGISTERED));
+            when(messaging.sendEachForMulticast(any())).thenReturn(invalidBatch);
             notifications.deliverRecorded(expired.getId());
             assertEquals("DEAD_LETTER", expired.get().get().getString("deliveryStatus"));
             assertEquals(List.of("fresh-token"), stored.get().get().get("fcmTokens"));
