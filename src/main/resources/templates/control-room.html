@@ -2505,7 +2505,7 @@
 
                     $("notificationTitle").value = "";
                     $("notificationMessage").value = "";
-                    toast("Notifica inviata", "La comunicazione è stata inviata ai destinatari.");
+                    toast("Comunicazione salvata", "Disponibile nello storico. L’accettazione della push non conferma la lettura.");
                     await loadNotifications();
                 } catch (error) {
                     toast("Invio fallito", error.message, "error");

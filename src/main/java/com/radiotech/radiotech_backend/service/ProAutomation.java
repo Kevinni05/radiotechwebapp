@@ -25,7 +25,7 @@ public class ProAutomation {
  @Scheduled(fixedDelayString="${radiotech.pro.scan-delay-ms:300000}",initialDelay=60000)
  public void scan(){if(FirebaseApp.getApps().isEmpty()||quotaPaused())return;var db=FirestoreClient.getFirestore();
   for(String collection:List.of("pro_plans","pro_sla","notificationHistory","proWebhookOutbox"))try{
-   Query query=db.collection(collection).orderBy(FieldPath.documentId()).limit(50);String cursor=cursors.get(collection);if(cursor!=null)query=query.startAfter(cursor);
+   Query source=db.collection(collection);if(collection.equals("notificationHistory"))source=source.whereIn("deliveryStatus",List.of("PENDING","SENDING","PARTIAL"));Query query=source.orderBy(FieldPath.documentId()).limit(50);String cursor=cursors.get(collection);if(cursor!=null)query=query.startAfter(cursor);
    var docs=query.get().get().getDocuments();if(docs.size()<50)cursors.remove(collection);else cursors.put(collection,docs.getLast().getId());
    for(var doc:docs){String tenant=doc.getString("tenantId");if(tenant==null||tenant.isBlank())continue;var previous=SecurityContextHolder.getContext();var context=SecurityContextHolder.createEmptyContext();var auth=new UsernamePasswordAuthenticationToken("SYSTEM_PRO",null,List.of(new SimpleGrantedAuthority("ROLE_ADMIN")));auth.setDetails(new FirebaseAuthenticationDetails("SYSTEM_PRO",null,"Automazione",tenant));context.setAuthentication(auth);SecurityContextHolder.setContext(context);
     try{

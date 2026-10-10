@@ -26,6 +26,41 @@ class NotificationDeliveryEmulatorTest {
     private BatchResponse batch(SendResponse... responses) {
         var result = mock(BatchResponse.class); when(result.getResponses()).thenReturn(List.of(responses)); return result;
     }
+    @Test void legacySendPersistsBeforeFcmAndFailureRetriesTheSameInboxItem() throws Exception {
+        String tenant = "legacy-push-" + UUID.randomUUID();
+        var auth = new UsernamePasswordAuthenticationToken("manager", null, List.of(new SimpleGrantedAuthority("ROLE_ADMIN")));
+        auth.setDetails(new FirebaseAuthenticationDetails("manager", null, "Manager", tenant));
+        SecurityContextHolder.getContext().setAuthentication(auth);
+        Operator operator = new Operator(); operator.setId("operator-" + UUID.randomUUID()); operator.setTenantId(tenant);
+        operator.setFcmTokens(List.of("device-token"));
+        var operators = mock(OperatorService.class); when(operators.getById(operator.getId())).thenReturn(operator);
+        var messaging = mock(FirebaseMessaging.class);
+        try (var db = FirestoreOptions.newBuilder().setProjectId("demo-radiotech")
+                .setHost(System.getenv("FIRESTORE_EMULATOR_HOST"))
+                .setCredentials(GoogleCredentials.create(new AccessToken("emulator", new Date(Long.MAX_VALUE))))
+                .build().getService(); var database = mockStatic(FirestoreClient.class); var fcm = mockStatic(FirebaseMessaging.class)) {
+            database.when(FirestoreClient::getFirestore).thenReturn(db); fcm.when(FirebaseMessaging::getInstance).thenReturn(messaging);
+            when(messaging.sendEachForMulticast(any())).thenAnswer(invocation -> {
+                var inbox = db.collection("notificationHistory").whereEqualTo("tenantId", tenant).get().get().getDocuments();
+                assertEquals(1, inbox.size());
+                assertEquals("SENDING", inbox.getFirst().getString("deliveryStatus"));
+                assertEquals("task-link", inbox.getFirst().getString("taskId"));
+                throw new IllegalStateException("FCM unavailable");
+            });
+            var notifications = new NotificationService(operators);
+            assertEquals(0, notifications.notifyOperator(operator.getId(), "Assignment", "Text", Map.of("taskId", "task-link")));
+            var docs = db.collection("notificationHistory").whereEqualTo("tenantId", tenant).get().get().getDocuments();
+            assertEquals(1, docs.size());
+            var reference = docs.getFirst().getReference();
+            assertEquals("PENDING", docs.getFirst().getString("deliveryStatus"));
+            reference.update("nextAttemptAt", "1970-01-01T00:00:00Z").get();
+            var accepted = batch(success());
+            doReturn(accepted).when(messaging).sendEachForMulticast(any());
+            notifications.deliverRecorded(reference.getId());
+            assertEquals("SENT", reference.get().get().getString("deliveryStatus"));
+            assertEquals(1, db.collection("notificationHistory").whereEqualTo("tenantId", tenant).get().get().size());
+        }
+    }
     @Test void partialDeliveryRetriesOnlyFailedRecipientsAndRemovesOnlyUnregisteredTokens() throws Exception {
         String tenant = "push-test-" + UUID.randomUUID();
         var auth = new UsernamePasswordAuthenticationToken("manager", null, List.of(new SimpleGrantedAuthority("ROLE_ADMIN")));

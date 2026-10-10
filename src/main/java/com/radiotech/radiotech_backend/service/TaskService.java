@@ -229,26 +229,24 @@ public class TaskService {
                 task.setUpdatedAt(now);
                 task.setCompletedAt(null);
 
-                document.set(task).get();
-                auditService.record("TASK_CREATED", tenantId, task.getCreatedBy(), "TASK", task.getId(), "SUCCESS",
-                                null, null);
-
+                var batch = db.batch();
+                batch.set(document, task);
+                batch.set(db.collection("auditLogs").document("task_created_" + task.getId()),
+                                AuditService.transactionEntry("TASK_CREATED", tenantId, SecurityContextAccessor.currentUid(),
+                                                "TASK", task.getId(), "SUCCESS", now, null, null));
+                String notificationId = null;
                 if (!isBlank(task.getOperatorId())) {
-                        try {
-                                String message = isBlank(task.getDescription())
-                                                ? "Ti e stato assegnato un nuovo task operativo."
-                                                : task.getDescription();
-                                notificationService.notifyOperator(
-                                                task.getOperatorId(),
-                                                "Nuovo task: " + task.getTitle(),
-                                                message,
-                                                java.util.Map.of(
-                                                                "taskId", task.getId(),
-                                                                "type", "TASK_ASSIGNED"));
-                        } catch (Exception notificationError) {
-                                log.warn("Notifica task non inviata: "
-                                                + notificationError.getMessage());
-                        }
+                        notificationId = "task_assignment_" + task.getId();
+                        String message = isBlank(task.getDescription())
+                                        ? "Ti è stato assegnato un nuovo task operativo." : task.getDescription();
+                        batch.set(db.collection("notificationHistory").document(notificationId),
+                                        NotificationService.inboxEntry(tenantId, task.getOperatorId(), "Nuovo task: " + task.getTitle(),
+                                                        message, java.util.Map.of("taskId", task.getId(), "type", "TASK_ASSIGNED")));
+                }
+                batch.commit().get();
+                if (notificationId != null) {
+                        try { notificationService.deliverRecorded(notificationId); }
+                        catch (Exception deliveryError) { log.warn("Push task rinviata per notifica durevole {}", notificationId); }
                 }
 
                 return task;

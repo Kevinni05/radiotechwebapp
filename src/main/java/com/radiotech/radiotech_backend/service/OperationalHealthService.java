@@ -44,6 +44,11 @@ public class OperationalHealthService {
         if (pending > 0 && (oldestAt == null || oldestAt == 0 || now.toEpochMilli() - oldestAt >= Duration.ofHours(env.getProperty("radiotech.operations.pending-report-hours", Long.class, 24L)).toMillis()))
             alarms.add(alarm("PENDING_REPORTS", "Report in attesa di revisione oltre la soglia, oppure con data storica non disponibile."));
         if (!"OK".equals(backup.get("state"))) alarms.add(alarm("BACKUP", "Backup esterno o prova di ripristino mancanti o scaduti."));
+        long deadLetters = db.collection("notificationHistory").whereEqualTo("tenantId", tenant)
+                .whereEqualTo("deliveryStatus", "DEAD_LETTER").count().get().get().getCount();
+        long pendingIdentityAudit = db.collection("auditLogs").whereEqualTo("tenantId", tenant)
+                .whereEqualTo("result", "PENDING").count().get().get().getCount();
+        addDeliveryAlarms(alarms, deadLetters, pendingIdentityAudit);
         var thresholds = Map.of("reads", env.getProperty("radiotech.operations.daily-read-warning", Long.class, 40_000L),
                 "writes", env.getProperty("radiotech.operations.daily-write-warning", Long.class, 16_000L),
                 "deletes", env.getProperty("radiotech.operations.daily-delete-warning", Long.class, 16_000L),
@@ -54,6 +59,7 @@ public class OperationalHealthService {
         result.put("checkedAt", now.toString()); result.put("backend", files.storageBackend());
         result.put("attachments", Map.of("count", archive.get(count), "bytes", storedBytes, "chunks", ((Number)archive.get(chunks)).longValue()));
         result.put("pendingReports", pending); result.put("backup", backup); result.put("firestore", metricSnapshot);
+        result.put("deadLetterNotifications", deadLetters); result.put("pendingIdentityAudit", pendingIdentityAudit);
         result.put("thresholds", thresholds); result.put("alarms", alarms);
         result.put("consoleUrl", "https://console.firebase.google.com/project/" + db.getOptions().getProjectId() + "/firestore/usage");
         cache.entrySet().removeIf(entry -> now.isAfter(entry.getValue().expires()));
@@ -67,6 +73,12 @@ public class OperationalHealthService {
             if (!(backup.get("lastRestoreAt") instanceof String restore) || Instant.parse(restore).isBefore(now.minus(Duration.ofDays(35)))) return "RESTORE_REQUIRED";
             return "OK";
         } catch (java.time.format.DateTimeParseException invalid) { return "INVALID"; }
+    }
+    static void addDeliveryAlarms(List<Map<String,String>> alarms, long deadLetters, long pendingIdentityAudit) {
+        if (deadLetters > 0) alarms.add(Map.of("code", "PUSH_DEAD_LETTER", "severity", "WARNING",
+                "message", deadLetters + " notifiche richiedono verifica: la push non prova la lettura. Lo storico rimane disponibile."));
+        if (pendingIdentityAudit > 0) alarms.add(Map.of("code", "IDENTITY_AUDIT_PENDING", "severity", "CRITICAL",
+                "message", pendingIdentityAudit + " operazioni di identità richiedono riconciliazione. Verificare Firebase Auth e audit prima di confermare l'esito."));
     }
     private static Map<String,String> alarm(String code, String message) { return Map.of("code", code, "message", message, "severity", "WARNING"); }
 }
