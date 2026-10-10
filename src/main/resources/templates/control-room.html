@@ -1142,6 +1142,7 @@
     <script src="/assets/signature-workspace.js"></script>
     <script src="/assets/company-personalization.js"></script>
     <script src="/assets/italian.js"></script>
+    <script src="/assets/refresh-coordinator.js"></script>
     <script src="/assets/operations-upgrade.js" defer></script>
     <script src="/assets/telco-tools.js" defer></script>
     <script src="/assets/management.js" defer></script>
@@ -1521,7 +1522,7 @@
 
                 if (state.refreshTimer) clearInterval(state.refreshTimer);
                 state.refreshTimer = setInterval(() => {
-                    if (state.token) refreshAll(true);
+                    if (state.token && !document.hidden) refreshAll(true);
                 }, CONFIG.REFRESH_INTERVAL);
             }
 
@@ -2845,19 +2846,42 @@
 
             /* ---------- REFRESH ---------- */
 
-            async function refreshAll(silent = false) {
+            const refreshCoordinator = window.RadioTechRefreshCoordinator({
+                run: runRefresh,
+                canRefresh: () => {
+                    const editing = document.activeElement?.matches('input, textarea, select, [contenteditable="true"]');
+                    return Boolean(state.token) && !document.hidden && !editing &&
+                        !document.querySelector('.modal-backdrop.open, dialog[open]');
+                }
+            });
+
+            function refreshAll(silent = false) {
+                return refreshCoordinator.refresh(silent);
+            }
+
+            document.addEventListener('visibilitychange', () => {
+                if (!document.hidden && state.token) refreshAll(true);
+            });
+
+            async function runRefresh(silent = false) {
                 if (!state.token) return;
 
-                const tasks = [
-                    loadStats(),
-                    loadAntennas(),
-                    loadNotifications(),
-                    loadProfile(),
-                    loadReports(),
-                    loadTasks(),
-                    loadOperators(),
-                    management?.refreshCurrent()
-                ];
+                const view = document.querySelector('.view.active')?.id.replace('view-', '') || 'dashboard';
+                const visibleLoaders = {
+                    dashboard: [loadStats, loadAntennas, loadTasks],
+                    antennas: [loadAntennas],
+                    operations: [loadStats, loadTasks, loadOperators],
+                    operators: [loadOperators],
+                    reports: [loadReports],
+                    inventory: [loadInventory],
+                    profile: [loadProfile],
+                    system: [loadAudit, loadOperationalHealth]
+                };
+                const loaders = silent
+                    ? [...(visibleLoaders[view] || []), loadNotifications]
+                    : [loadStats, loadAntennas, loadNotifications, loadProfile, loadReports, loadTasks, loadOperators];
+                const tasks = [...new Set(loaders)].map(loader => Promise.resolve().then(() => loader()));
+                tasks.push(management?.refreshCurrent());
 
                 const results = await Promise.allSettled(tasks);
                 const failed = results.filter(x => x.status === "rejected");
