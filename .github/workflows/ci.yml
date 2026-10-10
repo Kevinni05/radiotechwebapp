@@ -29,6 +29,8 @@ jobs:
 
       - name: Backend test suite
         run: bash gradlew test --no-daemon --console=plain
+      - name: Backup configuration regression tests
+        run: node --test scripts/backup-credentials.test.cjs
 
   firebase-rules:
     name: Firebase rules tests
