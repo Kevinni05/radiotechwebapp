@@ -95,9 +95,12 @@ class MaintenanceReportFirestoreEmulatorTest {
             assertEquals("REPORT_SUBMITTED", taskDocument.getString("status"));
             assertEquals(OPERATOR_UID, taskDocument.getString("checkedOutBy"));
             assertEquals(41.1171, taskDocument.getDouble("checkOutLatitude"), 0.000001);
-            verify(auditService, times(1)).record(eq("REPORT_SUBMITTED"), eq(tenantId),
-                    eq(OPERATOR_UID), eq("MAINTENANCE_REPORT"), anyString(), eq("SUCCESS"),
-                    isNull(), isNull());
+            var submissionAudit = firestore.collection("auditLogs")
+                    .whereEqualTo("resourceId", first.getId()).get().get().getDocuments();
+            assertEquals(1, submissionAudit.size());
+            assertEquals("REPORT_SUBMITTED", submissionAudit.getFirst().getString("action"));
+            assertEquals(tenantId, submissionAudit.getFirst().getString("tenantId"));
+            assertEquals(OPERATOR_UID, submissionAudit.getFirst().getString("actor"));
         }
     }
 

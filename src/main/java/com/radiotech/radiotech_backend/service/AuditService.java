@@ -21,6 +21,23 @@ import java.util.Map;
 public class AuditService {
     private static final Logger log = LoggerFactory.getLogger(AuditService.class);
 
+    /** Build an event for the caller's Firestore transaction or batch, with explicit request identity. */
+    public static Map<String, Object> transactionEntry(String action, String tenantId, String actor,
+            String resource, String resourceId, String result, String timestamp,
+            Map<String, Object> before, Map<String, Object> after) {
+        Map<String, Object> entry = new LinkedHashMap<>();
+        entry.put("action", action);
+        entry.put("tenantId", requireTenantId(tenantId));
+        entry.put("actor", actor == null || actor.isBlank() ? "SYSTEM" : actor);
+        entry.put("resource", resource);
+        entry.put("resourceId", resourceId);
+        entry.put("result", result);
+        entry.put("timestamp", timestamp);
+        entry.put("before", before == null ? Map.of() : new LinkedHashMap<>(before));
+        entry.put("after", after == null ? Map.of() : new LinkedHashMap<>(after));
+        return entry;
+    }
+
     public void record(String action, String actor, String resource, String resourceId, String result) {
         record(action, null, actor, resource, resourceId, result, null, null);
     }
