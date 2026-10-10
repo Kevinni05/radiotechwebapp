@@ -194,11 +194,32 @@
 #app #view-inventory .panel-body > .toolbar {
   display: grid;
   grid-template-columns: minmax(240px,2fr) repeat(2,minmax(160px,1fr));
+  gap: var(--ui-space-3);
 }
 #app #view-inventory .section-head > .toolbar { flex-wrap: wrap; }
+#app #view-inventory .section-head > .toolbar {
+  display: flex;
+  align-items: center;
+  column-gap: var(--ui-space-3);
+  row-gap: var(--ui-space-3);
+}
 #app #view-inventory .stat-card { min-height: 112px; }
 #app #view-inventory .table-wrap table { min-width: 860px; }
-#app #view-inventory td:last-child .actions { min-width: 170px; flex-wrap: wrap; }
+#app #view-inventory td:last-child .actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  min-width: 220px;
+  max-width: 100%;
+  flex-wrap: wrap;
+  column-gap: var(--ui-space-3);
+  row-gap: var(--ui-space-3);
+  padding-block: var(--ui-space-1);
+}
+#app #view-inventory td:last-child .actions > :is(.btn, .mini-btn, button) {
+  flex: 0 1 auto;
+  margin: 0;
+}
 #app #view-operations #operatorsSummary { flex: 1 1 100%; }
 #app #view-tools .notification-grid { grid-template-columns: minmax(0,1.2fr) minmax(0,.8fr); }
 #app #view-tools .telco-calculators { gap: var(--ui-space-5); }
