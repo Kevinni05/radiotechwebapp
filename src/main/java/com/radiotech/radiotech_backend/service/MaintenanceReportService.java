@@ -279,15 +279,36 @@ public class MaintenanceReportService {
             }
             if (blank(report.getAntennaId())) {
                 report.setAntennaId(linkedTask.getAntennaId());
+            } else if (!blank(linkedTask.getAntennaId())
+                    && !linkedTask.getAntennaId().equals(report.getAntennaId())) {
+                throw new SecurityException("L'antenna del report non corrisponde al task assegnato.");
             }
         }
 
+        Map<String, Object> assetSnapshot = new LinkedHashMap<>();
         if (!blank(report.getAntennaId())) {
             DocumentSnapshot antenna = db.collection("antennas").document(report.getAntennaId()).get().get();
             if (!antenna.exists() || !tenantId.equals(antenna.getString("tenantId"))) {
                 throw new IllegalArgumentException("Antenna del report non trovata: " + report.getAntennaId());
             }
             report.setAntennaName(antenna.getString("name"));
+            assetSnapshot.put("id", antenna.getId());
+            for (String field : List.of("name", "code", "assetType", "parentAssetId", "serialNumber",
+                    "manufacturer", "model", "installationDate", "site", "updatedAt")) {
+                snapshotText(assetSnapshot, field, antenna.get(field));
+            }
+            for (String field : List.of("lat", "lng")) {
+                snapshotNumber(assetSnapshot, field, antenna.get(field));
+            }
+            Map<String, Object> specifications = new LinkedHashMap<>();
+            if (antenna.get("specs") instanceof Map<?, ?> source) {
+                for (String field : List.of("Frequenza", "Potenza", "ROS", "Temperatura")) {
+                    Object value = source.containsKey(field) ? source.get(field)
+                            : source.get(field.toLowerCase(java.util.Locale.ROOT));
+                    snapshotNumber(specifications, field, value);
+                }
+            }
+            assetSnapshot.put("specifications", specifications);
         } else {
             report.setAntennaName(null);
         }
@@ -302,6 +323,28 @@ public class MaintenanceReportService {
         report.setOperatorName(operator != null ? operator.getFullName() : null);
         report.setStatus(SUBMITTED);
         report.setSubmittedAt(Instant.now().toString());
+        Map<String, Object> technicalSnapshot = new LinkedHashMap<>();
+        technicalSnapshot.put("schemaVersion", 1L);
+        technicalSnapshot.put("capturedAt", report.getSubmittedAt());
+        technicalSnapshot.put("asset", assetSnapshot);
+        Map<String, Object> operatorSnapshot = new LinkedHashMap<>();
+        operatorSnapshot.put("id", report.getOperatorId());
+        operatorSnapshot.put("firebaseUid", authenticatedUid);
+        snapshotText(operatorSnapshot, "name", report.getOperatorName());
+        technicalSnapshot.put("operator", operatorSnapshot);
+        Map<String, Object> taskSnapshot = new LinkedHashMap<>();
+        if (linkedTask != null) {
+            taskSnapshot.put("id", linkedTask.getId());
+            snapshotText(taskSnapshot, "title", linkedTask.getTitle());
+            Map<String, Object> metadata = linkedTask.getMetadata();
+            if (metadata != null) {
+                snapshotText(taskSnapshot, "checklist", metadata.get("checklist"));
+                snapshotText(taskSnapshot, "checklistVersion", metadata.get("checklistVersion"));
+            }
+        }
+        technicalSnapshot.put("task", taskSnapshot);
+        // Ignore a snapshot supplied by a client: only authoritative records are captured.
+        report.setTechnicalSnapshot(technicalSnapshot);
         report.setArchiveAt(ArchiveQueries.timestamp(report.getSubmittedAt()));
         report.setOperatorRefs(ArchiveQueries.identities(report.getOperatorId(), authenticatedUid));
         report.setReviewedAt(null);
@@ -543,9 +586,33 @@ public class MaintenanceReportService {
         immutable.put("latitude", report.getLatitude()); immutable.put("longitude", report.getLongitude());
         immutable.put("operatorNotes", report.getOperatorNotes()); immutable.put("checklist", report.getChecklist());
         immutable.put("digitalSignature", report.getDigitalSignature());
+        boolean versioned = report.getTechnicalSnapshot() != null;
+        if (versioned) {
+            immutable.put("technicalSnapshot", report.getTechnicalSnapshot());
+            immutable.put("antennaName", report.getAntennaName());
+            immutable.put("operatorName", report.getOperatorName());
+            immutable.put("taskTitle", report.getTaskTitle());
+        }
         byte[] bytes = MessageDigest.getInstance("SHA-256").digest(
                 REQUEST_HASH_GSON.toJson(sortJsonMaps(immutable)).getBytes(StandardCharsets.UTF_8));
-        return HexFormat.of().formatHex(bytes);
+        // A distinct prefix prevents deleting a snapshot to downgrade verification to legacy hashing.
+        return (versioned ? "v2:" : "") + HexFormat.of().formatHex(bytes);
+    }
+
+    private static void snapshotText(Map<String, Object> target, String field, Object value) {
+        if (value == null) return;
+        if (!(value instanceof String text) || text.length() > 16_384) {
+            throw new IllegalArgumentException("Dati tecnici non validi: " + field);
+        }
+        target.put(field, text);
+    }
+
+    private static void snapshotNumber(Map<String, Object> target, String field, Object value) {
+        if (value == null) return;
+        if (!(value instanceof Number number) || !Double.isFinite(number.doubleValue())) {
+            throw new IllegalArgumentException("Dati tecnici non validi: " + field);
+        }
+        target.put(field, number.doubleValue());
     }
 
     static void requireCheckOutLocation(MaintenanceReport report) {
