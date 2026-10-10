@@ -22,7 +22,7 @@
     alert: '<path d="m12 3 10 18H2L12 3ZM12 9v5M12 17v.1"/>'
   };
   const navIcons = { dashboard: 'grid', antennas: 'antenna', operations: 'briefcase', operators:'people', reports:'check', planning:'grid', workload:'briefcase', supplies:'box', tools: 'wave', notifications: 'bell', inventory: 'box', enterprise: 'shield', ai: 'spark', people: 'people', profile: 'user', system: 'status' };
-  const navLabels = { dashboard: 'Panoramica', antennas: 'Infrastruttura', operations: 'Incarichi', operators:'Operatori', reports:'Centro report', planning:'Agenda interventi', workload:'Carico della squadra', supplies:'Approvvigionamenti', tools: 'Strumenti RF', notifications: 'Comunicazioni', inventory: 'Inventario', enterprise: 'Rischi e competenze', ai: 'AI e previsioni', people: 'Squadra e sicurezza', profile: 'Profilo aziendale', system: 'Stato del sistema' };
+  const navLabels = { dashboard: 'Panoramica', antennas: 'Infrastruttura', operations: 'Incarichi', operators:'Operatori', reports:'Centro report', planning:'Agenda interventi', workload:'Carico della squadra', supplies:'Approvvigionamenti', tools: 'Strumenti RF', notifications: 'Comunicazioni', inventory: 'Inventario', enterprise: 'Rischi e competenze', ai: 'Pianificazione preventiva', people: 'Squadra e sicurezza', profile: 'Profilo aziendale', system: 'Stato del sistema' };
   Object.assign(navIcons, { pro: 'grid', access: 'shield' });
   Object.assign(navLabels, { pro: 'Enterprise Pro', access: 'Sicurezza e accessi' });
   const svg = name => `<svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">${paths[name] || paths.grid}</svg>`;
@@ -89,7 +89,7 @@
     function prepareViews() {
       const headers = {
         enterprise: ['Prevenzione e continuità','Il controllo che anticipa.','Incidenti, priorità operative e competenze: coordina le decisioni con una visione condivisa.'],
-        ai: ['Analisi aziendale','Dai dati alle decisioni.','Indicatori spiegabili, pianificazione preventiva e un assistente per il tuo lavoro quotidiano.'],
+        ai: ['Pianificazione preventiva','Anticipa le scadenze.','Indicatori spiegabili e priorità operative per organizzare la manutenzione.'],
         people: ['Persone al centro','Una squadra, più consapevole.','Disponibilità, pause e segnalazioni. Uno spazio condiviso per lavorare con attenzione.']
       };
       document.querySelectorAll('.view:not([data-designed-head])').forEach(view => {

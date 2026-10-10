@@ -3,7 +3,7 @@ window.RadioTechCompanyHub = function ({ apiFetch, state, escapeHtml: esc, toast
   const $ = id => document.getElementById(id); 
   const manager = () => ["SUPER_ADMIN", "ADMIN", "CAPO", "CHIEF_EXECUTIVE", "NETWORK_MANAGER"].includes(state.authRole || state.user?.role);
   const label = value => ({ ACTIVE: "Al lavoro", BREAK: "In pausa", OFF_DUTY: "Fuori turno", READY: "Disponibile", NEEDS_BREAK: "Richiede pausa", REQUEST_SUPPORT: "Richiede supporto", OPEN: "Da prendere in carico", ACKNOWLEDGED: "In carico", RESOLVED: "Risolto", HAZARD: "Pericolo", NEAR_MISS: "Quasi incidente", SUPPORT_REQUEST: "Supporto", CRITICAL: "Critico", HIGH: "Alto", MEDIUM: "Medio", LOW: "Basso" }[value] || value);
-  let history = [], shift = null, signals = [], risks = [], busy = false;
+  let shift = null, signals = [], risks = [];
   function addView(name, title, markup) {
     const button = document.createElement("button"); button.dataset.view = name; button.textContent = title;
     button.addEventListener("click", () => { switchView(name); if (name === "ai") loadAI(); else loadPeople(); });
@@ -12,10 +12,10 @@ window.RadioTechCompanyHub = function ({ apiFetch, state, escapeHtml: esc, toast
     const container=document.querySelector(".view").parentElement;
     container.insertBefore(section,container.querySelector(":scope > .footer"));
   }
-  addView("ai", "✧ AI e previsioni", `
+  addView("ai", "▦ Pianificazione preventiva", `
     <div class="enterprise-kpis"><div class="panel"><span>Asset osservati</span><strong id="aiAssets">—</strong></div><div class="panel"><span>Priorità elevate</span><strong id="aiRiskCount">—</strong></div><div class="panel"><span>Incarichi attivi</span><strong id="aiTasks">—</strong></div><div class="panel"><span>Oltre scadenza</span><strong id="aiOverdue">—</strong></div></div>
     <div class="enterprise-grid"><div class="panel enterprise-section"><div class="panel-head"><div><h3>Pianificazione preventiva</h3><span>Indicatori spiegabili e intervalli storici</span></div><button id="aiRefresh" class="btn">Aggiorna</button></div><div class="panel-body"><p id="aiInsightStatus" class="enterprise-status" role="status"></p><label for="aiRiskSearch">Cerca asset</label><input id="aiRiskSearch" type="search" placeholder="Nome o identificativo"><div id="aiRisks"></div><button class="btn" id="aiExport">Esporta priorità CSV</button></div></div>
-    <div class="panel enterprise-section"><div class="panel-head"><div><h3>Assistente aziendale</h3><span>Chat libera con modello locale</span></div><button id="aiClear" class="btn">Nuova chat</button></div><div class="panel-body"><p id="aiProvider" class="enterprise-summary"></p><div id="aiConversation" class="ai-conversation" role="log" aria-live="polite"></div><form id="aiChatForm" class="enterprise-form"><label for="aiMessage">Messaggio</label><textarea id="aiMessage" rows="4" required maxlength="3000" placeholder="Chiedi un'analisi, prepara una comunicazione o approfondisci un problema tecnico"></textarea><label class="ai-context"><input type="checkbox" id="aiContext"> Includi solo indicatori operativi autorizzati</label><button class="btn primary" id="aiSend" type="submit">Invia all'assistente</button><p id="aiChatStatus" class="enterprise-status" role="status"></p></form><p class="enterprise-summary">La chat resta in questa sessione e non esegue azioni. Verifica le risposte prima di prendere decisioni. Nessun costo per richiesta del modello locale; l'infrastruttura resta a carico dell'azienda.</p></div></div></div>`);
+    </div>`);
   addView("people", "♡ Squadra e sicurezza", `
     <div class="enterprise-grid"><div class="panel enterprise-section"><div class="panel-head"><h3>Il mio turno e le pause</h3><button class="btn" id="peopleRefresh">Aggiorna</button></div><div class="panel-body"><p id="shiftSummary" class="enterprise-status" role="status"></p><p id="shiftReminder" class="enterprise-summary"></p><label for="shiftReadiness">Disponibilità dichiarata</label><select id="shiftReadiness"><option value="READY">Disponibile</option><option value="NEEDS_BREAK">Ho bisogno di una pausa</option><option value="REQUEST_SUPPORT">Chiedo supporto</option></select><div id="shiftActions" class="actions"></div><p class="enterprise-summary">Registrazione volontaria visibile ai responsabili. Nessun tracciamento continuo della posizione. Non sostituisce il sistema presenze.</p></div></div>
     <div class="panel enterprise-section"><div class="panel-head"><h3>Segnala e chiedi supporto</h3></div><div class="panel-body"><form id="peopleSignalForm" class="enterprise-form"><label for="signalType">Tipo</label><select id="signalType"><option value="HAZARD">Pericolo</option><option value="NEAR_MISS">Quasi incidente</option><option value="SUPPORT_REQUEST">Richiesta di supporto</option></select><label for="signalSeverity">Priorità</label><select id="signalSeverity"><option value="LOW">Bassa</option><option value="MEDIUM" selected>Media</option><option value="HIGH">Alta</option><option value="CRITICAL">Critica</option></select><label for="signalDescription">Descrizione</label><textarea id="signalDescription" maxlength="1000" required rows="3"></textarea><label for="signalAsset">ID asset (facoltativo)</label><input id="signalAsset" maxlength="128"><button class="btn primary" type="submit">Registra segnalazione</button></form><p class="enterprise-summary">Visibile ai responsabili del tuo tenant. Non inserire diagnosi o dati sanitari. Per un pericolo immediato usa i canali di emergenza aziendali: questa sezione non è monitorata in continuo.</p></div></div></div>
@@ -33,7 +33,7 @@ window.RadioTechCompanyHub = function ({ apiFetch, state, escapeHtml: esc, toast
   async function loadAI() {
     const epoch = state.sessionEpoch || 0;
     $("aiInsightStatus").textContent = "Analisi in corso…";
-    const [analysis, provider] = await Promise.allSettled([apiFetch("/api/v1/ai/insights"), apiFetch("/api/v1/ai/status")]);
+    const [analysis] = await Promise.allSettled([apiFetch("/api/v1/ai/insights")]);
     if (epoch !== (state.sessionEpoch || 0)) return;
     if (analysis.status === "fulfilled") {
       const data = analysis.value; risks = data.risks || [];
@@ -41,28 +41,7 @@ window.RadioTechCompanyHub = function ({ apiFetch, state, escapeHtml: esc, toast
       $("aiTasks").textContent = data.activeTasks; $("aiOverdue").textContent = data.overdueTasks;
       $("aiInsightStatus").textContent = `${data.notice}${data.partial ? " Analisi parziale: raggiunto il limite del campione." : ""}`; renderRisks();
     } else $("aiInsightStatus").textContent = analysis.reason.message;
-    if (provider.status === "fulfilled") {
-      $("aiProvider").textContent = provider.value.enabled ? `Modello aziendale: ${provider.value.model}` : "Il responsabile deve attivare il modello aziendale per usare la chat.";
-      $("aiSend").disabled = busy || !provider.value.enabled;
-    } else { $("aiProvider").textContent = provider.reason.message; $("aiSend").disabled = true; }
   }
-  function renderChat() {
-    $("aiConversation").innerHTML = history.map(m => `<article class="ai-message ${m.role}"><strong>${m.role === "user" ? "Tu" : "Assistente"}</strong><p>${esc(m.content)}</p></article>`).join("");
-    $("aiConversation").scrollTop = $("aiConversation").scrollHeight;
-  }
-  $("aiChatForm").addEventListener("submit", async event => {
-    event.preventDefault(); if (busy) return;
-    const message = $("aiMessage").value.trim(); if (!message) return;
-    const epoch = state.sessionEpoch || 0; const previous = history.slice(-8).map(m => ({ role: m.role, content: m.content.slice(0, 3000) })); busy = true; $("aiSend").disabled = true;
-    history.push({ role: "user", content: message }); renderChat(); $("aiChatStatus").textContent = "L'assistente sta rispondendo…";
-    try {
-      const result = await apiFetch("/api/v1/ai/chat", { method: "POST", timeoutMs: 55000, body: JSON.stringify({ message, history: previous, includeOperationalContext: $("aiContext").checked }) });
-      if (epoch !== (state.sessionEpoch || 0)) return;
-      history.push({ role: "assistant", content: result.answer }); history = history.slice(-40); $("aiMessage").value = ""; renderChat(); $("aiChatStatus").textContent = result.notice;
-    } catch (e) { if (epoch === (state.sessionEpoch || 0)) { history.pop(); renderChat(); $("aiChatStatus").textContent = e.message; } }
-    finally { if (epoch === (state.sessionEpoch || 0)) { busy = false; $("aiSend").disabled = false; } }
-  });
-  $("aiClear").addEventListener("click", () => { if (!busy) { history = []; renderChat(); $("aiChatStatus").textContent = ""; } });
   $("aiRefresh").addEventListener("click", e => action(e.currentTarget, loadAI)); $("aiRiskSearch").addEventListener("input", renderRisks);
   $("aiExport").addEventListener("click", () => {
     const quote = value => { let text = String(value ?? ""); if (/^\s*[=+@-]/.test(text)) text = "'" + text; return `"${text.replaceAll('"', '""')}"`; };
@@ -105,9 +84,9 @@ window.RadioTechCompanyHub = function ({ apiFetch, state, escapeHtml: esc, toast
   });
   $("peopleRefresh").addEventListener("click", e => action(e.currentTarget, loadPeople));
   return { reset() {
-    history = []; risks = []; signals = []; shift = null; busy = false; renderChat(); $("aiSend").disabled = true;
-    for (const id of ["aiRisks", "peopleSignals", "peopleTeam", "shiftActions", "shiftSummary", "shiftReminder", "peopleStatus", "aiProvider", "aiInsightStatus", "aiChatStatus"]) $(id).replaceChildren();
+    risks = []; signals = []; shift = null;
+    for (const id of ["aiRisks", "peopleSignals", "peopleTeam", "shiftActions", "shiftSummary", "shiftReminder", "peopleStatus", "aiInsightStatus"]) $(id).replaceChildren();
     for (const id of ["aiAssets", "aiRiskCount", "aiTasks", "aiOverdue"]) $(id).textContent = "—";
-    $("aiChatForm").reset(); $("peopleSignalForm").reset(); $("aiRiskSearch").value = ""; $("shiftReadiness").value = "READY"; $("peopleTeamPanel").hidden = true;
+    $("peopleSignalForm").reset(); $("aiRiskSearch").value = ""; $("shiftReadiness").value = "READY"; $("peopleTeamPanel").hidden = true;
   } };
 };

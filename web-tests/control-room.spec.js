@@ -637,17 +637,14 @@ test('antenna RF measurements survive creation and subsequent editing', async ({
   await expect(page.locator('#antennasTableBody')).toContainText('25');
 });
 
-test('AI offers evidence, private chat context and safe output rendering', async ({ page }) => {
+test('preventive planning offers evidence without a chat surface', async ({ page }) => {
   await session(page);
   await page.locator('[data-view="ai"]').click();
   await expect(page.locator('#aiRiskCount')).toHaveText('1');
   await expect(page.locator('#aiRisks')).toContainText('Storico insufficiente');
-  await page.locator('#aiMessage').fill('Prepara un briefing');
-  const sent = page.waitForRequest(request => request.url().endsWith('/api/v1/ai/chat'));
-  await page.locator('#aiSend').click();
-  expect((await sent).postDataJSON().includeOperationalContext).toBe(false);
-  await expect(page.locator('#aiConversation')).toContainText('Risposta dal modello');
-  await expect(page.locator('#aiConversation img')).toHaveCount(0);
+  await expect(page.locator('#aiMessage')).toHaveCount(0);
+  await expect(page.locator('#aiChatForm')).toHaveCount(0);
+  await expect(page.locator('#aiRisks')).toContainText('Ponte Bari');
   await page.locator('.sidebar [data-view="system"]').scrollIntoViewIfNeeded();
   const sidebarFits = await page.evaluate(() => {
     const lastNav = document.querySelector('.sidebar [data-view="system"]').getBoundingClientRect();
@@ -662,34 +659,7 @@ test('AI offers evidence, private chat context and safe output rendering', async
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   await page.screenshot({ path: 'build/reports/web/ai-mobile.png', fullPage: true });
   await page.locator('#workspaceAccountBtn').click();await page.locator('#topbarLogoutBtn').click();
-  await expect(page.locator('#aiConversation')).toBeEmpty();
-  await expect(page.locator('#aiContext')).not.toBeChecked();
   await expect(page.locator('#aiAssets')).toHaveText('—');
-});
-
-test('chat survives token refresh and clears private state on session expiry', async ({ page }) => {
-  await session(page);
-  await page.evaluate(() => sessionStorage.setItem('radiotech_control_refresh', 'test-refresh'));
-  await page.route('**/api/v1/auth/refresh', route => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ token: 'renewed-token', refreshToken: 'test-refresh' }) }));
-  let requests = 0;
-  await page.route('**/api/v1/ai/chat', route => {
-    requests++;
-    return route.fulfill({ status: requests === 1 ? 401 : 200, contentType: 'application/json', body: JSON.stringify(requests === 1 ? { message: 'expired' } : { answer: 'Risposta dopo rinnovo', notice: 'Verificare.' }) });
-  });
-  await page.locator('[data-view="ai"]').click();
-  await expect(page.locator('#aiSend')).toBeEnabled();
-  await page.locator('#aiMessage').fill('Contesto riservato della sessione');
-  await page.locator('#aiSend').click();
-  await expect(page.locator('#aiConversation')).toContainText('Risposta dopo rinnovo');
-  expect(requests).toBe(2);
-  expect(await page.evaluate(() => sessionStorage.getItem('radiotech_control_token'))).toBe('renewed-token');
-  await page.route('**/api/v1/auth/refresh', route => route.fulfill({ status: 401, contentType: 'application/json', body: '{"message":"expired"}' }));
-  await page.route('**/api/v1/ai/chat', route => route.fulfill({ status: 401, contentType: 'application/json', body: '{"message":"expired"}' }));
-  await page.locator('#aiMessage').fill('Altra richiesta');
-  await page.locator('#aiSend').click();
-  await expect(page.locator('#loginEmail')).toBeVisible();
-  await expect(page.locator('#aiConversation')).toBeEmpty();
-  await expect(page.locator('#aiMessage')).toBeEmpty();
 });
 
 test('shift changes and safety signals are reviewable on a small viewport', async ({ page }) => {

@@ -47,7 +47,6 @@ export async function session(page, role = 'ADMIN', records = {}) {
     if (path === '/operators/o1/skills') data = [{ skill: 'RF', level: 4, certification: 'RF Test', expiration: '2030-01-01', authorized: true }];
     if (path === '/ai/status') data = { enabled: true, model: 'test-local' };
     if (path === '/ai/insights') data = { scope: 'TENANT', assetsObserved: 1, highRiskAssets: 1, activeTasks: 1, overdueTasks: 1, notice: 'Indicatori, non probabilità di guasto.', partial: false, risks: [{ assetId: 'a1', name: 'Ponte Bari', score: 70, level: 'HIGH', dataQuality: 'LIMITED', reasons: ['Asset offline'], recommendation: 'Verificare con il responsabile.', estimatedMaintenanceAt: null }] };
-    if (path === '/ai/chat' && method === 'POST') data = { answer: '<img src=x onerror=alert(1)> Risposta dal modello', notice: 'Verificare le decisioni.' };
     if (path === '/workforce/me/shift') {
       if (method === 'PUT') { const input = JSON.parse(route.request().postData()); shift = { ...shift, status: input.action === 'START' ? 'ACTIVE' : input.action === 'BREAK' ? 'BREAK' : 'OFF_DUTY', readiness: input.readiness, version: shift.version + 1 }; }
       data = shift;
