@@ -19,6 +19,13 @@ import java.util.Map;
 @Service
 public class DashboardService {
 
+    private final TenantDashboardCache statsCache;
+
+    public DashboardService() { this(new TenantDashboardCache()); }
+
+    @org.springframework.beans.factory.annotation.Autowired
+    public DashboardService(TenantDashboardCache statsCache) { this.statsCache = statsCache; }
+
     @Value("${radiotech.sla.warning-minutes:60}")
     private long slaWarningMinutes;
 
@@ -27,22 +34,25 @@ public class DashboardService {
     }
 
     public Map<String, Object> getDashboardStats() throws Exception {
+        String tenant = currentTenant();
+        return statsCache.get(tenant, () -> computeDashboardStats(tenant));
+    }
 
-        Firestore firestore = db();
+    private Map<String, Object> computeDashboardStats(String tenant) throws Exception {
 
-        QuerySnapshot antennasSnapshot = tenantQuery("antennas").get().get();
+        QuerySnapshot antennasSnapshot = tenantQuery("antennas", tenant).select("status").get().get();
 
-        QuerySnapshot operatorsSnapshot = tenantQuery("operators").get().get();
+        QuerySnapshot operatorsSnapshot = tenantQuery("operators", tenant).select("status").get().get();
 
-        QuerySnapshot interventionsSnapshot = tenantQuery("interventions").get().get();
+        long interventionCount = tenantQuery("interventions", tenant).count().get().get().getCount();
 
-        QuerySnapshot tasksSnapshot = tenantQuery("tasks").get().get();
+        QuerySnapshot tasksSnapshot = tenantQuery("tasks", tenant).select("status", "dueAt").get().get();
 
-        QuerySnapshot inventorySnapshot = tenantQuery("inventory").get().get();
+        QuerySnapshot inventorySnapshot = tenantQuery("inventory", tenant).select("quantity", "minimumThreshold").get().get();
 
         int antennas = antennasSnapshot.size();
         int operators = operatorsSnapshot.size();
-        int interventions = interventionsSnapshot.size();
+        int interventions = Math.toIntExact(interventionCount);
         int tasks = tasksSnapshot.size();
 
         int activeAntennas = 0;
@@ -147,7 +157,7 @@ public class DashboardService {
         stats.put("activeTasks", activeTasks);
         // A tenant equality uses Firestore's built-in index. Combining status + removedAt
         // here required a new composite index and could fail the whole dashboard after deploy.
-        stats.put("pendingReports", tenantQuery("maintenanceReports").get().get().getDocuments().stream()
+        stats.put("pendingReports", tenantQuery("maintenanceReports", tenant).select("status", "removedAt").get().get().getDocuments().stream()
                 .filter(doc -> List.of("SUBMITTED", "APPROVAL_PENDING").contains(doc.getString("status")))
                 .filter(doc -> doc.get("removedAt") == null || doc.get("removedAt").toString().isBlank()).count());
 
@@ -173,6 +183,8 @@ public class DashboardService {
         taskStats.put("slaAtRisk", atRiskTasks);
 
         stats.put("taskStats", taskStats);
+        stats.put("asOf", now.toString());
+        stats.put("cacheMaxAgeSeconds", 15);
 
         return stats;
     }
@@ -473,7 +485,11 @@ public class DashboardService {
     }
 
     private com.google.cloud.firestore.Query tenantQuery(String collectionName) {
-        return db().collection(collectionName).whereEqualTo("tenantId", currentTenant());
+        return tenantQuery(collectionName, currentTenant());
+    }
+
+    private com.google.cloud.firestore.Query tenantQuery(String collectionName, String tenant) {
+        return db().collection(collectionName).whereEqualTo("tenantId", tenant);
     }
 
     private String currentTenant() {
