@@ -47,6 +47,22 @@ class WorkforceEmulatorTest {
             assertEquals("RESOLVED", service.review(id, new WorkforceRequests.Review("RESOLVED", "Area messa in sicurezza", 1L)).get("status"));
         }
     }
+        @Test void urgentCentralSignalCreatesOneWebNotificationOnIdempotentRetry() throws Exception {
+            String tenant = "central-" + UUID.randomUUID(); identity("operator-a", "OPERATOR", tenant);
+            try (var db = database(); var firebase = mockStatic(FirestoreClient.class)) {
+                firebase.when(FirestoreClient::getFirestore).thenReturn(db);
+                var notifications = mock(NotificationService.class);
+                var service = new WorkforceService(mock(AuditService.class), notifications);
+                var request = new WorkforceRequests.Signal("SUPPORT_REQUEST", "CRITICAL", "Ripetitore non raggiungibile", null, UUID.randomUUID().toString());
+
+                var created = service.submitSignal(request);
+                service.submitSignal(request);
+
+                verify(notifications, times(1)).recordWorkforceSignal(
+                        eq(created.get("id").toString()), eq("Segnalazione urgente alla centrale"),
+                        eq("Ripetitore non raggiungibile"), eq("CRITICAL"), isNull(), eq(request.operationId()));
+            }
+        }
     @Test void personalInsightsDoNotExposeAnotherOperatorsTasksOrAssets() throws Exception {
         String tenant = "insights-" + UUID.randomUUID(); identity("uid-a", "OPERATOR", tenant);
         try (var db = database(); var firebase = mockStatic(FirestoreClient.class)) {

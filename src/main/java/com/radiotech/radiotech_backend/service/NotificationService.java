@@ -154,6 +154,48 @@ public class NotificationService {
                 return delivered;
         }
 
+        public String recordWorkforceSignal(
+                        String signalId,
+                        String title,
+                        String body,
+                        String severity,
+                        String assetId,
+                        String operationId) throws Exception {
+                if (signalId == null || signalId.isBlank()) {
+                        throw new IllegalArgumentException("Identificativo segnalazione obbligatorio.");
+                }
+                if (title == null || title.isBlank() || body == null || body.isBlank()) {
+                        throw new IllegalArgumentException("Titolo e contenuto della notifica sono obbligatori.");
+                }
+
+                String tenant = currentTenant();
+                String notificationId = "workforce-signal-" + signalId;
+                var ref = FirestoreClient.getFirestore().collection("notificationHistory").document(notificationId);
+                var item = new java.util.LinkedHashMap<String, Object>();
+                item.put("tenantId", tenant);
+                item.put("title", title.trim());
+                item.put("message", body);
+                item.put("target", "BROADCAST");
+                item.put("type", "WORKFORCE_SIGNAL");
+                item.put("severity", severity);
+                item.put("signalId", signalId);
+                item.put("createdAt", Instant.now().toString());
+                item.put("delivered", 0);
+                item.put("deliveryStatus", "NOT_WEB_PUSHED");
+                if (assetId != null && !assetId.isBlank()) item.put("assetId", assetId);
+                if (operationId != null && !operationId.isBlank()) item.put("operationId", operationId);
+
+                var existing = ref.get().get();
+                if (existing.exists()) {
+                        if (!tenant.equals(existing.getString("tenantId"))) {
+                                throw new SecurityException("Notifica non appartenente al tenant autenticato.");
+                        }
+                        return notificationId;
+                }
+                ref.create(item).get();
+                return notificationId;
+        }
+
         public List<Map<String, Object>> getHistory() throws Exception {
                 Firestore db = FirestoreClient.getFirestore();
                 List<Map<String, Object>> result = new ArrayList<>();

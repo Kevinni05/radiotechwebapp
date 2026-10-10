@@ -2427,17 +2427,25 @@
                     const title = n.title || n.titolo || "Comunicazione";
                     const message = n.message || n.messaggio || "";
                     const date = n.createdAt || n.timestamp || n.date;
+                    const isSignal = n.type === "WORKFORCE_SIGNAL";
+                    const metadata = isSignal
+                        ? `<span class="notification-meta">Segnalazione urgente${n.severity ? ` · ${escapeHtml(n.severity)}` : ""}${n.assetId ? ` · Asset ${escapeHtml(n.assetId)}` : ""}</span><button class="mini-btn notification-action" type="button" data-open-signals>Apri segnalazioni</button>`
+                        : "";
 
                     return `
-                <div class="notification-item">
-                    <div class="notification-icon">✦</div>
+                <div class="notification-item${isSignal ? " notification-critical" : ""}">
+                    <div class="notification-icon">${isSignal ? "!" : "✦"}</div>
                     <div>
                         <strong>${escapeHtml(title)}</strong>
                         <p>${escapeHtml(message)}</p>
+                        ${metadata}
                     </div>
                     <span class="subtle">${date ? escapeHtml(new Date(date).toLocaleDateString("it-IT")) : "—"}</span>
                 </div>`;
                 }).join("");
+                $("notificationHistory").querySelectorAll("[data-open-signals]").forEach(button => {
+                    button.addEventListener("click", () => switchView("people"));
+                });
             }
 
             function updateNotificationCount() {

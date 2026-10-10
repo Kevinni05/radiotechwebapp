@@ -5,6 +5,7 @@ import com.google.firebase.cloud.FirestoreClient;
 import com.radiotech.radiotech_backend.dto.WorkforceRequests;
 import com.radiotech.radiotech_backend.security.*;
 import org.springframework.http.HttpStatus;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -17,8 +18,14 @@ import java.util.concurrent.ExecutionException;
 @Service
 public class WorkforceService {
     private final AuditService audit;
+    private final NotificationService notifications;
     private static final Set<Role> MANAGERS = Set.of(Role.SUPER_ADMIN, Role.ADMIN, Role.CHIEF_EXECUTIVE, Role.NETWORK_MANAGER);
-    public WorkforceService(AuditService audit) { this.audit = audit; }
+    public WorkforceService(AuditService audit) { this(audit, null); }
+    @Autowired
+    public WorkforceService(AuditService audit, NotificationService notifications) {
+        this.audit = audit;
+        this.notifications = notifications;
+    }
     public static boolean manager() { return MANAGERS.contains(SecurityContextAccessor.currentRole()); }
     public static void requireManager() { OperationalInsightsService.requireIdentity(); if (!manager()) throw new SecurityException("Sezione riservata ai responsabili."); }
     private static String key(String value) {
@@ -105,7 +112,8 @@ public class WorkforceService {
         var ref = db.collection("workforceSignals").document(key(tenant + ":" + uid + ":" + request.operationId()));
         String fingerprint = key(request.type() + ":" + request.severity() + ":" + request.description().trim() + ":" + Objects.toString(request.assetId(), ""));
         var record = new LinkedHashMap<String, Object>(Map.of("tenantId", tenant, "createdBy", uid, "name", name(), "type", request.type(),
-                "severity", request.severity(), "description", request.description().trim(), "status", "OPEN", "version", 0L, "createdAt", Instant.now().toString()));
+                "severity", request.severity(), "description", request.description().trim(), "status", "OPEN", "version", 0L, "createdAt", Instant.now().toString(),
+                "operationId", request.operationId()));
         record.put("assetId", request.assetId()); record.put("fingerprint", fingerprint);
         boolean created;
         try { created = db.runTransaction(tx -> {
@@ -113,7 +121,13 @@ public class WorkforceService {
             if (existing.exists()) { if (!fingerprint.equals(existing.getString("fingerprint"))) throw conflict(); return false; }
             tx.set(ref, record); return true;
         }).get(); } catch (ExecutionException e) { throwCause(e); throw e; }
-        if (created) audit.record("WORKFORCE_SIGNAL_CREATED", tenant, uid, "WORKFORCE_SIGNAL", ref.getId(), "SUCCESS", null, Map.of("type", request.type()));
+        if (created) {
+            audit.record("WORKFORCE_SIGNAL_CREATED", tenant, uid, "WORKFORCE_SIGNAL", ref.getId(), "SUCCESS", null, Map.of("type", request.type()));
+            if (notifications != null && "SUPPORT_REQUEST".equals(request.type()) && "CRITICAL".equals(request.severity())) {
+                notifications.recordWorkforceSignal(ref.getId(), "Segnalazione urgente alla centrale",
+                        record.get("description").toString(), request.severity(), request.assetId(), request.operationId());
+            }
+        }
         var result = new LinkedHashMap<String, Object>(ref.get().get().getData()); result.remove("fingerprint"); result.put("id", ref.getId()); return result;
     }
     public Map<String, Object> review(String id, WorkforceRequests.Review request) throws Exception {
