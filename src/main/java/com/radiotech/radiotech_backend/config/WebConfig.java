@@ -9,6 +9,9 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 public class WebConfig implements WebMvcConfigurer {
     private final com.radiotech.radiotech_backend.service.TenantDashboardCache dashboardCache;
 
+    public WebConfig() { this(new com.radiotech.radiotech_backend.service.TenantDashboardCache()); }
+
+    @org.springframework.beans.factory.annotation.Autowired
     public WebConfig(com.radiotech.radiotech_backend.service.TenantDashboardCache dashboardCache) {
         this.dashboardCache = dashboardCache;
     }
