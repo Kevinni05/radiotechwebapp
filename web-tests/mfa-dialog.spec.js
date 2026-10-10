@@ -34,7 +34,7 @@ test('MFA validates a code, keeps retry available and clears secrets after succe
 
 test('MFA cancellation never submits and restores keyboard focus', async ({page}) => {
   await open(page, {password:true});
-  await page.getByLabel('Password', {exact:true}).fill('sample-password');
+  await page.getByRole('dialog').getByLabel('Password', {exact:true}).fill('sample-password');
   await page.keyboard.press('Escape');
   await expect(page.getByRole('dialog')).toHaveCount(0);
   expect(await page.evaluate(() => [window.mfaResult,window.mfaAttempts])).toEqual(['AbortError',0]);
