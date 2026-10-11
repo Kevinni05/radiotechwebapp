@@ -26,10 +26,9 @@ public class OperationalHealthService {
         var db = FirestoreClient.getFirestore();
         var count = AggregateField.count(); var size = AggregateField.sum("size"); var chunks = AggregateField.sum("chunkCount");
         var archive = db.collection("reportFiles").whereEqualTo("tenantId", tenant).aggregate(count, size, chunks).get().get();
-        var pendingQuery = db.collection("maintenanceReports").whereEqualTo("tenantId", tenant).whereEqualTo("status", "SUBMITTED");
-        long pending = pendingQuery.count().get().get().getCount();
-        var oldest = pendingQuery.orderBy("archiveAt").limit(1).get().get().getDocuments();
-        Long oldestAt = oldest.isEmpty() ? null : oldest.getFirst().getLong("archiveAt");
+        var pendingReports = DashboardService.pendingReportSummary(db, tenant);
+        long pending = pendingReports.count();
+        Long oldestAt = pendingReports.oldestAt();
         var backupDoc = db.collection("systemOperations").document("backup").get().get();
         var backup = backupDoc.exists() ? new LinkedHashMap<>(backupDoc.getData()) : new LinkedHashMap<String,Object>();
         backup.put("state", backupState(backup, now));

@@ -185,6 +185,27 @@ public class OperatorMobileController {
         }
     }
 
+    @DeleteMapping("/me/fcm-token")
+    public ResponseEntity<?> removeMyFcmToken(
+            @RequestAttribute("firebaseUid") String uid,
+            @RequestBody(required = false) Map<String, String> request) {
+        try {
+            String token = value(request, "fcmToken");
+            if (token == null) return bad("FCM token obbligatorio.");
+            Operator operator = operatorService.getByFirebaseUid(uid);
+            if (operator == null) return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(message("Operatore non sincronizzato."));
+            operatorService.removeFcmToken(operator.getId(), token);
+            return ResponseEntity.ok(message("Token FCM rimosso."));
+        } catch (SecurityException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(message("Operazione non autorizzata."));
+        } catch (IllegalArgumentException e) {
+            return bad(e.getMessage());
+        } catch (Exception e) {
+            return server();
+        }
+    }
+
     /*
      * ==========================================================
      * TASKS

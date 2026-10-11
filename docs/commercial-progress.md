@@ -1,5 +1,5 @@
 # RadioTech — registro di consolidamento commerciale
-Aggiornato l’11 ottobre 2026. Piano di riferimento: [piano completo](commercial-consolidation-plan.md).
+Aggiornato il 12 ottobre 2026. Piano di riferimento: [piano completo](commercial-consolidation-plan.md).
 Repository mobile: [gestionale_radio](https://github.com/Kevinni05/gestionale_radio).
 
 ## Stato della release
@@ -122,3 +122,9 @@ Oltre ai gate esterni, restano implementazioni: aggregazioni/proiezioni dashboar
 
 Servono staging Firebase autorizzato e verifica delle regole/indici effettivi, almeno due Android reali con dati pendenti e upgrade firmato, carico rappresentativo, modello di vendita e ownership degli account/chiavi, revisione privacy/licenze e pilota di almeno due settimane o campione equivalente concordato. La connessione Render attuale non espone la modifica di healthCheckPath o autoDeployTrigger: sono ancora osservati path vuoto e trigger commit, da allineare alla configurazione repository. Nessun gate commerciale è dichiarato superato.
 
+
+## Aggiornamento del 12 ottobre 2026
+
+Base aggiornata dai repository main; [modifiche coordinate, compatibilità e collaudo](consolidation-2026-10-12.md). B06 riduce le letture dello storico report al backlog pendente con paginazione e preserva i record legacy. Dashboard e monitor escludono i rimossi e includono APPROVAL_PENDING; restano le aggregazioni delle altre collezioni e misure rappresentative. B08/M10 aggiungono push con tenant/destinatario, deduplica persistente e deregistrazione del dispositivo al logout. M06 aggiunge resume/rete e follow-up concorrente con scope invariato. M04 corregge il messaggio di retry manuale quando restano operazioni. M07 resta parziale: il coordinatore sync è separato, la riorganizzazione completa delle feature non è conclusa.
+
+Backup schedulato [38108262612](https://github.com/Kevinni05/radiotechwebapp/actions/runs/38108262612) riuscito. Monitor [38179940741](https://github.com/Kevinni05/radiotechwebapp/actions/runs/38179940741): backup OK, metriche disponibili, allarme PENDING_REPORTS su un report. Nessun allarme è stato silenziato e nessuna prova commerciale esterna viene dichiarata completata.

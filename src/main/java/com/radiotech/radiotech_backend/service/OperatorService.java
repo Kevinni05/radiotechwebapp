@@ -1556,114 +1556,38 @@ public class OperatorService {
 
         }
 
-        public void addFcmToken(
-
-                        String operatorId,
-
-                        String fcmToken) throws Exception {
-
-                validateId(operatorId);
-
-                if (isBlank(fcmToken)) {
-
-                        throw new IllegalArgumentException(
-
-                                        "FCM token obbligatorio.");
-
-                }
-
-                String tenantId = currentTenant();
-
-                Firestore db = FirestoreClient.getFirestore();
-
-                DocumentReference document = db.collection(COLLECTION)
-
-                                .document(operatorId);
-
-                DocumentSnapshot snapshot = document.get().get();
-
-                if (!snapshot.exists()) {
-
-                        throw new IllegalArgumentException(
-
-                                        "Operatore non trovato: " + operatorId);
-
-                }
-
-                requireDocumentTenant(snapshot, tenantId);
-
-                List<String> tokens = readFcmTokens(snapshot);
-
-                String token = fcmToken.trim();
-
-                if (!tokens.contains(token)) {
-
-                        tokens.add(token);
-
-                }
-
-                document.update(
-
-                                "fcmTokens",
-
-                                tokens,
-
-                                "updatedAt",
-
-                                Instant.now().toString()).get();
-
+        public void addFcmToken(String operatorId, String fcmToken) throws Exception {
+                changeFcmToken(operatorId, fcmToken, true);
         }
 
-        public void removeFcmToken(
+        public void removeFcmToken(String operatorId, String fcmToken) throws Exception {
+                changeFcmToken(operatorId, fcmToken, false);
+        }
 
-                        String operatorId,
-
-                        String fcmToken) throws Exception {
-
+        private void changeFcmToken(String operatorId, String fcmToken, boolean add) throws Exception {
                 validateId(operatorId);
-
-                if (isBlank(fcmToken)) {
-
-                        throw new IllegalArgumentException(
-
-                                        "FCM token obbligatorio.");
-
+                if (isBlank(fcmToken) || fcmToken.trim().length() > 4096)
+                        throw new IllegalArgumentException("FCM token non valido.");
+                String tenant = currentTenant();
+                var db = FirestoreClient.getFirestore();
+                var reference = db.collection(COLLECTION).document(operatorId.trim());
+                try {
+                    db.runTransaction(tx -> {
+                        var snapshot = tx.get(reference).get();
+                        if (!snapshot.exists()) throw new IllegalArgumentException("Operatore non trovato.");
+                        requireDocumentTenant(snapshot, tenant);
+                        var tokens = readFcmTokens(snapshot);
+                        String token = fcmToken.trim();
+                        if (add && !tokens.contains(token)) tokens.add(token);
+                        if (!add) tokens.removeIf(token::equals);
+                        tx.update(reference, "fcmTokens", tokens, "updatedAt", Instant.now().toString());
+                        return null;
+                    }).get();
+                } catch (java.util.concurrent.ExecutionException failure) {
+                        if (failure.getCause() instanceof SecurityException denied) throw denied;
+                        if (failure.getCause() instanceof IllegalArgumentException invalid) throw invalid;
+                        throw failure;
                 }
-
-                String tenantId = currentTenant();
-
-                Firestore db = FirestoreClient.getFirestore();
-
-                DocumentReference document = db.collection(COLLECTION)
-
-                                .document(operatorId);
-
-                DocumentSnapshot snapshot = document.get().get();
-
-                if (!snapshot.exists()) {
-
-                        throw new IllegalArgumentException(
-
-                                        "Operatore non trovato: " + operatorId);
-
-                }
-
-                requireDocumentTenant(snapshot, tenantId);
-
-                List<String> tokens = readFcmTokens(snapshot);
-
-                tokens.remove(fcmToken.trim());
-
-                document.update(
-
-                                "fcmTokens",
-
-                                tokens,
-
-                                "updatedAt",
-
-                                Instant.now().toString()).get();
-
         }
 
         public void updateFcmTokens(

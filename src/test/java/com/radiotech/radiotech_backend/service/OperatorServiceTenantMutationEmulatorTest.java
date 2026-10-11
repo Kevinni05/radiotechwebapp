@@ -67,6 +67,28 @@ class OperatorServiceTenantMutationEmulatorTest {
     }
 
     @Test
+    void logoutRemovesOneDeviceWithoutDiscardingOtherTokens() throws Exception {
+        String tenant = "device-test-" + java.util.UUID.randomUUID();
+        var auth = new UsernamePasswordAuthenticationToken("user-a", null,
+                List.of(new SimpleGrantedAuthority("ROLE_OPERATOR")));
+        auth.setDetails(new FirebaseAuthenticationDetails("user-a", null, null, tenant));
+        SecurityContextHolder.getContext().setAuthentication(auth);
+        try (var db = FirestoreOptions.newBuilder().setProjectId("demo-radiotech")
+                .setHost(System.getenv("FIRESTORE_EMULATOR_HOST"))
+                .setCredentials(GoogleCredentials.create(new AccessToken("emulator", new Date(Long.MAX_VALUE))))
+                .build().getService(); var client = mockStatic(FirestoreClient.class)) {
+            client.when(FirestoreClient::getFirestore).thenReturn(db);
+            var record = db.collection("operators").document("device-" + java.util.UUID.randomUUID());
+            record.set(Map.of("tenantId", tenant, "fcmTokens", List.of("phone", "tablet"))).get();
+            var service = new OperatorService();
+            service.addFcmToken(record.getId(), "new-phone");
+            service.removeFcmToken(record.getId(), "phone");
+            service.removeFcmToken(record.getId(), "phone");
+            assertEquals(List.of("tablet", "new-phone"), record.get().get().get("fcmTokens"));
+        }
+    }
+
+    @Test
     void selfRegistrationIdentityCannotResolveAnotherUsersOperatorByUid() throws Exception {
         var authentication = new UsernamePasswordAuthenticationToken(
                 "attacker-uid", null, List.of(new SimpleGrantedAuthority("ROLE_NONE")));

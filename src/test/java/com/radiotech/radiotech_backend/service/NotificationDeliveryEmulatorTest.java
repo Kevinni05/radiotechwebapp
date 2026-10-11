@@ -32,6 +32,7 @@ class NotificationDeliveryEmulatorTest {
         auth.setDetails(new FirebaseAuthenticationDetails("manager", null, "Manager", tenant));
         SecurityContextHolder.getContext().setAuthentication(auth);
         Operator operator = new Operator(); operator.setId("operator-" + UUID.randomUUID()); operator.setTenantId(tenant);
+        operator.setFirebaseUid("operator-uid");
         operator.setFcmTokens(List.of("device-token"));
         var operators = mock(OperatorService.class); when(operators.getById(operator.getId())).thenReturn(operator);
         var messaging = mock(FirebaseMessaging.class);
@@ -41,10 +42,15 @@ class NotificationDeliveryEmulatorTest {
                 .build().getService(); var database = mockStatic(FirestoreClient.class); var fcm = mockStatic(FirebaseMessaging.class)) {
             database.when(FirestoreClient::getFirestore).thenReturn(db); fcm.when(FirebaseMessaging::getInstance).thenReturn(messaging);
             when(messaging.sendEachForMulticast(any())).thenAnswer(invocation -> {
+                var payload = (Map<?, ?>) org.springframework.test.util.ReflectionTestUtils.getField(invocation.getArgument(0), "data");
+                assertEquals(tenant, payload.get("tenantId"));
+                assertEquals("operator-uid", payload.get("recipientUid"));
+                assertEquals("task-link", payload.get("taskId"));
                 var inbox = db.collection("notificationHistory").whereEqualTo("tenantId", tenant).get().get().getDocuments();
                 assertEquals(1, inbox.size());
                 assertEquals("SENDING", inbox.getFirst().getString("deliveryStatus"));
                 assertEquals("task-link", inbox.getFirst().getString("taskId"));
+                assertEquals(inbox.getFirst().getId(), payload.get("notificationId"));
                 throw new IllegalStateException("FCM unavailable");
             });
             var notifications = new NotificationService(operators);
@@ -61,6 +67,42 @@ class NotificationDeliveryEmulatorTest {
             assertEquals(1, db.collection("notificationHistory").whereEqualTo("tenantId", tenant).get().get().size());
         }
     }
+    @Test void broadcastSeparatesAccountPayloadsWhileKeepingOneDurableNotification() throws Exception {
+        String tenant = "scoped-push-" + UUID.randomUUID();
+        var auth = new UsernamePasswordAuthenticationToken("manager", null, List.of(new SimpleGrantedAuthority("ROLE_ADMIN")));
+        auth.setDetails(new FirebaseAuthenticationDetails("manager", null, null, tenant));
+        SecurityContextHolder.getContext().setAuthentication(auth);
+        var first = new Operator(); first.setId("a"); first.setTenantId(tenant); first.setFirebaseUid("user-a");
+        first.setFcmTokens(List.of("device-a", "tablet-a"));
+        var second = new Operator(); second.setId("b"); second.setTenantId(tenant); second.setFirebaseUid("user-b");
+        second.setFcmTokens(List.of("device-b"));
+        var foreign = new Operator(); foreign.setTenantId("another-company"); foreign.setFcmTokens(List.of("foreign-token"));
+        var operators = mock(OperatorService.class);
+        when(operators.getAllOperators()).thenReturn(List.of(first, second, foreign));
+        var messaging = mock(FirebaseMessaging.class);
+        var received = new ArrayList<Map<?, ?>>();
+        try (var db = FirestoreOptions.newBuilder().setProjectId("demo-radiotech")
+                .setHost(System.getenv("FIRESTORE_EMULATOR_HOST"))
+                .setCredentials(GoogleCredentials.create(new AccessToken("emulator", new Date(Long.MAX_VALUE))))
+                .build().getService(); var database = mockStatic(FirestoreClient.class); var fcm = mockStatic(FirebaseMessaging.class)) {
+            database.when(FirestoreClient::getFirestore).thenReturn(db); fcm.when(FirebaseMessaging::getInstance).thenReturn(messaging);
+            when(messaging.sendEachForMulticast(any())).thenAnswer(call -> {
+                Object sent = call.getArgument(0);
+                var payload = (Map<?, ?>) org.springframework.test.util.ReflectionTestUtils.getField(sent, "data");
+                var tokens = (List<?>) org.springframework.test.util.ReflectionTestUtils.getField(sent, "tokens");
+                received.add(payload);
+                assertEquals(tenant, payload.get("tenantId"));
+                assertEquals("user-a".equals(payload.get("recipientUid")) ? List.of("device-a", "tablet-a") : List.of("device-b"), tokens);
+                return tokens.size() == 2 ? batch(success(), success()) : batch(success());
+            });
+            var service = new NotificationService(operators);
+            assertEquals(3, service.notifyAllOperators("Broadcast", "Text"));
+            assertEquals(2, received.size());
+            assertEquals(received.getFirst().get("notificationId"), received.getLast().get("notificationId"));
+            assertEquals(Set.of("user-a", "user-b"), Set.of(received.getFirst().get("recipientUid"), received.getLast().get("recipientUid")));
+        }
+    }
+
     @Test void partialDeliveryRetriesOnlyFailedRecipientsAndRemovesOnlyUnregisteredTokens() throws Exception {
         String tenant = "push-test-" + UUID.randomUUID();
         var auth = new UsernamePasswordAuthenticationToken("manager", null, List.of(new SimpleGrantedAuthority("ROLE_ADMIN")));
