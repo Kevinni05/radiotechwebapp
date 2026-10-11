@@ -29,6 +29,7 @@ class DashboardSummaryEmulatorTest {
                 var client = mockStatic(FirestoreClient.class)) {
             client.when(FirestoreClient::getFirestore).thenReturn(db);
             db.collection("antennas").document().set(Map.of("tenantId", a, "status", "attiva", "name", "Private name")).get();
+            db.collection("antennas").document().set(Map.of("tenantId", a, "status", "offline")).get();
             db.collection("operators").document().set(Map.of("tenantId", a, "status", "ACTIVE")).get();
             var task = db.collection("tasks").document();
             task.set(Map.of("tenantId", a, "status", " in corso ", "dueAt", "2000-01-01T00:00:00Z")).get();
@@ -41,6 +42,8 @@ class DashboardSummaryEmulatorTest {
             authenticate(a);
             var first = dashboard.getDashboardStats();
             assertEquals(1, first.get("activeAntennas"));
+            assertEquals(1, first.get("inactiveAntennas"));
+            assertEquals(50.0, first.get("availability"));
             assertEquals(1, first.get("activeOperators"));
             assertEquals(1, first.get("interventions"));
             assertEquals(1, first.get("lowStock"));
