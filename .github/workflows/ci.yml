@@ -106,7 +106,12 @@ jobs:
           retention-days: 14
 
   web:
-    name: Browser workflows and responsive layout
+    name: Browser workflows and responsive layout (${{ matrix.browser }})
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [chromium, firefox, webkit]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -121,13 +126,13 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run build:auth
-      - run: npx playwright install --with-deps chromium firefox webkit
+      - run: npx playwright install --with-deps ${{ matrix.browser }}
       - run: bash gradlew bootJar --no-daemon --console=plain
-      - run: npm run test:web
+      - run: npm run test:web -- --project=${{ matrix.browser }}
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: web-verification
+          name: web-verification-${{ matrix.browser }}
           path: |
             build/reports/web/
             test-results/
