@@ -265,7 +265,7 @@ public class TaskService {
                 GeoFencePolicy.distanceMeters(latitude, longitude, latitude, longitude);
 
                 Task task = getById(id);
-                if (!operatorId.equals(task.getOperatorId())
+                if (!java.util.Objects.equals(operatorId, task.getOperatorId())
                                 && !firebaseUid.equals(task.getOperatorId())
                                 && !firebaseUid.equals(task.getOperatorFirebaseUid())) {
                         throw new SecurityException("Il task non è assegnato all'operatore autenticato.");
@@ -288,12 +288,21 @@ public class TaskService {
 
                 DocumentReference taskDocument = db.collection(COLLECTION).document(id);
                 String now = Instant.now().toString();
-                db.runTransaction(transaction -> {
+                DocumentReference audit = db.collection("auditLogs").document();
+                awaitMutation(db.runTransaction(transaction -> {
                         DocumentSnapshot currentDocument = transaction.get(taskDocument).get();
                         if (!currentDocument.exists()
                                         || !tenantId.equals(currentDocument.getString("tenantId"))) {
                                 throw new IllegalArgumentException("Task non trovato.");
                         }
+                        Task currentTask = mapDocument(currentDocument);
+                        requireCheckoutAssignment(currentTask, firebaseUid, operatorId);
+                        if (isBlank(currentTask.getAntennaId())) throw new IllegalArgumentException("Antenna task non configurata.");
+                        DocumentSnapshot currentAsset = transaction.get(db.collection("antennas")
+                                        .document(currentTask.getAntennaId())).get();
+                        requireWithinGeofence(currentAsset, tenantId, latitude, longitude, "Check-in");
+                        if (TaskStatus.parse(currentDocument.getString("status")) == TaskStatus.CHECKED_IN
+                                        && firebaseUid.equals(currentDocument.getString("checkedInBy"))) return null;
                         if (TaskStatus.parse(currentDocument.getString("status")) != TaskStatus.EN_ROUTE) {
                                 throw new IllegalArgumentException("Il task è cambiato durante il check-in.");
                         }
@@ -304,11 +313,13 @@ public class TaskService {
                                         "checkedInAt", now,
                                         "checkedInBy", firebaseUid,
                                         "updatedAt", now);
+                        transaction.set(audit, AuditService.transactionEntry("TASK_CHECKED_IN", tenantId,
+                                        firebaseUid, "TASK", id, "SUCCESS", now,
+                                        java.util.Map.of("status", currentDocument.getString("status")),
+                                        java.util.Map.of("status", "CHECKED_IN", "latitude", latitude, "longitude", longitude)));
                         return null;
-                }).get();
+                }));
 
-                auditService.record("TASK_CHECKED_IN", requireCurrentTenant(), firebaseUid,
-                                "TASK", id, "CHECKED_IN", null, null);
                 return getById(id);
         }
 
@@ -334,12 +345,19 @@ public class TaskService {
                 Firestore db = FirestoreClient.getFirestore();
                 DocumentReference taskDocument = db.collection(COLLECTION).document(id);
                 String now = Instant.now().toString();
-                db.runTransaction(transaction -> {
+                DocumentReference audit = db.collection("auditLogs").document();
+                awaitMutation(db.runTransaction(transaction -> {
                         DocumentSnapshot currentDocument = transaction.get(taskDocument).get();
                         if (!currentDocument.exists()
                                         || !tenantId.equals(currentDocument.getString("tenantId"))) {
                                 throw new IllegalArgumentException("Task non trovato.");
                         }
+                        Task currentTask = mapDocument(currentDocument);
+                        requireCheckoutAssignment(currentTask, firebaseUid, operatorId);
+                        if (isBlank(currentTask.getAntennaId())) throw new IllegalArgumentException("Antenna task non configurata.");
+                        DocumentSnapshot currentAsset = transaction.get(db.collection("antennas")
+                                        .document(currentTask.getAntennaId())).get();
+                        requireWithinGeofence(currentAsset, tenantId, latitude, longitude, "Check-out");
                         TaskStatus transactionStatus = TaskStatus.parse(currentDocument.getString("status"));
                         if (transactionStatus == TaskStatus.COMPLETED
                                         && firebaseUid.equals(currentDocument.getString("checkedOutBy"))) {
@@ -358,11 +376,13 @@ public class TaskService {
                                         "checkedOutAt", now,
                                         "checkedOutBy", firebaseUid,
                                         "updatedAt", now);
+                        transaction.set(audit, AuditService.transactionEntry("TASK_CHECKED_OUT", tenantId,
+                                        firebaseUid, "TASK", id, "SUCCESS", now,
+                                        java.util.Map.of("status", currentDocument.getString("status")),
+                                        java.util.Map.of("status", "COMPLETED", "latitude", latitude, "longitude", longitude)));
                         return null;
-                }).get();
+                }));
 
-                auditService.record("TASK_CHECKED_OUT", requireCurrentTenant(), firebaseUid,
-                                "TASK", id, "COMPLETED", null, null);
                 return getById(id);
         }
 
@@ -398,7 +418,12 @@ public class TaskService {
                 GeoFencePolicy.distanceMeters(latitude, longitude, latitude, longitude);
                 DocumentSnapshot antenna = FirestoreClient.getFirestore()
                                 .collection("antennas").document(task.getAntennaId()).get().get();
-                if (!antenna.exists() || !requireCurrentTenant().equals(antenna.getString("tenantId"))) {
+                requireWithinGeofence(antenna, requireCurrentTenant(), latitude, longitude, action);
+        }
+
+        private void requireWithinGeofence(DocumentSnapshot antenna, String tenantId,
+                        double latitude, double longitude, String action) {
+                if (!antenna.exists() || !tenantId.equals(antenna.getString("tenantId"))) {
                         throw new IllegalArgumentException("Antenna non trovata nel tenant autenticato.");
                 }
                 Number antennaLatitude = (Number) antenna.get("lat");
@@ -434,10 +459,14 @@ public class TaskService {
                 DocumentReference document = db.collection(COLLECTION).document(id);
                 String now = Instant.now().toString();
                 TaskStatus nextStatus = TaskStatus.parse(normalizedStatus);
-                if (nextStatus == TaskStatus.CHECKED_IN) {
-                        throw new IllegalArgumentException("Usare il check-in GPS con geofence.");
+                if (nextStatus == TaskStatus.CHECKED_IN || nextStatus == TaskStatus.COMPLETED) {
+                        throw new IllegalArgumentException("Usare il check-in/check-out GPS con geofence.");
                 }
                 String actorUid = resolveActorUid();
+                boolean operatorMutation = SecurityContextAccessor.currentRole()
+                                == com.radiotech.radiotech_backend.security.Role.OPERATOR;
+                Operator currentOperator = operatorMutation ? operatorService.getByFirebaseUid(actorUid) : null;
+                String operatorReference = currentOperator == null ? actorUid : currentOperator.getId();
                 boolean hasKey = idempotencyKey != null && !idempotencyKey.isBlank();
                 if (hasKey && idempotencyKey.length() > 200) {
                         throw new IllegalArgumentException("Idempotency-Key troppo lunga.");
@@ -445,6 +474,7 @@ public class TaskService {
                 String requestHash = idempotencyHash(tenantId, actorUid, normalizedStatus);
                 DocumentReference keyReference = hasKey ? db.collection(IDEMPOTENCY_COLLECTION)
                                 .document(idempotencyDocumentId(tenantId, actorUid, idempotencyKey)) : null;
+                DocumentReference audit = db.collection("auditLogs").document();
                 Boolean changed;
                 try {
                         changed = db.runTransaction(transaction -> {
@@ -452,6 +482,7 @@ public class TaskService {
                                 if (!existing.exists() || !tenantId.equals(existing.getString("tenantId"))) {
                                         throw new IllegalArgumentException("Task non trovato.");
                                 }
+                                if (operatorMutation) requireCheckoutAssignment(mapDocument(existing), actorUid, operatorReference);
                                 if (keyReference != null) {
                                         DocumentSnapshot keyDocument = transaction.get(keyReference).get();
                                         if (keyDocument.exists()) {
@@ -479,7 +510,12 @@ public class TaskService {
                                         keyEntry.put("createdAt", now);
                                         transaction.set(keyReference, keyEntry);
                                 }
+                                if (currentStatus == nextStatus) return false;
                                 applyStatusTransition(transaction, document, normalizedStatus, now);
+                                transaction.set(audit, AuditService.transactionEntry("TASK_STATUS_CHANGED", tenantId,
+                                                actorUid, "TASK", id, "SUCCESS", now,
+                                                java.util.Map.of("status", currentStatus.name()),
+                                                java.util.Map.of("status", normalizedStatus)));
                                 return true;
                         }).get();
                 } catch (java.util.concurrent.ExecutionException failure) {
@@ -492,10 +528,6 @@ public class TaskService {
                         }
                         throw failure;
                 }
-                if (Boolean.TRUE.equals(changed)) {
-                        auditService.record("TASK_STATUS_CHANGED", tenantId, actorUid, "TASK", id,
-                                        normalizedStatus, null, null);
-                }
                 return getById(id);
         }
 
@@ -503,29 +535,24 @@ public class TaskService {
         // DELETE
         // ============================================================
 
-        public void deleteTask(String id)
-                        throws Exception {
-
+        public void deleteTask(String id) throws Exception {
                 validateId(id);
-
+                String tenant = requireCurrentTenant();
+                String actor = resolveActorUid();
                 Firestore db = FirestoreClient.getFirestore();
-
-                DocumentReference document = db.collection(COLLECTION)
-                                .document(id);
-
-                DocumentSnapshot existing = document.get().get();
-
-                if (!existing.exists()) {
-
-                        throw new IllegalArgumentException(
-                                        "Task non trovato: " + id);
-                }
-
-                if (!requireCurrentTenant().equals(existing.getString("tenantId"))) {
-                        throw new IllegalArgumentException("Task non trovato.");
-                }
-
-                document.delete().get();
+                DocumentReference document = db.collection(COLLECTION).document(id);
+                DocumentReference audit = db.collection("auditLogs").document();
+                awaitMutation(db.runTransaction(transaction -> {
+                        DocumentSnapshot existing = transaction.get(document).get();
+                        if (!existing.exists() || !tenant.equals(existing.getString("tenantId")))
+                                throw new IllegalArgumentException("Task non trovato.");
+                        transaction.delete(document);
+                        transaction.set(audit, AuditService.transactionEntry("TASK_DELETED", tenant, actor,
+                                        "TASK", id, "SUCCESS", Instant.now().toString(),
+                                        java.util.Map.of("status", java.util.Objects.toString(existing.getString("status"), "")),
+                                        java.util.Map.of("deleted", true)));
+                        return null;
+                }));
         }
 
         // ============================================================
@@ -774,23 +801,23 @@ public class TaskService {
                 return name == null || name.isBlank() ? "anonymous" : name.trim();
         }
 
-        private void applyStatusTransition(DocumentReference document, String normalizedStatus, String now,
-                        String taskId, String tenantId) throws Exception {
-                if ("COMPLETED".equals(normalizedStatus)) {
-                        document.update("status", normalizedStatus, "completedAt", now, "updatedAt", now).get();
-                } else {
-                        document.update("status", normalizedStatus, "updatedAt", now).get();
-                }
-                auditService.record("TASK_STATUS_CHANGED", tenantId, null, "TASK", taskId,
-                                normalizedStatus, null, null);
-        }
-
         private void applyStatusTransition(com.google.cloud.firestore.Transaction transaction,
                         DocumentReference document, String normalizedStatus, String now) {
                 if ("COMPLETED".equals(normalizedStatus)) {
                         transaction.update(document, "status", normalizedStatus, "completedAt", now, "updatedAt", now);
                 } else {
                         transaction.update(document, "status", normalizedStatus, "updatedAt", now);
+                }
+        }
+
+        private <T> T awaitMutation(ApiFuture<T> future) throws Exception {
+                try { return future.get(); }
+                catch (java.util.concurrent.ExecutionException failure) {
+                        for (Throwable cause = failure.getCause(); cause != null; cause = cause.getCause()) {
+                                if (cause instanceof SecurityException denied) throw denied;
+                                if (cause instanceof IllegalArgumentException invalid) throw invalid;
+                        }
+                        throw failure;
                 }
         }
 
