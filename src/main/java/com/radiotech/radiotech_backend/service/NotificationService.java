@@ -260,14 +260,23 @@ public class NotificationService {
                 try {
                         var doc = ref.get().get();
                         var tokens = new java.util.LinkedHashSet<String>();
+                        var tokenOwners = new java.util.HashMap<String, String>();
                         String target = doc.getString("target");
                         if ("BROADCAST".equals(target)) {
                                 for (var op : operatorService.getAllOperators()) {
-                                        if (tenant.equals(op.getTenantId()) && op.getFcmTokens() != null) tokens.addAll(op.getFcmTokens());
+                                        if (tenant.equals(op.getTenantId()) && op.getFcmTokens() != null) {
+                                                tokens.addAll(op.getFcmTokens());
+                                                for (String token : op.getFcmTokens()) tokenOwners.put(token,
+                                                        java.util.Objects.toString(op.getFirebaseUid(), ""));
+                                        }
                                 }
                         } else if (target != null && !target.startsWith("UID:")) {
                                 var op = operatorService.getById(target);
-                                if (op != null && tenant.equals(op.getTenantId()) && op.getFcmTokens() != null) tokens.addAll(op.getFcmTokens());
+                                if (op != null && tenant.equals(op.getTenantId()) && op.getFcmTokens() != null) {
+                                        tokens.addAll(op.getFcmTokens());
+                                        for (String token : op.getFcmTokens()) tokenOwners.put(token,
+                                                java.util.Objects.toString(op.getFirebaseUid(), ""));
+                                }
                         }
                         tokens.removeIf(token -> token == null || token.isBlank());
                         var receipts = ref.collection("pushDeliveries");
@@ -281,9 +290,19 @@ public class NotificationService {
                         for (String token : tokens) if (!accepted.contains(tokenId(token)) && !invalid.contains(tokenId(token))) pending.add(token);
                         var payload = new java.util.LinkedHashMap<String, String>();
                         payload.put("notificationId", id);
+                        payload.put("tenantId", tenant);
                         for (String field : List.of("taskId", "type")) if (doc.getString(field) != null) payload.put(field, doc.getString(field));
-                        for (int start = 0; start < pending.size(); start += 200) {
-                                List<String> batch = pending.subList(start, Math.min(start + 200, pending.size()));
+                        // A multicast shares its data payload: group devices by account
+                        // so a queued push cannot navigate another signed-in user's task.
+                        var recipients = new java.util.LinkedHashMap<String, List<String>>();
+                        for (String token : pending) recipients.computeIfAbsent(tokenOwners.getOrDefault(token, ""),
+                                ignored -> new ArrayList<>()).add(token);
+                        for (var recipient : recipients.entrySet()) {
+                          var scopedPayload = new java.util.LinkedHashMap<>(payload);
+                          if (!recipient.getKey().isBlank()) scopedPayload.put("recipientUid", recipient.getKey());
+                          var recipientTokens = recipient.getValue();
+                          for (int start = 0; start < recipientTokens.size(); start += 200) {
+                                List<String> batch = recipientTokens.subList(start, Math.min(start + 200, recipientTokens.size()));
                                 // Renew the owned lease before the external request. Never overwrite a successor's lease.
                                 boolean owned = db.runTransaction(tx -> {
                                         var current = tx.get(ref).get();
@@ -293,7 +312,7 @@ public class NotificationService {
                                 }).get();
                                 if (!owned) return;
                                 var response = FirebaseMessaging.getInstance().sendEachForMulticast(
-                                        multicast(batch, doc.getString("title"), doc.getString("message"), payload));
+                                        multicast(batch, doc.getString("title"), doc.getString("message"), scopedPayload));
                                 if (response.getResponses().size() != batch.size()) throw new IllegalStateException("FCM recipient result count mismatch.");
                                 boolean recorded = db.runTransaction(tx -> {
                                         var current = tx.get(ref).get();
@@ -309,6 +328,7 @@ public class NotificationService {
                                 }).get();
                                 if (!recorded) return;
                                 removeInvalidTokens(batch, response);
+                          }
                         }
                         var results = receipts.get().get().getDocuments();
                         long delivered = results.stream().filter(r -> "ACCEPTED".equals(r.getString("status"))).count();

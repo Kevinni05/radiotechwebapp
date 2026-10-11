@@ -155,11 +155,7 @@ public class DashboardService {
         stats.put("interventions", interventions);
         stats.put("tasks", tasks);
         stats.put("activeTasks", activeTasks);
-        // A tenant equality uses Firestore's built-in index. Combining status + removedAt
-        // here required a new composite index and could fail the whole dashboard after deploy.
-        stats.put("pendingReports", tenantQuery("maintenanceReports", tenant).select("status", "removedAt").get().get().getDocuments().stream()
-                .filter(doc -> List.of("SUBMITTED", "APPROVAL_PENDING").contains(doc.getString("status")))
-                .filter(doc -> doc.get("removedAt") == null || doc.get("removedAt").toString().isBlank()).count());
+        stats.put("pendingReports", pendingReportCount(db(), tenant));
 
         stats.put("inventoryItems", inventoryItems);
         stats.put("lowStock", lowStock);
@@ -188,6 +184,41 @@ public class DashboardService {
         stats.put("cacheMaxAgeSeconds", 15);
 
         return stats;
+    }
+
+    // Equality index merging needs no new composite index. Do not filter removedAt
+    // on the server: historical reports may omit that field entirely. Read only
+    // the pending backlog, in bounded pages, rather than the full report archive.
+    static long pendingReportCount(Firestore db, String tenant) throws Exception {
+        return pendingReportSummary(db, tenant).count();
+    }
+
+    record PendingReportSummary(long count, Long oldestAt) {}
+
+    static PendingReportSummary pendingReportSummary(Firestore db, String tenant) throws Exception {
+        long total = 0;
+        Long oldestAt = null;
+        boolean unknownDate = false;
+        for (String status : List.of("SUBMITTED", "APPROVAL_PENDING")) {
+            var query = db.collection("maintenanceReports").whereEqualTo("tenantId", tenant)
+                    .whereEqualTo("status", status).select("removedAt", "archiveAt");
+            com.google.cloud.firestore.DocumentSnapshot cursor = null;
+            while (true) {
+                var page = (cursor == null ? query : query.startAfter(cursor)).limit(500).get().get();
+                for (var report : page.getDocuments()) {
+                    Object removedAt = report.get("removedAt");
+                    if (removedAt == null || removedAt.toString().isBlank()) {
+                        total++;
+                        Object rawDate = report.get("archiveAt");
+                        if (!(rawDate instanceof Number date) || date.longValue() <= 0) unknownDate = true;
+                        else oldestAt = oldestAt == null ? date.longValue() : Math.min(oldestAt, date.longValue());
+                    }
+                }
+                if (page.size() < 500) break;
+                cursor = page.getDocuments().getLast();
+            }
+        }
+        return new PendingReportSummary(total, unknownDate ? null : oldestAt);
     }
 
     public List<Map<String, Object>> getAntennas() throws Exception {
