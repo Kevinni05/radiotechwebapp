@@ -55,7 +55,7 @@ public class AuditService {
                 "reconciliationRequired", false).get();
     }
 
-    private static Map<String, Object> identitySnapshot(Map<String, Object> claims) {
+    static Map<String, Object> identitySnapshot(Map<String, Object> claims) {
         Map<String, Object> snapshot = new LinkedHashMap<>();
         if (claims != null) for (String field : List.of("tenantId", "role", "customerId", "mfaRequired", "proPermissions")) {
             if (claims.containsKey(field) && claims.get(field) != null) snapshot.put(field, claims.get(field));
