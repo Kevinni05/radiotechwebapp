@@ -844,7 +844,8 @@ public class MaintenanceReportService {
                     "status", APPROVED,
                     "inventoryConsumptionStatus", INVENTORY_COMPLETE,
                     "approvalAttemptId", FieldValue.delete(),
-                    "approvalLeaseUntil", FieldValue.delete());
+                    "approvalLeaseUntil", FieldValue.delete(),
+                    "recoveryNextAttemptAt", FieldValue.delete());
             transaction.set(approvalAudit, AuditService.transactionEntry("REPORT_APPROVED", tenantId,
                     snapshot.getString("reviewedBy"), "MAINTENANCE_REPORT", reportReference.getId(), APPROVED,
                     Instant.now().toString(), Map.of("status", APPROVAL_PENDING),
