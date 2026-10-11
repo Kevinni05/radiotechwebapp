@@ -89,7 +89,7 @@ test('Signal customer portal preserves login, requests and logout on small scree
   });
   await page.setViewportSize({width:1440,height:1000});await page.goto('/portal');await page.evaluate(()=>document.fonts.ready);
   await expect(page.locator('body')).toHaveCSS('font-family',/Inter/);
-  await page.screenshot({path:'.dist/signal-portal-login-desktop.png',fullPage:true});
+  await page.screenshot({path:test.info().outputPath('signal-portal-login-desktop.png'),fullPage:true});
   await page.setViewportSize({width:320,height:800});
   await page.locator('[name="email"]').fill('cliente@example.test');await page.locator('[name="password"]').fill('test-password');await page.locator('#portalLogin button').click();
   await expect(page.locator('#proTitle')).toHaveText('Richieste di assistenza');await expect(page.locator('.portal-login')).toBeHidden();
@@ -100,7 +100,7 @@ test('Signal customer portal preserves login, requests and logout on small scree
   for(const width of [320,768,1440]){
     await page.setViewportSize({width,height:1000});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
     const outside=await page.locator('input,select,textarea,button,.pro-record').evaluateAll(nodes=>nodes.filter(n=>n.getClientRects().length).some(n=>{const r=n.getBoundingClientRect();return r.left<0||r.right>innerWidth+1;}));expect(outside).toBe(false);
-    if(width!==768)await page.screenshot({path:`.dist/signal-portal-${width}.png`,fullPage:true});
+    if(width!==768)await page.screenshot({path:test.info().outputPath(`signal-portal-${width}.png`),fullPage:true});
   }
   await page.locator('#portalLogout').click();await expect(page.locator('#portalLogin')).toBeVisible();await expect(page.locator('#portalApp')).toBeHidden();
   expect(errors).toEqual([]);
@@ -130,14 +130,14 @@ test('Pro and access workspaces contain long content and fields at every breakpo
     await contained('#view-pro input,#view-pro select,#view-pro textarea,#view-pro .btn,#view-pro .pro-record');
     const overlap=await page.locator('#proForm .pro-field').evaluateAll(nodes=>nodes.some((n,i)=>nodes.slice(i+1).some(m=>{const a=n.getBoundingClientRect(),b=m.getBoundingClientRect();return a.left<b.right&&a.right>b.left&&a.top<b.bottom&&a.bottom>b.top;})));
     expect(overlap).toBe(false);
-    if(width===1440||width===390)await page.screenshot({path:`.dist/layout-pro-${width}.png`,fullPage:true});
+    if(width===1440||width===390)await page.screenshot({path:test.info().outputPath(`layout-pro-${width}.png`),fullPage:true});
     await page.locator('#proCancel').click();await page.locator('#proSearch').fill('inesistente');await expect(page.locator('#proRecords')).toContainText('Nessun risultato');await page.locator('#proSearch').clear();
     await open('access');await expect(page.locator('#accessStatus')).toContainText('Controllo delle sessioni attivo');
     await contained('#view-access input,#view-access select,#view-access textarea,#view-access .btn,#view-access .panel');
     const checkbox=await page.locator('#accessMfa').boundingBox();expect(checkbox.width).toBeLessThanOrEqual(22);expect(checkbox.height).toBeLessThanOrEqual(22);
     await page.locator('#accessRole').selectOption('OPERATOR');await expect(page.locator('#accessCustomer')).toBeHidden();
     await page.locator('#accessRole').selectOption('CUSTOMER');await expect(page.locator('#accessCustomer')).toBeVisible();
-    if(width===1440||width===390)await page.screenshot({path:`.dist/layout-access-${width}.png`,fullPage:true});
+    if(width===1440||width===390)await page.screenshot({path:test.info().outputPath(`layout-access-${width}.png`),fullPage:true});
   }
   expect(errors).toEqual([]);
 });
@@ -440,7 +440,7 @@ test('all workspaces contain their content at narrow, tablet and desktop widths'
         return result;
       });
       failures.push(...problems.map(problem => `${width}px ${view}: ${problem}`));
-      if ([320, 1280].includes(width) && ['inventory','planning','operators','reports'].includes(view)) await page.screenshot({path:`build/reports/web/final-${view}-${width}.png`, fullPage:true});
+      if ([320, 1280].includes(width) && ['inventory','planning','operators','reports'].includes(view)) await page.screenshot({path:test.info().outputPath(`final-${view}-${width}.png`), fullPage:true});
     }
   }
   expect(errors).toEqual([]);
@@ -561,7 +561,7 @@ test('wrapped task responses render and enterprise workflows call real route con
   await page.locator('#enterpriseOperator').selectOption('o1');
   await expect(page.locator('#enterpriseSkills')).toContainText('RF Test');
   expect(errors).toEqual([]);
-  await page.screenshot({ path: 'build/reports/web/enterprise-desktop.png', fullPage: true });
+  await page.screenshot({ path:test.info().outputPath('enterprise-desktop.png'), fullPage: true });
   await page.locator('#workspaceAccountBtn').click();await page.locator('#topbarLogoutBtn').click();
   await expect(page.locator('#loginEmail')).toBeVisible();
   expect(await page.evaluate(() => sessionStorage.getItem('radiotech_control_token'))).toBeNull();
@@ -574,7 +574,7 @@ test('mobile navigation and risk workspace fit the viewport', async ({ page }) =
   await page.locator('[data-view="enterprise"]').click();
   await expect(page.locator('#enterpriseOpen')).toHaveText('1');
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
-  await page.screenshot({ path: 'build/reports/web/enterprise-mobile.png', fullPage: true });
+  await page.screenshot({ path:test.info().outputPath('enterprise-mobile.png'), fullPage: true });
 });
 
 test('viewer sees risks without manager mutation controls', async ({ page }) => {
@@ -657,10 +657,10 @@ test('preventive planning offers evidence without a chat surface', async ({ page
   expect(sidebarFits).toBe(true);
   await page.locator('#toastStack').evaluate(node => node.replaceChildren());
   await page.evaluate(() => window.scrollTo(0, 0));
-  await page.screenshot({ path: 'build/reports/web/ai-desktop.png', fullPage: true });
+  await page.screenshot({ path:test.info().outputPath('ai-desktop.png'), fullPage: true });
   await page.setViewportSize({ width: 390, height: 844 });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
-  await page.screenshot({ path: 'build/reports/web/ai-mobile.png', fullPage: true });
+  await page.screenshot({ path:test.info().outputPath('ai-mobile.png'), fullPage: true });
   await page.locator('#workspaceAccountBtn').click();await page.locator('#topbarLogoutBtn').click();
   await expect(page.locator('#aiAssets')).toHaveText('—');
 });
@@ -681,7 +681,7 @@ test('shift changes and safety signals are reviewable on a small viewport', asyn
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   await page.locator('#toastStack').evaluate(node => node.replaceChildren());
   await page.evaluate(() => { document.activeElement?.blur(); window.scrollTo(0, 0); });
-  await page.screenshot({ path: 'build/reports/web/safety-mobile.png', fullPage: true });
+  await page.screenshot({ path:test.info().outputPath('safety-mobile.png'), fullPage: true });
 });
 
 test('new sign-in design loads local typography and fits a small screen', async ({ page }) => {
@@ -695,7 +695,7 @@ test('new sign-in design loads local typography and fits a small screen', async 
   expect((await page.request.get('/assets/brand/radiotech-symbol-v1.png')).status()).toBe(200);
   expect(await page.locator('.login-visual .brand-mark img').evaluate(img => img.complete && img.naturalWidth > 0)).toBe(true);
   expect(await page.evaluate(() => document.fonts.check('500 13px Inter'))).toBe(true);
-  await page.screenshot({ path: 'build/reports/web/redesign-login-desktop.png', fullPage: true });
+  await page.screenshot({ path:test.info().outputPath('redesign-login-desktop.png'), fullPage: true });
   await page.locator('#togglePassword').click();
   await expect(page.locator('#loginPassword')).toHaveAttribute('type','text');
   await page.setViewportSize({ width: 320, height: 568 });
@@ -703,7 +703,7 @@ test('new sign-in design loads local typography and fits a small screen', async 
   await expect(page.locator('.login-mobile-brand')).toBeVisible();
   await expect(page.locator('#loginButton')).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
-  await page.screenshot({ path: 'build/reports/web/redesign-login-mobile.png', fullPage: true });
+  await page.screenshot({ path:test.info().outputPath('redesign-login-mobile.png'), fullPage: true });
   expect(errors).toEqual([]);
 });
 
@@ -714,7 +714,7 @@ test('overview shortcuts, scroll reveals and reduced motion remain usable', asyn
   await session(page);
   await expect(page.locator('.overview-head')).toHaveClass(/motion-visible/);
   await page.locator('#toastStack').evaluate(node => node.replaceChildren());
-  await page.screenshot({ path: 'build/reports/web/redesign-overview-desktop.png', fullPage: true });
+  await page.screenshot({ path:test.info().outputPath('redesign-overview-desktop.png'), fullPage: true });
   await page.locator('[data-workspace-link="ai"]').click();
   await expect(page.locator('#view-ai')).toHaveClass(/active/);
   await expect(page.locator('#aiRiskCount')).toHaveText('1');
@@ -724,7 +724,7 @@ test('overview shortcuts, scroll reveals and reduced motion remain usable', asyn
   await page.setViewportSize({ width: 390, height: 844 });
   await page.locator('#mobileMenu').click();
   await page.locator('[data-view="dashboard"]').click();
-  await page.screenshot({ path: 'build/reports/web/redesign-overview-mobile.png', fullPage: true });
+  await page.screenshot({ path:test.info().outputPath('redesign-overview-mobile.png'), fullPage: true });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   expect(errors).toEqual([]);
 });
@@ -767,10 +767,10 @@ test('Aurora feedback respects reduced motion and the Pro editor fits every view
     const bounds=await page.locator('#proForm').boundingBox();
     expect(bounds.x).toBeGreaterThanOrEqual(0);expect(bounds.x+bounds.width).toBeLessThanOrEqual(width);
   }
-  await page.screenshot({path:'.dist/aurora-web-desktop.png',fullPage:true});
+  await page.screenshot({path:test.info().outputPath('aurora-web-desktop.png'),fullPage:true});
   await page.setViewportSize({width:390,height:844});
   await expect(page.locator('#sidebar')).toHaveCSS('visibility','hidden');
-  await page.screenshot({path:'.dist/aurora-web-phone.png',fullPage:true});
+  await page.screenshot({path:test.info().outputPath('aurora-web-phone.png'),fullPage:true});
   await page.emulateMedia({reducedMotion:'reduce'});
   expect(await page.evaluate(()=>getComputedStyle(document.body,'::before').animationName)).toBe('none');
 });
@@ -816,7 +816,7 @@ test('report attachments show image and PDF previews, enlargement and explicit d
   for (const width of [320,768,1440]) { await page.setViewportSize({width,height:1000}); expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true); }
   await page.setViewportSize({width:1440,height:1000});
   await list.scrollIntoViewIfNeeded();
-  await page.screenshot({path:'.dist/report-attachments-desktop.png',fullPage:true});
+  await page.screenshot({path:test.info().outputPath('report-attachments-desktop.png'),fullPage:true});
   await page.locator('#reportsRefreshBtn').click(); await expect(list.locator('img').first()).toBeVisible();
   expect(errors).toEqual([]);
 });
@@ -895,7 +895,7 @@ test('environment widget searches cities and antennas with five day forecast and
  await page.locator('#weatherPicker summary').click();await page.locator('#weatherSearch').fill('Lecce');await page.locator('#weatherSearchForm button').click();await page.getByRole('button',{name:'Lecce · Puglia · Italia',exact:true}).click();await expect(page.locator('#liveWeather')).toContainText('Lecce');
  expect(await page.evaluate(()=>JSON.parse(localStorage.getItem('rt-weather-position')).latitude)).toBe(40.35);
  await page.locator('#weatherPicker summary').click();await page.locator('#weatherAntennas').click();await page.getByRole('button',{name:'Ponte Bari',exact:true}).click();await expect(page.locator('#liveWeather')).toContainText('Ponte Bari');
- for(const width of [1440,768,390,320]){await page.setViewportSize({width,height:1000});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);expect(await page.locator('.environment-widget input,.weather-day,.environment-details>div,.analog-clock').evaluateAll(nodes=>nodes.filter(n=>n.getClientRects().length).some(n=>{const r=n.getBoundingClientRect();return r.left<0||r.right>innerWidth+1;}))).toBe(false);if(width===1440||width===390){await page.locator('#weatherOutlook').evaluate(n=>n.open=false);await page.locator('.environment-widget').screenshot({path:`build/reports/web/environment-console-${width}.png`});}}
+ for(const width of [1440,768,390,320]){await page.setViewportSize({width,height:1000});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);expect(await page.locator('.environment-widget input,.weather-day,.environment-details>div,.analog-clock').evaluateAll(nodes=>nodes.filter(n=>n.getClientRects().length).some(n=>{const r=n.getBoundingClientRect();return r.left<0||r.right>innerWidth+1;}))).toBe(false);if(width===1440||width===390){await page.locator('#weatherOutlook').evaluate(n=>n.open=false);await page.locator('.environment-widget').screenshot({path:test.info().outputPath(`environment-console-${width}.png`)});}}
  expect(errors).toEqual([]);
 });
 
@@ -907,7 +907,7 @@ test('Raycast footer navigates workspaces preserves session and fits all screen 
  for(const view of ['reports','planning','inventory','pro','access','system','dashboard']){await footer.locator(`[data-footer-view="${view}"]`).first().click();await expect(page.locator(`#view-${view}`)).toBeVisible();}
  expect(await page.evaluate(()=>sessionStorage.getItem('radiotech_control_token'))).toBeNull();await footer.scrollIntoViewIfNeeded();await page.locator('#footerBackTop').click();await expect(page.locator('.topbar')).toBeInViewport();await expect.poll(()=>page.evaluate(()=>document.scrollingElement.scrollTop)).toBe(0);
  await page.locator('#backendStatus').evaluate(n=>n.textContent='ERROR');await expect(page.locator('#footerServiceStatus')).toHaveText('Backend non disponibile');expect(errors).toEqual([]);
- await footer.scrollIntoViewIfNeeded();await page.screenshot({path:'build/reports/web/footer-320.png'});
+ await footer.scrollIntoViewIfNeeded();await page.screenshot({path:test.info().outputPath('footer-320.png')});
 });
 
 
@@ -919,6 +919,6 @@ test('compact environment starts closed and operational widgets use actual recor
  await page.locator('#weatherOutlook summary').click();await expect(page.locator('#weatherForecast')).toBeVisible();await page.locator('#weatherOutlook summary').click();await expect(page.locator('#weatherForecast')).toBeHidden();
  await page.locator('[data-widget-view="reports"]').click();await expect(page.locator('#view-reports')).toBeVisible();await page.locator('footer [data-footer-view="dashboard"]').click();await expect(page.locator('#weatherForecast')).toBeHidden();
  for(const motion of ['reduce','no-preference']){await page.emulateMedia({reducedMotion:motion});await page.locator('footer').scrollIntoViewIfNeeded();expect(await page.evaluate(()=>document.scrollingElement.scrollTop)).toBeGreaterThan(200);await page.locator('#footerBackTop').click();await expect.poll(()=>page.evaluate(()=>document.scrollingElement.scrollTop),{timeout:8000}).toBe(0);}
- await page.setViewportSize({width:1440,height:1000});await page.screenshot({path:'build/reports/web/weather-compact-desktop.png'});
- await page.setViewportSize({width:390,height:1000});await page.screenshot({path:'build/reports/web/weather-compact-mobile.png'});
+ await page.setViewportSize({width:1440,height:1000});await page.screenshot({path:test.info().outputPath('weather-compact-desktop.png')});
+ await page.setViewportSize({width:390,height:1000});await page.screenshot({path:test.info().outputPath('weather-compact-mobile.png')});
 });

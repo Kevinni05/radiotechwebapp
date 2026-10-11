@@ -7,7 +7,9 @@
   color-scheme: dark;
 }
 * { box-sizing: border-box; }
-html { scroll-behavior: smooth; scroll-padding-top: 108px; }
+html { scroll-behavior: auto; scroll-padding-top: 108px; }
+/* Opening a drawer must make keyboard targets available immediately, including WebKit. */
+@media (max-width: 980px) { .sidebar.open { transition: none !important; } }
 body { margin: 0; min-height: 100vh; background: radial-gradient(ellipse at 75% 0%, #17304b38, transparent 45%), var(--bg); color: var(--text); font: 500 13px/1.6 Manrope, system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
 body.modal-open, body.menu-open { overflow: hidden; }
 button, input, select, textarea { font: inherit; }

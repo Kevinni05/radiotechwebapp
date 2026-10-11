@@ -128,13 +128,23 @@
       sidebar.inert = mobile.matches && !open;
       main.inert = open;
       document.body.classList.toggle('menu-open',open);
-      if (open && !openBefore) (sidebar.querySelector('.nav button.active') || sidebar.querySelector('.nav button'))?.focus({ preventScroll:true });
+      if (open && !openBefore && !sidebar.contains(document.activeElement)) {
+        // Commit visibility before focus; WebKit can otherwise retain focus in inert content.
+        sidebar.getBoundingClientRect();
+        (sidebar.querySelector('.nav button.active') || sidebar.querySelector('.nav button'))?.focus({ preventScroll:true });
+      }
       if (!open && openBefore && sidebar.contains(document.activeElement)) main.focus({ preventScroll:true });
       openBefore = open;
     }
     function closeNavigation() {
       sidebar.classList.remove('open'); syncNavigation(); toggle.focus({ preventScroll:true });
     }
+    toggle.addEventListener('click',syncNavigation);
+    sidebar.querySelector('.nav').addEventListener('click',event=>{
+      if (!event.target.closest('button[data-view]')) return;
+      syncNavigation();
+      if (mobile.matches && !sidebar.classList.contains('open')) main.focus({preventScroll:true});
+    });
     document.getElementById('brandHome').addEventListener('click',event=>{
       event.preventDefault();
       sidebar.querySelector('[data-view="dashboard"]').click();
