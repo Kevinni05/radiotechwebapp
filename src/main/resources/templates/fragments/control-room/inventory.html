@@ -1,0 +1,43 @@
+<section th:fragment="content" class="view" id="view-inventory">
+                    <div class="section-head">
+                        <div>
+                            <h2 data-copy-key="copy-74">Magazzino</h2>
+                            <p>Scorte, valorizzazione, movimenti tracciati e riordino.</p>
+                        </div>
+                        <div class="toolbar">
+                            <button class="btn" id="inventoryExportBtn" type="button">Esporta CSV</button>
+                            <button class="btn" id="inventoryMovementsBtn" type="button">Registro movimenti</button>
+                            <button class="btn" id="inventoryRefreshBtn" type="button">Aggiorna</button>
+                            <button class="btn primary" id="newInventoryItemBtn" type="button">+ Nuovo articolo</button>
+                        </div>
+                    </div>
+                    <div class="stats-grid" id="inventoryStats">
+                        <div class="stat-card"><div class="stat-label">Articoli attivi</div><div class="stat-value">—</div><div class="stat-foot">catalogo magazzino</div></div>
+                        <div class="stat-card"><div class="stat-label">Unità disponibili</div><div class="stat-value">—</div><div class="stat-foot">quantità complessiva</div></div>
+                        <div class="stat-card"><div class="stat-label">Sotto scorta</div><div class="stat-value">—</div><div class="stat-foot">da riordinare</div></div>
+                        <div class="stat-card"><div class="stat-label">Valore stimato</div><div class="stat-value">—</div><div class="stat-foot">costo unitario × quantità</div></div>
+                    </div>
+                    <div class="panel">
+                        <div class="panel-head">
+                            <div>
+                                <h3 data-copy-key="copy-75">Articoli e disponibilità</h3><span id="inventoryStatus">Sincronizzazione...</span>
+                            </div>
+                        </div>
+                        <div class="panel-body">
+                            <div class="toolbar" style="margin-bottom:14px">
+                                <input id="inventorySearch" aria-label="Cerca articolo inventario" type="search" placeholder="Cerca nome, SKU, barcode, posizione">
+                                <select id="inventoryCategoryFilter" aria-label="Categoria magazzino"><option value="" data-copy-key="copy-76">Tutte le categorie</option></select>
+                                <select id="inventoryStockFilter" aria-label="Stato scorte">
+                                    <option value="ACTIVE" data-copy-key="copy-77">Articoli attivi</option><option value="ALL" data-copy-key="copy-78">Tutti gli articoli</option>
+                                    <option value="LOW" data-copy-key="copy-79">Sotto scorta</option><option value="ARCHIVED" data-copy-key="copy-80">Archiviati</option>
+                                </select>
+                            </div>
+                            <div class="table-wrap" tabindex="0" role="region" aria-label="Elenco articoli">
+                                <table>
+                                    <thead><tr><th>Articolo</th><th>Categoria</th><th>Disponibilità</th><th>Posizione</th><th>Valore</th><th>Stato</th><th>Azioni</th></tr></thead>
+                                    <tbody id="inventoryTableBody"><tr><td colspan="7"><div class="empty"><span class="spinner"></span> Caricamento magazzino...</div></td></tr></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </section>

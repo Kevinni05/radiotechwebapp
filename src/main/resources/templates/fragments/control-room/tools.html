@@ -1,0 +1,64 @@
+<section th:fragment="content" class="view" id="view-tools">
+                    <div class="section-head">
+                        <div>
+                            <h2 data-copy-key="copy-59">TelcoTools</h2>
+                            <p>Calcolatori RF e radio con unità e formule esplicite.</p>
+                        </div>
+                    </div>
+                    <div class="notification-grid">
+                        <div class="panel">
+                            <div class="panel-head">
+                                <div>
+                                    <h3 data-copy-key="copy-60">Bilancio del collegamento</h3><span>FSPL, EIRP e potenza ricevuta</span>
+                                </div>
+                            </div>
+                            <div class="panel-body">
+                                <div class="form-grid">
+                                    <div class="field"><label for="tbFreq" data-copy-key="copy-61">Frequenza MHz</label><input id="tbFreq" type="number"
+                                            min="0" step="any"></div>
+                                    <div class="field"><label for="tbDist" data-copy-key="copy-62">Distanza km</label><input id="tbDist" type="number"
+                                            min="0" step="any"></div>
+                                    <div class="field"><label for="tbTx" data-copy-key="copy-63">TX dBm</label><input id="tbTx" type="number" step="any">
+                                    </div>
+                                    <div class="field"><label for="tbGt" data-copy-key="copy-64">TX Gain dBi</label><input id="tbGt" type="number"
+                                            step="any"></div>
+                                    <div class="field"><label for="tbGr" data-copy-key="copy-65">RX Gain dBi</label><input id="tbGr" type="number"
+                                            step="any"></div>
+                                    <div class="field"><label for="tbLt" data-copy-key="copy-66">TX loss dB</label><input id="tbLt" type="number" min="0"
+                                            step="any" value="0"></div>
+                                    <div class="field"><label for="tbLr" data-copy-key="copy-67">RX loss dB</label><input id="tbLr" type="number" min="0"
+                                            step="any" value="0"></div>
+                                    <div class="field"><label for="tbLo" data-copy-key="copy-68">Altre perdite dB</label><input id="tbLo" type="number"
+                                            min="0" step="any" value="0"></div>
+                                    <div class="field"><label for="tbSens" data-copy-key="copy-69">Sensibilità RX dBm</label><input id="tbSens" type="number"
+                                            step="any"></div>
+                                </div><button class="btn primary" id="tbLinkBtn">Calcola</button>
+                                <div class="panel" style="margin-top:16px">
+                                    <div class="panel-body" id="tbResult" role="status" aria-live="polite" aria-atomic="true">Inserisci i parametri e calcola.</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="panel">
+                            <div class="panel-head">
+                                <div>
+                                    <h3 data-copy-key="copy-70">Conversioni RF</h3><span>Potenza, wavelength, VSWR, SNR, Fresnel</span>
+                                </div>
+                            </div>
+                            <div class="panel-body">
+                                <div class="form-grid">
+                                    <div class="field"><label for="tbDbm" data-copy-key="copy-71">dBm</label><input id="tbDbm" type="number" step="any">
+                                    </div>
+                                    <div class="field"><label for="tbW" data-copy-key="copy-72">W</label><input id="tbW" type="number" step="any"></div>
+                                </div>
+                                <button class="btn" id="tbPowerBtn">Converti potenza</button>
+                                <div id="tbPowerResult" role="status" aria-live="polite" aria-atomic="true" class="subtle" style="margin-top:12px"></div>
+                                <hr style="border:0;border-top:1px solid var(--border);margin:22px 0">
+                                <div class="form-grid">
+                                    <div class="field"><label for="tbVswr" data-copy-key="copy-73">VSWR</label><input id="tbVswr" type="number" min="1"
+                                            step="any"></div>
+                                </div><button class="btn" id="tbVswrBtn">Calcola VSWR</button>
+                                <div id="tbVswrResult" role="status" aria-live="polite" aria-atomic="true" class="subtle" style="margin-top:12px"></div>
+                            </div>
+                        </div>
+                    </div>
+                </section>

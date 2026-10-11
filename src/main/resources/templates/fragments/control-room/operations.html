@@ -1,0 +1,188 @@
+<section th:fragment="content" class="view" id="view-operations">
+                    <div class="section-head">
+                        <div>
+                            <h2 data-copy-key="copy-22">Operatività</h2>
+                            <p>Incarichi e indicatori chiave della squadra tecnica.</p>
+                        </div>
+                    </div>
+                    <div class="panel" style="margin-bottom:18px">
+                        <div class="panel-head">
+                            <div>
+                                <h3 data-copy-key="copy-23">Gestione operatori</h3><span>Crea account, consulta la squadra e assegna ruoli applicativi</span>
+                            </div>
+                            <div class="toolbar"><button class="mini-btn"
+                                    id="operatorsRefreshBtn">Aggiorna</button><button class="btn primary"
+                                    id="newOperatorBtn">+ Nuovo operatore</button></div>
+                        </div>
+                        <div class="panel-body">
+                            <div class="toolbar" style="margin-bottom:14px">
+                                <input id="operatorSearch" aria-label="Cerca operatore" type="search" placeholder="Cerca per nome o email">
+                                <select id="operatorRoleFilter" aria-label="Filtra per ruolo">
+                                    <option value="" data-copy-key="copy-24">Tutti i ruoli</option>
+                                    <option value="OPERATOR" data-copy-key="copy-25">Operatore</option>
+                                    <option value="VIEWER" data-copy-key="copy-26">Sola lettura</option>
+                                </select>
+                                <span class="subtle" id="operatorsSummary">Caricamento…</span>
+                            </div>
+                        </div>
+                        <div class="table-wrap" tabindex="0" role="region" aria-label="Elenco operatori">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Operatore</th>
+                                        <th>Ruolo</th>
+                                        <th>Livello</th>
+                                        <th>Turno</th>
+                                        <th>Stato</th>
+                                        <th>Ultima presenza</th>
+                                        <th>Azioni</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="operatorsTableBody">
+                                    <tr>
+                                        <td colspan="7">
+                                            <div class="empty">Caricamento operatori...</div>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="panel" style="margin-bottom:18px">
+                        <div class="panel-head">
+                            <div>
+                                <h3 data-copy-key="copy-27">Collega account Firebase</h3>
+                                <span>Associa un utente Firebase esistente al tenant e alla squadra</span>
+                            </div>
+                        </div>
+                        <div class="panel-body">
+                            <div class="toolbar">
+                                <label class="sr-only" for="syncOperatorEmail" data-copy-key="copy-28">Email account Firebase</label><input id="syncOperatorEmail" type="email" placeholder="Email account Firebase">
+                                <label class="sr-only" for="syncOperatorName" data-copy-key="copy-29">Nome operatore</label><input id="syncOperatorName" placeholder="Nome operatore (facoltativo)">
+                                <button class="btn" id="syncOperatorBtn" type="button">Sincronizza operatore</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="panel" style="margin-bottom:18px">
+                        <div class="panel-head">
+                            <div>
+                                <h3 data-copy-key="copy-30">Report manutenzione</h3><span>Report inviati dagli operatori tramite app
+                                    mobile</span>
+                            </div><button class="mini-btn" id="reportsRefreshBtn">Aggiorna</button>
+                        </div>
+                        <div class="panel-body" id="reportsList">
+                            <div class="empty">Caricamento report...</div>
+                        </div>
+                        <div class="panel-body"><span id="reportsPageStatus" aria-live="polite"></span> <button class="mini-btn" id="reportsMoreBtn" hidden>Carica altri report</button></div>
+                    </div>
+                    <div class="operations-actions">
+                    <div class="panel" style="margin-bottom:18px">
+                        <div class="panel-head">
+                            <div>
+                                <h3 data-copy-key="copy-31">Assegna incarico</h3><span>Invio operativo diretto all'app mobile dell'operatore</span>
+                            </div>
+                        </div>
+                        <div class="panel-body">
+                            <div class="form-grid">
+                                <div class="field"><label for="taskTitle" data-copy-key="copy-32">Titolo</label><input id="taskTitle" maxlength="160"></div>
+                                <div class="field"><label for="taskPriority" data-copy-key="copy-33">Priorità</label><select id="taskPriority">
+                                        <option value="LOW" data-copy-key="copy-34">Bassa</option>
+                                        <option value="MEDIUM" selected data-copy-key="copy-35">Media</option>
+                                        <option value="HIGH" data-copy-key="copy-36">Alta</option>
+                                        <option value="CRITICAL" data-copy-key="copy-37">Critica</option>
+                                    </select></div>
+                                <div class="field"><label for="taskOperator" data-copy-key="copy-38">Operatore</label><select id="taskOperator">
+                                        <option value="" data-copy-key="copy-39">Seleziona operatore</option>
+                                    </select></div>
+                                <div class="field"><label for="taskAntenna" data-copy-key="copy-40">Antenna</label><select id="taskAntenna">
+                                        <option value="" data-copy-key="copy-41">Seleziona antenna</option>
+                                    </select></div>
+                                <div class="field"><label for="taskDueAt" data-copy-key="copy-42">Scadenza</label><input id="taskDueAt" type="datetime-local">
+                                </div>
+                                <div class="field" style="grid-column:1/-1"><label for="taskDescription" data-copy-key="copy-43">Descrizione</label><textarea
+                                        id="taskDescription" maxlength="2000"></textarea></div>
+                            </div><button class="btn primary" id="createTaskBtn">Assegna incarico</button>
+                        </div>
+                    </div>
+                    <div class="panel">
+                        <div class="panel-head">
+                            <div>
+                                <h3 data-copy-key="copy-44">Incarichi operativi</h3><span>Stato sincronizzato con gli operatori</span>
+                            </div><input class="search" id="taskSearch" type="search" placeholder="Cerca negli incarichi caricati...">
+                        </div>
+                        <div class="panel-body" id="tasksList">
+                            <div class="empty">Caricamento task...</div>
+                        </div>
+                        <div class="panel-body"><span id="tasksPageStatus" aria-live="polite"></span> <button class="mini-btn" id="tasksMoreBtn" hidden>Carica altri incarichi</button></div>
+                    </div>
+
+                    </div>
+                    <div class="grid-equal">
+                        <div class="panel">
+                            <div class="panel-head">
+                                <div>
+                                    <h3 data-copy-key="copy-45">Incarichi</h3><span>Distribuzione degli stati</span>
+                                </div>
+                            </div>
+                            <div class="panel-body">
+                                <div class="task-list">
+                                    <div class="task-row">
+                                        <div>
+                                            <div class="task-title">Assegnati</div>
+                                            <div class="task-meta">In attesa di esecuzione</div>
+                                        </div><span class="badge blue" id="opsAssigned">0</span>
+                                    </div>
+                                    <div class="task-row">
+                                        <div>
+                                            <div class="task-title">In lavorazione</div>
+                                            <div class="task-meta">Attività in corso</div>
+                                        </div><span class="badge yellow" id="opsProgress">0</span>
+                                    </div>
+                                    <div class="task-row">
+                                        <div>
+                                            <div class="task-title">Completati</div>
+                                            <div class="task-meta">Attività concluse</div>
+                                        </div><span class="badge green" id="opsCompleted">0</span>
+                                    </div>
+                                    <div class="task-row">
+                                        <div>
+                                            <div class="task-title">Annullati</div>
+                                            <div class="task-meta">Attività annullate</div>
+                                        </div><span class="badge red" id="opsCancelled">0</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="panel">
+                            <div class="panel-head">
+                                <div>
+                                    <h3 data-copy-key="copy-46">Network KPI</h3><span>Indicatori operativi</span>
+                                </div>
+                            </div>
+                            <div class="panel-body">
+                                <div class="progress-wrap">
+                                    <div class="progress-row"><span>Disponibilità antenne</span><span
+                                            id="opsAvailability">—</span></div>
+                                    <div class="progress">
+                                        <div id="opsAvailabilityProgress" style="width:0%"></div>
+                                    </div>
+                                </div>
+                                <div class="health-card">
+                                    <div>
+                                        <div class="subtle">Antenne attive</div>
+                                        <div class="health-value" id="opsActive">—</div>
+                                    </div>
+                                    <span class="badge green">OPERATIVE</span>
+                                </div>
+                                <div class="health-card">
+                                    <div>
+                                        <div class="subtle">Non disponibili</div>
+                                        <div class="health-value" id="opsInactive">—</div>
+                                    </div>
+                                    <span class="badge red">ATTENZIONE</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>

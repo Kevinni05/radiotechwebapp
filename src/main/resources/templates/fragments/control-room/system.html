@@ -1,0 +1,132 @@
+<section th:fragment="content" class="view" id="view-system">
+                    <div class="section-head">
+                        <div>
+                            <h2 data-copy-key="copy-89">Stato sistema</h2>
+                            <p>Controllo del collegamento tra interfaccia, server e database.</p>
+                        </div>
+                        <button class="btn" id="systemRefreshBtn">Verifica ora</button>
+                    </div>
+
+                    <div class="panel" style="margin-bottom:18px">
+                        <div class="panel-head"><div><h3 data-copy-key="copy-90">Archivio, quote e backup</h3><span>Utilizzo e avvisi operativi</span></div><button class="mini-btn" id="operationsHealthRefresh">Aggiorna monitoraggio</button></div>
+                        <div class="panel-body" id="operationsHealth" aria-live="polite">Apri questa sezione per verificare il monitoraggio.</div>
+                    </div>
+                    <div class="grid-equal">
+                        <div class="panel">
+                            <div class="panel-head">
+                                <div>
+                                    <h3 data-copy-key="copy-91">Servizi</h3><span>Monitoraggio servizi</span>
+                                </div>
+                            </div>
+                            <div class="panel-body">
+                                <div class="health-card">
+                                    <div>
+                                        <div class="subtle">Frontend</div>
+                                        <div class="health-value">OK</div>
+                                    </div>
+                                    <span class="badge green">ONLINE</span>
+                                </div>
+                                <div class="health-card">
+                                    <div>
+                                        <div class="subtle">Backend API</div>
+                                        <div class="health-value" id="backendStatus">CHECK</div>
+                                    </div>
+                                    <span class="badge blue" id="backendBadge">VERIFICA</span>
+                                </div>
+                                <div class="health-card">
+                                    <div>
+                                        <div class="subtle">Firestore</div>
+                                        <div class="health-value" id="firestoreStatus">CHECK</div>
+                                    </div>
+                                    <span class="badge blue" id="firestoreBadge">VERIFICA</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="panel">
+                            <div class="panel-head">
+                                <div>
+                                    <h3 data-copy-key="copy-92">Sessione</h3><span>Autenticazione del Capo</span>
+                                </div>
+                            </div>
+                            <div class="panel-body">
+                                <div class="task-list">
+                                    <div class="task-row">
+                                        <div>
+                                            <div class="task-title">Persistenza accesso</div>
+                                            <div class="task-meta">Token salvato localmente quando richiesto</div>
+                                        </div><span class="badge green" id="sessionPersistence">ATTIVA</span>
+                                    </div>
+                                    <div class="task-row">
+                                        <div>
+                                            <div class="task-title">Utente autenticato</div>
+                                            <div class="task-meta" id="sessionUser">—</div>
+                                        </div><span class="badge blue">AUTH</span>
+                                    </div>
+                                    <div class="task-row">
+                                        <div>
+                                            <div class="task-title">Sessione</div>
+                                            <div class="task-meta" id="sessionTokenStatus">—</div>
+                                        </div><span class="badge green">VALIDA</span>
+                                    </div>
+                                </div>
+                                <button class="btn danger" style="margin-top:15px;width:100%" id="logoutBtn">Esci da
+                                    questo PC</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="panel" style="margin-top:18px">
+                        <div class="panel-head">
+                            <div>
+                                <h3 data-copy-key="copy-93">Audit operativo</h3><span>Ultime modifiche e transizioni registrate</span>
+                            </div><div class="actions"><button class="mini-btn" id="auditRefreshBtn">Aggiorna</button><button class="mini-btn" id="auditToggle" aria-expanded="true" aria-controls="auditList" aria-label="Comprimi audit operativo">⌃</button></div>
+                        </div>
+                        <div class="panel-body" id="auditList">
+                            <div class="empty">Caricamento audit...</div>
+                        </div>
+                    </div>
+
+                    <div class="panel" style="margin-top:18px">
+                        <div class="panel-head">
+                            <div>
+                                <h3 data-copy-key="copy-94">Centro di controllo API</h3><span>Servizi della panoramica</span>
+                            </div>
+                        </div>
+                        <div class="panel-body">
+                            <div class="task-list">
+                                <div class="task-row">
+                                    <div>
+                                        <div class="task-title">Statistiche</div>
+                                        <div class="task-meta">GET /api/v1/dashboard/stats</div>
+                                    </div><span class="badge blue">GET</span>
+                                </div>
+                                <div class="task-row">
+                                    <div>
+                                        <div class="task-title">Antenne</div>
+                                        <div class="task-meta">GET /api/v1/dashboard/antenne</div>
+                                    </div><span class="badge blue">GET</span>
+                                </div>
+                                <div class="task-row">
+                                    <div>
+                                        <div class="task-title">Notifica</div>
+                                        <div class="task-meta">POST /api/v1/dashboard/notifications</div>
+                                    </div><span class="badge yellow">POST</span>
+                                </div>
+                                <div class="task-row">
+                                    <div>
+                                        <div class="task-title">Dipendenti</div>
+                                        <div class="task-meta">GET /api/v1/dashboard/operators</div>
+                                    </div><span class="badge blue">GET</span>
+                                </div>
+                                <div class="task-row">
+                                    <div>
+                                        <div class="task-title">Profilo</div>
+                                        <div class="task-meta">GET /api/v1/dashboard/profile</div>
+                                    </div><span class="badge blue">GET</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </section>

@@ -37,10 +37,10 @@ class DashboardPageControllerTest {
     }
 
     @Test
-    void controlRoomInlineBlocksConsumeTheModelNonce() throws Exception {
+    void controlRoomRetainsNoncedStyleAndLoadsSameOriginController() throws Exception {
         String template = Files.readString(Path.of("src/main/resources/templates/control-room.html"));
         assertTrue(template.contains("<style th:attr=\"nonce=${cspNonce}\">"));
-        assertTrue(template.contains("<script th:attr=\"nonce=${cspNonce}\">"));
+        assertTrue(template.contains("<script src=\"/assets/control-room.js\"></script>"));
     }
 
     @Test

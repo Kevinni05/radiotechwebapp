@@ -1,0 +1,51 @@
+<section th:fragment="content" class="view" id="view-antennas">
+                    <div class="section-head">
+                        <div>
+                            <h2 data-copy-key="copy-15">Gestione antenne</h2>
+                            <p>Controlla e modifica l'infrastruttura direttamente dal Centro operativo.</p>
+                        </div>
+                        <div class="toolbar">
+                            <input class="search" id="antennaSearch" aria-label="Cerca antenna" type="search" placeholder="Cerca antenna...">
+                            <select id="antennaStatusFilter" aria-label="Filtra stato antenna">
+                                <option value="" data-copy-key="copy-16">Tutti gli stati</option>
+                                <option value="ATTIVA" data-copy-key="copy-17">Attiva</option>
+                                <option value="MANUTENZIONE" data-copy-key="copy-18">Manutenzione</option>
+                                <option value="OFFLINE" data-copy-key="copy-19">Non connessa</option>
+                                <option value="CRITICA" data-copy-key="copy-20">Critica</option>
+                            </select>
+                            <button class="btn primary" id="newAntennaBtn">+ Nuova antenna</button>
+                        </div>
+                    </div>
+
+                    <div class="panel">
+                        <div class="panel-head">
+                            <div>
+                                <h3 data-copy-key="copy-21">Elenco antenne</h3><span id="antennaCountLabel">—</span>
+                            </div>
+                            <button class="mini-btn" id="reloadAntennasBtn">Aggiorna</button>
+                        </div>
+                        <div class="table-wrap" tabindex="0" role="region" aria-label="Elenco antenne">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Antenna</th>
+                                        <th>Posizione</th>
+                                        <th>Stato</th>
+                                        <th>Frequenza</th>
+                                        <th>Potenza</th>
+                                        <th>ROS</th>
+                                        <th>Temperatura</th>
+                                        <th>Azioni</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="antennasTableBody">
+                                    <tr>
+                                        <td colspan="8">
+                                            <div class="empty"><span class="spinner"></span> Caricamento...</div>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
