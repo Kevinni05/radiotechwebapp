@@ -1,5 +1,5 @@
 # RadioTech — registro di consolidamento commerciale
-Aggiornato il 10 ottobre 2026. Piano di riferimento: [piano completo](commercial-consolidation-plan.md).
+Aggiornato l’11 ottobre 2026. Piano di riferimento: [piano completo](commercial-consolidation-plan.md).
 Repository mobile: [gestionale_radio](https://github.com/Kevinni05/gestionale_radio).
 
 ## Stato della release
@@ -18,30 +18,30 @@ Repository mobile: [gestionale_radio](https://github.com/Kevinni05/gestionale_ra
 - Rate limit: [PR16](https://github.com/Kevinni05/radiotechwebapp/pull/16), [CI riuscita](https://github.com/Kevinni05/radiotechwebapp/actions/runs/38089626012). Alias /api e /api/v1 e riferimenti verifica report condividono budget. Replica/proxy reale non provati.
 - Audit report/materiali: [PR17](https://github.com/Kevinni05/radiotechwebapp/pull/17), [cinque job CI riusciti](https://github.com/Kevinni05/radiotechwebapp/actions/runs/38089758505). Eventi nello stesso batch/transaction della mutazione, identità esplicita, replay senza eventi/consumi doppi; consumo fallito senza audit di successo.
 - Notifiche: [PR18](https://github.com/Kevinni05/radiotechwebapp/pull/18), [cinque job CI riusciti](https://github.com/Kevinni05/radiotechwebapp/actions/runs/38089933072). Ricevute per token con hash, retry solo falliti, PARTIAL, lease, backoff/jitter, DEAD_LETTER; rimozione effettiva UNREGISTERED. I vecchi invii immediati non sono tutti migrati. FCM può accettare prima di un errore di persistenza: resta semantica almeno una volta.
-- Audit identità: [PR19](https://github.com/Kevinni05/radiotechwebapp/pull/19). Intento durevole prima di Firebase Auth, conferma sincrona, PENDING dopo interruzione. [CI completa riuscita con nuovi test realmente selezionati](https://github.com/Kevinni05/radiotechwebapp/actions/runs/38090853049). Non implementa ancora riconciliazione e allarme dei pendenti.
-- Updater personalizzato: [mobile PR21](https://github.com/Kevinni05/gestionale_radio/pull/21). Identità installata e nome app nativi, stesso contratto filename del workflow, rifiuto app diversa e firma incompatibile. [Analisi, test e compilazione Android riusciti](https://github.com/Kevinni05/gestionale_radio/actions/runs/38090371861). Il digest dei byte scaricati non viene verificato nell'app.
+- Audit identità: [PR19](https://github.com/Kevinni05/radiotechwebapp/pull/19). Intento durevole prima di Firebase Auth, conferma sincrona, PENDING dopo interruzione. [CI completa riuscita con nuovi test realmente selezionati](https://github.com/Kevinni05/radiotechwebapp/actions/runs/38090853049). La PR30 aggiunge riconciliazione con lease e backoff; il monitor operativo segnala i PENDING. Non ripristina claims superate: conferma soltanto il risultato che coincide con l’intento originale.
+- Updater personalizzato: [mobile PR21](https://github.com/Kevinni05/gestionale_radio/pull/21). Identità installata e nome app nativi, stesso contratto filename del workflow, rifiuto app diversa e firma incompatibile. [Analisi, test e compilazione Android riusciti](https://github.com/Kevinni05/gestionale_radio/actions/runs/38090371861). La verifica dei byte è stata integrata con la PR24 mobile dopo CI completa 38129987798, senza equipararla a un upgrade su dispositivo.
 
 ## Backlog unico — backend
 | ID | Stato | Criteri ancora aperti |
 |---|---|---|
 | B01 | Parziale, recovery dei dati attuali provato | Recovery produzione completo di identità, chiave separata recuperabile, owner, misure RPO/RTO, storage e riconnessione client |
 | B02 | Parziale | Matrice completa ruolo×endpoint×tenant e riferimenti indiretti; deploy/verifica regole Firebase; revoca e sospensione su staging |
-| B03 | Da validare | Crash dopo ogni fase, concorrenza approvazione/rimozione e riconciliazione con riavvio reale |
-| B04 | Parziale | Tutti i cambi identità/azioni critiche; retry/riconciliazione/allarme PENDING, retention e accesso definiti |
+| B03 | Parziale | PR28 rende task/GPS/audit atomici; PR30 riconcilia APPROVAL_PENDING e consumo già committato. Restano crash dopo ogni fase e riavvio reale integrato |
+| B04 | Parziale | Tutti i cambi identità/azioni critiche; copertura completa, policy retention e accesso definiti; riconciliazione PENDING identità implementata nella PR30 |
 | B05 | Parziale | E2E tre retry e riavvio su Android, un solo segnale e un solo report; integrità ricevute/bozze dopo upgrade |
-| B06 | Aperto | Baseline, aggregazioni/proiezioni, invalidazione, viewport, prova riduzione letture ≥70% |
-| B07 | Aperto | Configurare storage, migrazione dry-run/checkpoint/digest/rollback, streaming e carico concorrente, cleanup e retention |
+| B06 | Parziale | Cache tenant-scoped PR26 e timestamp PR29; restano baseline, aggregazioni/proiezioni, invalidazione completa, viewport, prova riduzione letture ≥70% |
+| B07 | Parziale | PR31 limita allocazione del body e concorrenza prima della lettura, rimuove il lock globale. Restano storage, migrazione dry-run/checkpoint/digest/rollback, streaming download, carico, cleanup e retention |
 | B08 | Parziale | Migrare invii immediati, allarme dead letter, cleanup retry, deduplica/deep link/logout e device freddo |
 | B09 | Parziale | DTO/errori/deadline/concorrenza, proxy e repliche, timeout/quote e vecchio mobile integrati |
-| B10 | Da validare | Snapshot report/PDF immutabile, revisione/rifiuto tracciati e coerenza checklist/materiali con rinomina dati |
+| B10 | Parziale | Snapshot tecnico e identità immutabili PR25; restano coerenza PDF mobile/checklist/materiali e prova integrata con rinomina dati |
 
 ## Backlog unico — web
 | ID | Stato | Criteri ancora aperti |
 |---|---|---|
 | W01 | Da validare | Inventario e consolidamento componenti/token e varianti condivise |
-| W02 | Aperto | Estrarre feature dal template mantenendo regressioni verdi |
+| W02 | Parziale | PR32 estrae otto template feature e il controller esterno, con CI verde. Restano controller per feature e consolidamento componenti |
 | W03 | Da validare | Tastiera, distinzione staging/produzione e shell con dati reali |
-| W04 | Da validare | Significato KPI, timestamp e drill-down; evitare disponibilità gestionale confusa con uptime |
+| W04 | Parziale | Significato stato asset e timestamp server implementati/testati PR29; restano drill-down e dati reali |
 | W05 | Da validare | Ordine/pannelli e contenuti realistici su desktop/tablet/mobile |
 | W06 | Da validare | PDF/materiali, tastiera, rimozione motivata e operazioni concorrenti |
 | W07 | Da validare | Simbolo/legenda accessibili e selezione bidirezionale reale |
@@ -49,8 +49,8 @@ Repository mobile: [gestionale_radio](https://github.com/Kevinni05/gestionale_ra
 | W09 | Da validare | Cursor e filtri server per ogni tabella, ritorno dal dettaglio e stabilità pagina |
 | W10 | Implementato e testato in CI | Verifica autenticata con dati reali e dipendenze di produzione |
 | W11 | Da validare | Tastiera, focus/dialog, contrasto, zoom 200%, lettura errori |
-| W12 | Aperto | Sostituire prompt MFA, QR/reauth/recovery guidati, configurazione effettiva |
-| W13 | Aperto | Decisione e implementazione sessione, logout/multi-tab; CSRF se cookie |
+| W12 | Parziale | Dialoghi guidati PR23; restano configurazione effettiva e prova MFA/reauth/recovery su staging |
+| W13 | Parziale | Sessioni gestite da Firebase SDK PR27, eliminati token applicativi; restano logout/multi-tab autenticati su staging |
 | W14 | P2 aperto | Ricerca/filtri salvati autorizzati e utilità cliente |
 
 ## Backlog unico — mobile
@@ -60,13 +60,13 @@ Repository mobile: [gestionale_radio](https://github.com/Kevinni05/gestionale_ra
 | M02 | Da validare | Checklist diretta unica e stessa versione report/PDF |
 | M03 | Da validare | GPS/accuratezza/distanza/retry e deroga autorizzata su device |
 | M04 | Parziale | Invio urgente recuperabile; completare/validare tutte le fasi upload/report/preview/ricevuta |
-| M05 | Aperto | Database transazionale cifrato, migrazione senza perdita e chiavi protette; SharedPreferences resta |
+| M05 | Parziale | Archivio Android SQLite/AES-GCM, Keystore, cancellazioni autenticate, migrazione validata e foto cifrate PR24 (PR23 incorporata); restano prova upgrade/riavvio e Keystore su dispositivi reali, bonifica dei dati legacy non visitati |
 | M06 | Da validare | Avvio/resume/rete, conflitti, capienza e comportamento background dichiarato |
 | M07 | Aperto | Feature/repository/stato Riverpod, separazione widget e operazioni |
 | M08 | Da validare | PDF/foto realistici, tempi/memoria su dispositivo medio |
 | M09 | Da validare | Schermi piccoli, sole, textScale 2, TalkBack e tastiera |
 | M10 | Parziale | Server retry parziale; deduplica/deep link/foreground/background/logout su due dispositivi |
-| M11 | Parziale | Updater personalizzato; byte digest, canale commerciale, versione minima, upgrade e rollback reali |
+| M11 | Parziale | Updater personalizzato PR21 e download con digest/pacchetto/firma PR24; restano canale commerciale, versione minima, upgrade e rollback reali |
 | M12 | Bloccato dalla mancanza di device/sessione | Due Android reali, QR/GPS/foto/firma/FCM/App Check e rete degradata |
 | M13 | P2 aperto | Cache pack, checklist tipo impianto e freschezza offline |
 
@@ -101,3 +101,22 @@ Non esporre segreti in issue, log, PR o documentazione. Render è collegato e il
 - [APK firmato distribuito 38089950365](https://github.com/Kevinni05/gestionale_radio/actions/runs/38089950365): invio effettivo ai tester Firebase riuscito per segnale urgente, isolamento pannello offline e ENGINEER. La build successiva con updater è stata firmata e distribuita ai tester con successo in [38091027745](https://github.com/Kevinni05/gestionale_radio/actions/runs/38091027745); non confondere App Distribution con il canale commerciale.
 - Render, osservazione 22:31 UTC: nessun log ERROR restituito dalla query da 22:27:28; memoria campionata ~294 MB su limite 512 MB. Serie HTTP p95 e conteggio richieste vuote: prestazioni e capacità NON misurate nel carico di riferimento.
 - Connessione Render verificata sul workspace con unico servizio radiotechwebapp e repository Kevinni05/radiotechwebapp. Nessun nuovo servizio, cambio piano, bucket o fatturazione effettuato.
+
+## Consolidamento dell’11 ottobre 2026
+
+- Web PR28 e PR29 integrate: transizioni GPS/task con audit atomico e KPI di attività asset distinti dall’uptime, con timestamp del server.
+- Web PR30 integrata dopo cinque job CI riusciti ([38128489615](https://github.com/Kevinni05/radiotechwebapp/actions/runs/38128489615)): recupero approvazione interrotta dopo consumo materiali già committato, anche con report rimosso; conservazione del revisore originale e dei consumi senza duplicazioni. Riconciliazione degli intenti Firebase Auth solo se tenant e claims correnti coincidono, senza applicare vecchi ruoli.
+- Web PR31 integrata dopo CI riuscita ([38128733298](https://github.com/Kevinni05/radiotechwebapp/actions/runs/38128733298)): permit prima della lettura del body, limite di 10 MB e upload concorrenti limitati; rimosso il synchronized globale. Questa misura non completa la migrazione storage o lo streaming dei download.
+- Web PR32 integrata dopo cinque job CI riusciti ([38129049982](https://github.com/Kevinni05/radiotechwebapp/actions/runs/38129049982)): otto template feature, shell da circa 3.100 a 446 righe e controller esterno. I controller per feature restano da estrarre.
+- Mobile PR24 integrata alla revisione `2a5bac399f6790187b0b57a657dc3cf3c9dd64c9`, dopo analisi Flutter, test Dart, compilazione APK e cinque test nativi riusciti ([38129987798](https://github.com/Kevinni05/gestionale_radio/actions/runs/38129987798)). SQLite/AES-GCM/Keystore per coda, bozze, ricevute e idempotenza; foto operative cifrate; tombstone autenticate; protezione da chiave sostituita e cancellazione di file estranei. Updater con download limitato, SHA-256 effettivo e verifica del pacchetto/certificato prima dell’installatore. PR22 e PR23 chiuse come alternative/incorporate; PR17 chiusa perché le modifiche erano già presenti in main.
+- Documentazione mobile: [archivio cifrato](https://github.com/Kevinni05/gestionale_radio/blob/main/docs/encrypted-operational-storage.md), [updater verificato](https://github.com/Kevinni05/gestionale_radio/blob/main/docs/verified-android-updates.md). Migrazione lazy, originali camera/galleria e Keystore hardware non sono bonificati/certificati dai test software.
+- Render: health pubblico dell’11 ottobre, 09:50:54 UTC, `UP`, `sourceRevision=a4c6fd819bb86fd1b421892e76290f93332213f6`, `revisionSource=RENDER_HOST`. Controller `/assets/control-room.js` disponibile e sintatticamente valido. Nessun ERROR restituito nel periodo 09:50–09:51:40 UTC; campione memoria massimo 312.516.600 byte su 536.870.900. Serie HTTP vuote: nessuna attestazione di carico, p95 o target letture.
+
+### Lavoro tecnico ancora aperto
+
+Oltre ai gate esterni, restano implementazioni: aggregazioni/proiezioni dashboard e misurazione delle letture (B06), migrazione completa storage e streaming download/cleanup (B07), migrazione di tutti gli invii immediati in outbox (B08), separazione dei controller web (W02), architettura feature/repository/stato mobile (M07), ricerca/filtri salvati e cache pack P2 (W14/M13). Non ridurre il backlog a soli test su dispositivi o pratiche commerciali.
+
+### Gate non eseguibili con le sole prove CI
+
+Servono staging Firebase autorizzato e verifica delle regole/indici effettivi, almeno due Android reali con dati pendenti e upgrade firmato, carico rappresentativo, modello di vendita e ownership degli account/chiavi, revisione privacy/licenze e pilota di almeno due settimane o campione equivalente concordato. La connessione Render attuale non espone la modifica di healthCheckPath o autoDeployTrigger: sono ancora osservati path vuoto e trigger commit, da allineare alla configurazione repository. Nessun gate commerciale è dichiarato superato.
+
