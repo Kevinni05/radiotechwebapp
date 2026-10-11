@@ -1,0 +1,63 @@
+<section th:fragment="content" class="view" id="view-notifications">
+                    <div class="section-head">
+                        <div>
+                            <h2 data-copy-key="copy-47">Centro notifiche</h2>
+                            <p>Invia comunicazioni operative a tutti i dipendenti oppure a una persona specifica.</p>
+                        </div>
+                        <button class="btn primary" id="newNotificationBtn">+ Nuova notifica</button>
+                    </div>
+
+                    <div class="notification-grid notification-workspace">
+                        <div class="panel notification-compose-panel">
+                            <div class="panel-head">
+                                <div>
+                                    <h3 data-copy-key="copy-48">Invia comunicazione</h3><span>Messaggi alla squadra. Assegna gli incarichi dalla sezione Operazioni.</span>
+                                </div>
+                            </div>
+                            <div class="panel-body notification-compose-body">
+                                <div class="field">
+                                    <label for="notificationTarget" data-copy-key="copy-49">Destinatari</label>
+                                    <select id="notificationTarget">
+                                        <option value="ALL" data-copy-key="copy-50">Tutti i dipendenti</option>
+                                        <option value="SELECTED" data-copy-key="copy-51">Dipendenti selezionati</option>
+                                    </select>
+                                </div>
+
+                                <div id="recipientBox" class="recipient-list hidden"></div>
+
+                                <div class="field">
+                                    <label for="notificationTitle" data-copy-key="copy-52">Titolo</label>
+                                    <input id="notificationTitle" maxlength="120" placeholder="Comunicazione alla squadra">
+                                </div>
+
+                                <div class="field">
+                                    <label for="notificationMessage" data-copy-key="copy-53">Messaggio</label>
+                                    <textarea id="notificationMessage" maxlength="1000"
+                                        placeholder="Scrivi qui la comunicazione..."></textarea>
+                                </div>
+
+                                <div class="toolbar notification-compose-actions">
+                                    <div class="notification-priority-field"><label for="notificationPriority" data-copy-key="copy-54">Priorità</label>
+                                    <select id="notificationPriority">
+                                        <option value="NORMAL" data-copy-key="copy-55">Priorità normale</option>
+                                        <option value="HIGH" data-copy-key="copy-56">Alta priorità</option>
+                                        <option value="URGENT" data-copy-key="copy-57">Urgente</option>
+                                    </select></div>
+                                    <button class="btn primary" id="sendNotificationBtn">Invia notifica</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="panel notification-history-panel">
+                            <div class="panel-head">
+                                <div>
+                                    <h3 data-copy-key="copy-58">Attività recenti</h3><span>Ultime comunicazioni inviate</span>
+                                </div>
+                                <button class="mini-btn" id="reloadNotificationsBtn">Aggiorna</button>
+                            </div>
+                            <div id="notificationHistory">
+                                <div class="empty">Caricamento notifiche...</div>
+                            </div>
+                        </div>
+                    </div>
+                </section>

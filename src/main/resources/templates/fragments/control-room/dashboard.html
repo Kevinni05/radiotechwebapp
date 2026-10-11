@@ -1,0 +1,144 @@
+<section th:fragment="content" class="view active" id="view-dashboard">
+                    <div class="section-head overview-head">
+                        <div><span class="section-kicker">La tua visione operativa</span>
+                            <h2 data-copy-key="copy-10">La rete, sotto controllo.</h2>
+                            <p>Dalle infrastrutture alla squadra: una visione d’insieme per decidere dove intervenire.</p>
+                        </div>
+                        <div class="update-stamp">Aggiornamento <span id="lastUpdate">—</span></div>
+                        <div class="overview-art" aria-hidden="true"><img src="/assets/brand/radiotech-signal-field.svg" alt="" width="720" height="600" decoding="async"></div>
+                    </div>
+
+                    <div class="stats">
+                        <div class="stat">
+                            <div class="stat-top"><span>Antenne</span><span class="stat-icon">◉</span></div>
+                            <div class="stat-value" id="statAntennas">—</div>
+                            <div class="subtle">totali registrate</div>
+                        </div>
+                        <div class="stat">
+                            <div class="stat-top"><span>Operatori</span><span class="stat-icon">♙</span></div>
+                            <div class="stat-value" id="statOperators">—</div>
+                            <div class="subtle">operatori registrati</div>
+                        </div>
+                        <div class="stat">
+                            <div class="stat-top"><span>Interventi</span><span class="stat-icon">⚒</span></div>
+                            <div class="stat-value" id="statInterventions">—</div>
+                            <div class="subtle">interventi registrati</div>
+                        </div>
+                        <div class="stat">
+                            <div class="stat-top"><span>Incarichi</span><span class="stat-icon">✓</span></div>
+                            <div class="stat-value" id="statTasks">—</div>
+                            <div class="subtle">attività complessive</div>
+                        </div>
+                        <div class="stat">
+                            <div class="stat-top"><span>Scorte basse</span><span class="stat-icon">!</span></div>
+                            <div class="stat-value" id="statLowStock">—</div>
+                            <div class="subtle">articoli sotto soglia</div>
+                        </div>
+                        <div class="stat">
+                            <div class="stat-top"><span>Incarichi scaduti</span><span class="stat-icon">!</span></div>
+                            <div class="stat-value" id="statOverdueTasks">—</div>
+                            <div class="subtle">da verificare</div>
+                        </div>
+                    </div>
+
+                    <div class="dashboard-tools"><div class="workspace-links" aria-label="Accessi rapidi">
+                        <button class="workspace-link" type="button" data-workspace-link="operations"><span data-icon="briefcase"></span><span><strong>Operazioni e squadra</strong><small>Incarichi, report e risorse</small></span><span class="link-arrow" data-icon="arrow"></span></button>
+                        <button class="workspace-link" type="button" data-workspace-link="enterprise"><span data-icon="shield"></span><span><strong>Rischi e competenze</strong><small>Incidenti e abilitazioni</small></span><span class="link-arrow" data-icon="arrow"></span></button>
+                        <button class="workspace-link" type="button" data-workspace-link="ai"><span data-icon="grid"></span><span><strong>Pianificazione preventiva</strong><small>Scadenze, priorità e manutenzione</small></span><span class="link-arrow" data-icon="arrow"></span></button>
+                    </div>
+                    <section class="panel session-notes" aria-labelledby="sessionNotesTitle">
+                        <div class="panel-head"><div><h3 id="sessionNotesTitle" data-copy-key="copy-11">Note rapide</h3><span>Appunti della sessione di questa scheda</span></div><button class="mini-btn" id="sessionNotesClear" type="button" disabled>Svuota</button></div>
+                        <div class="panel-body"><label class="sr-only" for="sessionNotesEditor" data-copy-key="copy-12">Note rapide operative</label><textarea id="sessionNotesEditor" maxlength="8000" rows="3" placeholder="Annota una priorità o un promemoria per il prossimo intervento…" aria-describedby="sessionNotesHint" disabled></textarea><div class="session-notes-meta"><span id="sessionNotesStatus" role="status">Accedi per usare le note.</span><button class="mini-btn" id="sessionNotesRetry" type="button" hidden>Riprova</button><span id="sessionNotesCount">0 / 8000</span></div><p class="field-help" id="sessionNotesHint">Solo in questa scheda. Evita credenziali e informazioni sensibili.</p><span class="subtle" id="sessionNotesUpdated">Nessuna modifica</span></div>
+                    </section></div>
+                    <div class="grid-2 dashboard-network">
+                        <div class="panel">
+                            <div class="panel-head">
+                                <div>
+                                    <h3 data-copy-key="copy-13">La rete sul territorio</h3>
+                                    <span>Posizione e stato operativo delle antenne</span>
+                                </div>
+                                <button class="mini-btn" id="centerMapBtn">Centra</button>
+                            </div>
+                            <div class="map-shell">
+                                <div id="map"></div>
+                                <div class="map-overlay">
+                                    <strong id="mapStatus">Mappa della rete</strong>
+                                    <span id="mapSubstatus">Caricamento infrastruttura...</span>
+                                </div>
+                            </div>
+                            <div class="map-legend">
+                                <span class="legend-item"><i class="legend-dot" style="background:#2bd576"></i>
+                                    Attiva</span>
+                                <span class="legend-item"><i class="legend-dot" style="background:#ffb648"></i>
+                                    Manutenzione</span>
+                                <span class="legend-item"><i class="legend-dot" style="background:#ff5f6d"></i>
+                                    Non connessa</span>
+                            </div>
+                        </div>
+
+                        <div class="panel">
+                            <div class="panel-head">
+                                <div>
+                                    <h3 data-copy-key="copy-14">Stato operativo della rete</h3>
+                                    <span>Antenne operative sul totale</span>
+                                </div>
+                                <span id="availabilityLabel">—</span>
+                            </div>
+
+                            <div class="panel-body">
+                                <div class="health-card">
+                                    <div>
+                                        <div class="subtle">Asset in stato attivo</div>
+                                        <div class="health-value" id="availabilityValue" aria-describedby="assetAvailabilityMeaning">—</div>
+                                    </div>
+                                    <span class="badge green" id="availabilityBadge">—</span>
+                                </div>
+                                <p class="field-help" id="assetAvailabilityMeaning">Percentuale degli asset con stato ATTIVA sul totale registrato. Lo stato gestionale non misura il tempo di funzionamento della rete.</p>
+
+                                <div class="progress-wrap">
+                                    <div class="progress-row">
+                                        <span>Antenne attive</span>
+                                        <span id="activeCount">—</span>
+                                    </div>
+                                    <div class="progress">
+                                        <div id="activeProgress" style="width:0%"></div>
+                                    </div>
+                                </div>
+
+                                <div class="progress-wrap">
+                                    <div class="progress-row">
+                                        <span>Antenne non attive</span>
+                                        <span id="inactiveCount">—</span>
+                                    </div>
+                                    <div class="progress">
+                                        <div id="inactiveProgress" style="width:0%"></div>
+                                    </div>
+                                </div>
+
+                                <div class="subtle" style="margin:24px 0 9px">Distribuzione incarichi</div>
+                                <div class="task-list">
+                                    <div class="task-row">
+                                        <div>
+                                            <div class="task-title">Assegnati</div>
+                                        </div><span class="badge blue" id="taskAssigned">0</span>
+                                    </div>
+                                    <div class="task-row">
+                                        <div>
+                                            <div class="task-title">In lavorazione</div>
+                                        </div><span class="badge yellow" id="taskProgress">0</span>
+                                    </div>
+                                    <div class="task-row">
+                                        <div>
+                                            <div class="task-title">Completati</div>
+                                        </div><span class="badge green" id="taskCompleted">0</span>
+                                    </div>
+                                    <div class="task-row">
+                                        <div>
+                                            <div class="task-title">Annullati</div>
+                                        </div><span class="badge red" id="taskCancelled">0</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
