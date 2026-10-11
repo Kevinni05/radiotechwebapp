@@ -13,7 +13,12 @@ public class LocalAttachmentController {
  private String tenant(Permission permission){Role role=SecurityContextAccessor.currentRole();boolean allowed=TenantAccessPolicy.canAccess(role,permission)||(permission==Permission.REPORT_READ&&role==Role.OPERATOR&&TenantAccessPolicy.canAccess(role,Permission.REPORT_CREATE));if(!allowed)throw new SecurityException("Operazione non autorizzata.");return TenantAccessPolicy.requireTenantAccess(SecurityContextAccessor.currentTenantId(),null);}
  @GetMapping("/config") public Map<String,Object> config(){tenant(Permission.REPORT_READ);return Map.of("mode","LOCAL","backend",files.storageBackend(),"maxBytes",LocalAttachmentService.MAX_BYTES);}
  @PostMapping(consumes="application/octet-stream") public Map<String,Object> upload(@RequestParam String operationId,@RequestParam String name,HttpServletRequest request)throws Exception{
-  String tenant=tenant(Permission.REPORT_CREATE);byte[] data=request.getInputStream().readNBytes(LocalAttachmentService.MAX_BYTES+1);return files.save(tenant,SecurityContextAccessor.currentUid(),operationId,name,data);
+  String tenant=tenant(Permission.REPORT_CREATE);
+  try(var reservation=files.reserveUpload()) {
+   if(request.getContentLengthLong()>LocalAttachmentService.MAX_BYTES)throw new IllegalArgumentException("Allegato troppo grande: limite 10 MB.");
+   byte[] data=request.getInputStream().readNBytes(LocalAttachmentService.MAX_BYTES+1);
+   return files.save(tenant,SecurityContextAccessor.currentUid(),operationId,name,data);
+  }
  }
  @GetMapping("/{id}") public Map<String,Object> download(@PathVariable String id)throws Exception{
   String tenant=tenant(Permission.REPORT_READ);Role role=SecurityContextAccessor.currentRole();return files.read(id,tenant,SecurityContextAccessor.currentUid(),role!=Role.OPERATOR);

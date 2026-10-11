@@ -35,6 +35,8 @@ public class LocalAttachmentService {
     private final String backend;
     private final Path root;
     private final JsonMapper json = JsonMapper.builder().build();
+    private final java.util.concurrent.Semaphore uploadSlots;
+    private final Object[] localLocks = new Object[64];
 
     public LocalAttachmentService(Environment env) {
         boolean production = env.acceptsProfiles(Profiles.of("production"));
@@ -45,6 +47,9 @@ public class LocalAttachmentService {
             throw new IllegalArgumentException("Archivio allegati non valido per questo ambiente.");
         }
         localMode = "LOCAL_FILESYSTEM".equals(backend);
+        uploadSlots = new java.util.concurrent.Semaphore(Math.max(1, Math.min(16,
+                env.getProperty("radiotech.attachments.max-concurrent-uploads", Integer.class, 3))));
+        Arrays.setAll(localLocks, ignored -> new Object());
         root = Path.of(env.getProperty("radiotech.local-files.directory", ".dist/private-files"))
                 .toAbsolutePath()
                 .normalize();
@@ -67,14 +72,25 @@ public class LocalAttachmentService {
         return root.resolve(id + suffix);
     }
 
-    public synchronized Map<String, Object> save(
+    /** Reserve before reading an HTTP body, so waiting uploads cannot retain 10 MB each. */
+    public AutoCloseable reserveUpload() {
+        if (!uploadSlots.tryAcquire()) throw new org.springframework.web.server.ResponseStatusException(
+                org.springframework.http.HttpStatus.TOO_MANY_REQUESTS, "Caricamenti in corso: riprovare tra pochi secondi.");
+        var released = new java.util.concurrent.atomic.AtomicBoolean();
+        return () -> { if (released.compareAndSet(false, true)) uploadSlots.release(); };
+    }
+
+    public Map<String, Object> save(
             String tenant,
             String uid,
             String operation,
             String name,
             byte[] data) throws Exception {
         requireIdentityAndPayload(tenant, uid, operation, name, data);
-        if (localMode) return saveLocal(tenant, uid, operation, name, data);
+        if (localMode) {
+            int stripe = Math.floorMod(Objects.hash(tenant, uid, operation), localLocks.length);
+            synchronized (localLocks[stripe]) { return saveLocal(tenant, uid, operation, name, data); }
+        }
         if ("FIREBASE_STORAGE".equals(backend)) return saveCloud(tenant, uid, operation, name, data);
         String id = hash((tenant + ":" + uid + ":" + operation).getBytes(StandardCharsets.UTF_8));
         return saveFirestore(id, tenant, uid, safeName(name), data);
