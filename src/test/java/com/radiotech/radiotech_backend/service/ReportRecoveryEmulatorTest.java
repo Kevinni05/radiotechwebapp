@@ -45,8 +45,10 @@ class ReportRecoveryEmulatorTest {
             assertEquals(8L, item.get().get().getLong("quantity"));
             assertSame(previous, SecurityContextHolder.getContext());
             assertFalse(recovery.recover(report.get().get(), Instant.now()));
-            var events = db.collection("auditLogs").whereEqualTo("resourceId", reportId).get().get().getDocuments();
+            var events = db.collection("auditLogs").whereEqualTo("tenantId", tenant).get().get().getDocuments();
             assertEquals(2, events.size());
+            assertEquals(Set.of("REPORT_APPROVED", "INVENTORY_CONSUMED"),
+                    new HashSet<>(events.stream().map(e -> e.getString("action")).toList()));
             assertTrue(events.stream().allMatch(e -> "reviewer".equals(e.getString("actor"))));
         } finally { SecurityContextHolder.clearContext(); }
     }
