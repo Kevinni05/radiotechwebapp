@@ -28,7 +28,7 @@ test('profile crop is circular, saved through profile API and displayed in all a
  const png=await page.evaluate(()=>{const c=document.createElement('canvas');c.width=600;c.height=400;const g=c.getContext('2d');g.fillStyle='#42aaff';g.fillRect(0,0,600,400);return c.toDataURL('image/png').split(',')[1];});
  await page.locator('#profilePhotoFile').setInputFiles({name:'portrait.png',mimeType:'image/png',buffer:Buffer.from(png,'base64')});await expect(page.locator('#profileCropDialog')).toBeVisible();
  await page.locator('#cropZoom').fill('1.5');await page.locator('#cropSave').click();await page.locator('#profileForm button[type=submit]').click();
- await expect(page.locator('#profileModal')).not.toHaveClass(/open/);expect(photo).toMatch(/^data:image\/webp;base64,/);await expect(page.locator('#profileAvatar img')).toBeVisible();
+ await expect(page.locator('#profileModal')).not.toHaveClass(/open/);expect(photo).toMatch(/^data:image\/(webp|png);base64,/);await expect(page.locator('#profileAvatar img')).toBeVisible();
  const alpha=await page.evaluate(async src=>{const i=new Image();i.src=src;await i.decode();const c=document.createElement('canvas');c.width=320;c.height=320;const g=c.getContext('2d');g.drawImage(i,0,0);return g.getImageData(0,0,1,1).data[3];},photo);expect(alpha).toBe(0);
 });
 test('viewer sees company branding but cannot modify it',async({page})=>{

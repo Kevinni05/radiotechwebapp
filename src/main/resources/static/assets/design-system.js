@@ -128,7 +128,7 @@
       sidebar.inert = mobile.matches && !open;
       main.inert = open;
       document.body.classList.toggle('menu-open',open);
-      if (open && !openBefore) (sidebar.querySelector('.nav button.active') || sidebar.querySelector('.nav button'))?.focus({ preventScroll:true });
+      if (open && !openBefore && !sidebar.contains(document.activeElement)) (sidebar.querySelector('.nav button.active') || sidebar.querySelector('.nav button'))?.focus({ preventScroll:true });
       if (!open && openBefore && sidebar.contains(document.activeElement)) main.focus({ preventScroll:true });
       openBefore = open;
     }
