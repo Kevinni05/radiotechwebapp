@@ -38,6 +38,22 @@ public class AuditService {
         return entry;
     }
 
+    /** Delete and audit share the same tenant-checked commit. */
+    public static void deleteResource(com.google.cloud.firestore.Firestore db, String collection,
+            String id, String tenant, String actor) throws java.util.concurrent.ExecutionException, InterruptedException {
+        var resource = db.collection(collection).document(id);
+        var event = db.collection("auditLogs").document();
+        db.runTransaction(tx -> {
+            var current = tx.get(resource).get();
+            if (!current.exists()) throw new IllegalArgumentException("Risorsa non trovata.");
+            if (!tenant.equals(current.getString("tenantId"))) throw new SecurityException("Permesso insufficiente.");
+            tx.delete(resource);
+            tx.create(event, transactionEntry("RESOURCE_DELETE", tenant, actor, collection, id, "SUCCESS",
+                    Instant.now().toString(), Map.of("existed", true), Map.of("deleted", true)));
+            return null;
+        }).get();
+    }
+
     /** Firebase Auth and Firestore cannot share a transaction. Persist intent before changing identity. */
     public DocumentReference beginIdentityAction(String action, String tenantId, String actor, String uid,
             Map<String, Object> before, Map<String, Object> after) throws Exception {

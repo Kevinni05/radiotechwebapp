@@ -27,6 +27,17 @@ import java.util.*;
 @Service
 public class LocalAttachmentService {
     public static final int MAX_BYTES = 10_000_000;
+    /** Validate upload format from bytes as well as extension; never trust a client MIME header. */
+    public static void validateUploadContent(String name, byte[] bytes) {
+        String lower = name == null ? "" : name.toLowerCase(Locale.ROOT);
+        boolean pdf = bytes.length >= 5 && new String(bytes, 0, 5, StandardCharsets.US_ASCII).equals("%PDF-");
+        boolean jpeg = bytes.length >= 3 && (bytes[0] & 255) == 255 && (bytes[1] & 255) == 216 && (bytes[2] & 255) == 255;
+        boolean png = bytes.length >= 8 && Arrays.equals(Arrays.copyOf(bytes, 8), new byte[]{(byte)137,80,78,71,13,10,26,10});
+        boolean webp = bytes.length >= 12 && new String(bytes,0,4,StandardCharsets.US_ASCII).equals("RIFF") && new String(bytes,8,4,StandardCharsets.US_ASCII).equals("WEBP");
+        if (!(pdf && lower.endsWith(".pdf") || jpeg && (lower.endsWith(".jpg") || lower.endsWith(".jpeg")) || png && lower.endsWith(".png") || webp && lower.endsWith(".webp")))
+            throw new IllegalArgumentException("Formato allegato non consentito: usa PDF, JPEG, PNG o WebP validi.");
+    }
+
     private static final String CLOUD_PREFIX = "radiotech-report-files/";
     private static final String FILE_COLLECTION = "reportFiles";
     private static final int CHUNK_BYTES = 256 * 1024;
@@ -115,6 +126,25 @@ public class LocalAttachmentService {
             if (missing.getStatusCode().value() != 404 || !"FIREBASE_STORAGE".equals(backend)) throw missing;
             return readCloud(id, tenant, uid, manager);
         }
+    }
+
+    /** Reserve references in the report transaction; orphan cleanup cannot race report creation. */
+    public void bindToReport(com.google.cloud.firestore.Firestore db, com.google.cloud.firestore.Transaction tx, List<String> references,
+            String tenant, String uid, String reportId) throws Exception {
+        if (references == null || localMode) return;
+        var docs = new ArrayList<com.google.cloud.firestore.DocumentSnapshot>();
+        long total = 0;
+        for (String reference : references) if (reference != null && reference.startsWith("radiotech-file:")) {
+            String id = reference.substring("radiotech-file:".length()); validateId(id);
+            var doc = tx.get(db.collection(FILE_COLLECTION).document(id)).get();
+            if (!doc.exists() || !tenant.equals(doc.getString("tenantId")) || !uid.equals(doc.getString("uid"))
+                    || doc.getString("cleanupState") != null) throw new SecurityException("Allegato non disponibile per il report.");
+            Long size = doc.getLong("size");
+            if (size == null || size <= 0 || size > MAX_BYTES) throw new IllegalArgumentException("Dimensione allegato non valida.");
+            total += size;docs.add(doc);
+        }
+        if (total > 50_000_000L) throw new IllegalArgumentException("Gli allegati del report superano 50 MB.");
+        for (var doc : docs) tx.update(doc.getReference(), "referencedBy", com.google.cloud.firestore.FieldValue.arrayUnion(reportId));
     }
 
     public void validateOwned(String reference, String tenant, String uid) {
@@ -214,7 +244,7 @@ public class LocalAttachmentService {
                 }
                 tx.set(ref, Map.of("tenantId", tenant, "uid", uid, "name", name,
                         "digest", digest, "size", data.length, "chunkCount", chunkCount,
-                        "createdAt", java.time.Instant.now().toString()));
+                        "createdAt", java.time.Instant.now().toString(), "lifecycleVersion", 1));
                 return null;
             }).get();
         } catch (java.util.concurrent.ExecutionException failure) {
@@ -255,6 +285,20 @@ public class LocalAttachmentService {
         return Map.of("name", metadata.get("name"), "base64", Base64.getEncoder().encodeToString(data));
     }
 
+    @org.springframework.scheduling.annotation.Scheduled(fixedDelay=3600000, initialDelay=60000)
+    public void removeAbandonedDownloadStages() {
+        Path directory = root.resolve("verified-downloads");
+        if (!Files.isDirectory(directory)) return;
+        long cutoff = System.currentTimeMillis() - 24L * 3600000;
+        try (var paths = Files.list(directory)) {
+            for (Path file : paths.filter(path -> path.getFileName().toString().startsWith("download-") && path.getFileName().toString().endsWith(".partial")).limit(1000).toList()) {
+                if (Files.isRegularFile(file, LinkOption.NOFOLLOW_LINKS) && Files.getLastModifiedTime(file).toMillis() < cutoff) Files.deleteIfExists(file);
+            }
+        } catch (java.io.IOException failure) {
+            org.slf4j.LoggerFactory.getLogger(LocalAttachmentService.class).warn("Temporary download cleanup deferred: type={}",failure.getClass().getSimpleName());
+        }
+    }
+
     /** Administrative recovery only; never exposed as an HTTP operation. */
     public Map<String, Object> restoreLocalArchive(String reference, String tenant, String uid) throws Exception {
         if (!"FIRESTORE".equals(backend) || reference == null || !reference.matches("radiotech-file:[a-f0-9]{64}"))
@@ -265,6 +309,120 @@ public class LocalAttachmentService {
         byte[] data = Files.readAllBytes(path(id, ".bin"));
         verifyIntegrity(metadata, data);
         return saveFirestore(id, tenant, uid, metadata.get("name"), data);
+    }
+
+    /** An authorized, verified stream staged with bounded memory before HTTP headers. */
+    public record VerifiedDownload(Path file, String name, long size, String digest) implements AutoCloseable {
+        public void transferTo(java.io.OutputStream output) throws Exception { Files.copy(file, output); }
+        @Override public void close() throws java.io.IOException { Files.deleteIfExists(file); }
+    }
+
+    public VerifiedDownload prepareDownload(String id, String tenant, String uid, boolean manager) throws Exception {
+        validateId(id);
+        if (tenant == null || uid == null) throw new SecurityException("Identità richiesta.");
+        Map<String, String> metadata;
+        if (localMode) metadata = localMetadata(id);
+        else {
+            try { metadata = firestoreMetadata(id); }
+            catch (org.springframework.web.server.ResponseStatusException missing) {
+                if (missing.getStatusCode().value() != 404 || !"FIREBASE_STORAGE".equals(backend)) throw missing;
+                metadata = cloudMetadata(id);
+            }
+        }
+        requireAuthorized(metadata, tenant, uid, manager);
+        long expectedSize = Long.parseLong(metadata.get("size"));
+        if (expectedSize <= 0 || expectedSize > MAX_BYTES) throw new IllegalStateException("Dimensione allegato non valida.");
+        Path stageDirectory = root.resolve("verified-downloads");
+        Files.createDirectories(stageDirectory);
+        Path stage = Files.createTempFile(stageDirectory, "download-", ".partial");
+        try {
+            var digest = java.security.MessageDigest.getInstance("SHA-256");
+            long size;
+            try (var output = new java.security.DigestOutputStream(Files.newOutputStream(stage), digest)) {
+                if (localMode) {
+                    try (var input = Files.newInputStream(path(id, ".bin"))) { size = copyBounded(input, output); }
+                } else if ("FIREBASE_STORAGE".equals(metadata.get("backend")) || metadata.get("chunkCount") == null) {
+                    var blob = cloudStorage().get(cloudBlobId(id));
+                    if (blob == null) throw new IllegalStateException("Oggetto allegato mancante.");
+                    requireAuthorized(blob.getMetadata(), tenant, uid, manager);
+                    try (var input = java.nio.channels.Channels.newInputStream(blob.reader())) { size = copyBounded(input, output); }
+                } else {
+                    int count = Integer.parseInt(metadata.get("chunkCount"));
+                    if (count != (expectedSize + CHUNK_BYTES - 1) / CHUNK_BYTES) throw new IllegalStateException("Allegato incompleto.");
+                    size = 0;
+                    var chunks = FirestoreClient.getFirestore().collection(FILE_COLLECTION).document(id).collection("chunks");
+                    for (int index = 0; index < count; index++) {
+                        var chunk = chunks.document(Integer.toString(index)).get().get().getBlob("data");
+                        byte[] bytes = chunk == null ? null : chunk.toBytes();
+                        if (bytes == null || bytes.length != Math.min(CHUNK_BYTES, expectedSize - size)) throw new IllegalStateException("Allegato incompleto.");
+                        output.write(bytes); size += bytes.length;
+                    }
+                }
+            }
+            String actual = HexFormat.of().formatHex(digest.digest());
+            if (size != expectedSize || !actual.equals(metadata.get("digest"))) throw new IllegalStateException("Integrità allegato non valida.");
+            return new VerifiedDownload(stage, safeName(metadata.getOrDefault("name", "allegato")), size, actual);
+        } catch (Exception error) { Files.deleteIfExists(stage); throw error; }
+    }
+
+    private static long copyBounded(java.io.InputStream input, java.io.OutputStream output) throws Exception {
+        byte[] buffer = new byte[64 * 1024]; long size = 0; int count;
+        while ((count = input.read(buffer)) != -1) {
+            size += count;
+            if (size > MAX_BYTES) throw new IllegalStateException("Allegato oltre il limite consentito.");
+            output.write(buffer, 0, count);
+        }
+        return size;
+    }
+
+    /** Dry-run/apply/rollback keep original chunks and the same opaque reference. */
+    public Map<String, Object> migrateToObjectStorage(String id, String tenant, String mode) throws Exception {
+        if (!Set.of("dry-run", "apply", "rollback").contains(mode) || localMode) throw new IllegalArgumentException("Modalità migrazione non valida.");
+        var metadata = firestoreMetadata(id);
+        requireAuthorized(metadata, tenant, metadata.get("uid"), true);
+        var db = FirestoreClient.getFirestore(); var ref = db.collection(FILE_COLLECTION).document(id);
+        if ("rollback".equals(mode)) {
+            if (!"FIRESTORE".equals(metadata.get("legacyBackend"))) throw new IllegalStateException("Copia legacy non disponibile.");
+            // Verify retained chunks before returning legacy reads to service.
+            var legacy = new LinkedHashMap<>(metadata); legacy.put("backend", "FIRESTORE");
+            readFirestore(id, legacy, tenant, metadata.get("uid"), true);
+            db.runTransaction(tx -> {
+                var current = tx.get(ref).get();
+                if (!tenant.equals(current.getString("tenantId")) || !metadata.get("digest").equals(current.getString("digest"))) throw new SecurityException("Archivio modificato durante la migrazione.");
+                tx.update(ref, "backend", "FIRESTORE", "migrationState", "ROLLED_BACK"); return null;
+            }).get();
+        } else {
+            try (var download = prepareDownload(id, tenant, metadata.get("uid"), true)) {
+                if ("apply".equals(mode) && !"FIREBASE_STORAGE".equals(metadata.get("backend"))) {
+                    var storage = cloudStorage(); var blobId = cloudBlobId(id);
+                    var existing = storage.get(blobId);
+                    if (existing == null) {
+                        var cloudMeta = new LinkedHashMap<>(metadata);
+                        cloudMeta.put("backend", "FIREBASE_STORAGE");
+                        var info = BlobInfo.newBuilder(blobId).setContentType("application/octet-stream").setMetadata(cloudMeta).build();
+                        try (var input = Files.newInputStream(download.file())) {
+                            try { storage.createFrom(info, input, Storage.BlobWriteOption.doesNotExist()); }
+                            catch (StorageException race) { if (race.getCode() != 409 && race.getCode() != 412) throw race; }
+                        }
+                    }
+                    // Verify stored bytes, not just the object's metadata digest.
+                    var object = storage.get(blobId);
+                    if (object == null || !tenant.equals(object.getMetadata().get("tenantId")) || !metadata.get("uid").equals(object.getMetadata().get("uid"))) throw new SecurityException("Oggetto storage non autorizzato.");
+                    var digest = java.security.MessageDigest.getInstance("SHA-256");
+                    long size;
+                    try (var input = java.nio.channels.Channels.newInputStream(object.reader());
+                         var output = new java.security.DigestOutputStream(java.io.OutputStream.nullOutputStream(), digest)) { size = copyBounded(input, output); }
+                    if (size != download.size() || !download.digest().equals(HexFormat.of().formatHex(digest.digest()))) throw new IllegalStateException("Verifica storage fallita; copia legacy conservata.");
+                    db.runTransaction(tx -> {
+                        var current = tx.get(ref).get();
+                        if (!tenant.equals(current.getString("tenantId")) || !metadata.get("digest").equals(current.getString("digest"))) throw new SecurityException("Archivio modificato durante la migrazione.");
+                        tx.update(ref, "backend", "FIREBASE_STORAGE", "legacyBackend", "FIRESTORE", "migrationState", "VERIFIED",
+                                "migratedAt", java.time.Instant.now().toString()); return null;
+                    }).get();
+                }
+            }
+        }
+        return Map.of("id", id, "mode", mode, "digest", metadata.get("digest"), "legacyRetained", Long.parseLong(metadata.getOrDefault("chunkCount", "0")) > 0);
     }
 
     private Map<String, Object> saveCloud(
@@ -332,7 +490,7 @@ public class LocalAttachmentService {
             }
             tx.set(ref, Map.of("tenantId", metadata.get("tenantId"), "uid", metadata.get("uid"), "digest", metadata.get("digest"),
                     "name", metadata.get("name"), "size", Long.parseLong(metadata.get("size")), "chunkCount", 0,
-                    "backend", "FIREBASE_STORAGE", "createdAt", java.time.Instant.now().toString()));
+                    "backend", "FIREBASE_STORAGE", "createdAt", java.time.Instant.now().toString(), "lifecycleVersion", 1));
             return null;
         }).get();
     }

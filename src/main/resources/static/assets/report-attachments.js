@@ -31,10 +31,15 @@
     async function read(ref) {
       let name, bytes;
       if (local.test(ref)) {
-        const file = await apiFetch(`/api/v1/files/${ref.slice(15)}`);
-        name = file.name || 'allegato';
-        if (typeof file.base64 !== 'string' || file.base64.length > 14000000) throw new Error('Allegato non valido o troppo grande.');
-        bytes = Uint8Array.from(atob(file.base64), c => c.charCodeAt(0));
+        let file;
+        try { file = await apiFetch(`/api/v1/files/${ref.slice(15)}/content`, {responseType:'bytes',timeoutMs:60000}); }
+        catch(error) { if(error.status!==404)throw error;file=await apiFetch(`/api/v1/files/${ref.slice(15)}`); }
+        name=file.name||'allegato';
+        if(file.bytes instanceof Uint8Array)bytes=file.bytes;
+        else {
+          if(typeof file.base64!=='string'||file.base64.length>14000000)throw new Error('Allegato non valido o troppo grande.');
+          bytes=Uint8Array.from(atob(file.base64),c=>c.charCodeAt(0));
+        }
       } else {
         const response = await fetch(ref, {credentials:'omit', referrerPolicy:'no-referrer', signal:AbortSignal.timeout(30000)});
         if (!response.ok) throw new Error('Allegato non disponibile.');

@@ -23,7 +23,7 @@ class LocalAttachmentPermissionTest {
     @Test void operatorCanConfigureUploadAndReadOnlyOwnFiles() throws Exception {
         authenticate("OPERATOR"); var files=mock(LocalAttachmentService.class); when(files.enabled()).thenReturn(true); when(files.storageBackend()).thenReturn("LOCAL_FILESYSTEM");
         var controller=new LocalAttachmentController(files); assertEquals("LOCAL",controller.config().get("mode"));
-        var request=new MockHttpServletRequest();request.setContent(new byte[]{1,2,3});
+        var request=new MockHttpServletRequest();request.setContent("%PDF-1.7".getBytes(java.nio.charset.StandardCharsets.US_ASCII));
         controller.upload("report-key","report.pdf",request);
         verify(files).save(eq("tenant-a"),eq("operator-a"),eq("report-key"),eq("report.pdf"),any(byte[].class));
         when(files.read("file-id","tenant-a","operator-a",false)).thenReturn(Map.of("name","report.pdf"));

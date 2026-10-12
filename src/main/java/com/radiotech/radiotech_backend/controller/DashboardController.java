@@ -112,6 +112,22 @@ public class DashboardController {
         }
     }
 
+    @GetMapping("/resources/{kind}/page")
+    public Map<String,Object> resourcePage(@PathVariable String kind,@RequestParam(required=false) String cursor,
+            @RequestParam(defaultValue="100") int limit,@RequestParam(defaultValue="") String q,@RequestParam(defaultValue="") String role,@RequestParam(defaultValue="") String category,@RequestParam(defaultValue="") String stock)throws Exception {
+        if(SecurityContextAccessor.currentRole()==Role.OPERATOR)throw new SecurityException("Permesso insufficiente.");
+        if(!List.of("operators","inventory").contains(kind))throw new IllegalArgumentException("Archivio non valido.");
+        requirePermission("operators".equals(kind)?Permission.USER_READ:Permission.INVENTORY_READ,null);
+        return dashboardService.resourcePage(kind,cursor,limit,q,role,category,stock,"");
+    }
+
+    @GetMapping("/antenne/page")
+    public Map<String,Object> antennaPage(@RequestParam(required=false) String cursor,
+            @RequestParam(defaultValue="200") int limit, @RequestParam(required=false) String status,@RequestParam(defaultValue="") String q) throws Exception {
+        requirePermission(Permission.ASSET_READ,null);
+        return dashboardService.resourcePage("antennas",cursor,limit,q,"","","",status);
+    }
+
     @GetMapping("/antenne")
     public ResponseEntity<?> getAntennas() {
 

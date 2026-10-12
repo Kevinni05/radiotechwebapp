@@ -40,6 +40,7 @@ public class MaintenanceReport {
     /** Logical removal only: signed content and review state remain intact. */
     private String removedAt;
     private String removedBy;
+    private String removalReason;
     private String reviewedAt;
     private String reviewedBy;
     private String reviewNote;
@@ -53,6 +54,8 @@ public class MaintenanceReport {
     private String workPerformed;
     private String findings;
     private Map<String, Double> measurements;
+    private Map<String, String> measurementUnits;
+    private String checklistVersion;
     private List<Map<String, Object>> materialsUsed = new ArrayList<>();
     private List<String> attachments = new ArrayList<>();
     private Double latitude;

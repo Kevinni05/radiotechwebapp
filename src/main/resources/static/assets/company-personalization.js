@@ -58,7 +58,7 @@ window.RadioTechPersonalization = (() => {
   function setText(selector,value) { if(!value)return;document.querySelectorAll(selector).forEach(el=>el.textContent=value); }
   function applyBrand() {
     applyColors();
-    setText('.brand strong,.login-brand strong,.workspace-label,.footer-brand strong',settings.name||defaults.name);
+    setText('.brand strong,.login-brand strong,[data-workspace-brand],.footer-brand strong',settings.name||defaults.name);
     setText('.brand span,.login-brand span,.footer-brand small',settings.subtitle||defaults.subtitle);
     setText('.overview-head h2',settings.welcomeTitle||defaults.welcomeTitle);setText('.overview-head p',settings.welcomeDescription||defaults.welcomeDescription);
     setText('.login-copyright,#footerCopyright',settings.copyright||defaults.copyright);

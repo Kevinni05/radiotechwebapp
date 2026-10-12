@@ -28,7 +28,11 @@ public class DashboardPageController {
     @Value("${radiotech.brand.support-email:}")
     private String brandSupportEmail = "";
 
+    @Value("${radiotech.environment-label:SVILUPPO}")
+    private String environmentLabel = "SVILUPPO";
+
     private void addBrand(Model model) {
+        model.addAttribute("environmentLabel", environmentLabel);
         model.addAttribute("brandName", brandName);
         model.addAttribute("brandSubtitle", brandSubtitle);
         model.addAttribute("brandLogoPath", safeLogoPath(brandLogoPath));

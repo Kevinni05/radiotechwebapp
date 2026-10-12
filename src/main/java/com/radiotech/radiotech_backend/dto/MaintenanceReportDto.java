@@ -30,6 +30,10 @@ public class MaintenanceReportDto {
     private String startedAt;
     private String completedAt;
     private Map<String, Double> measurements;
+    @Size(max = 100)
+    private Map<@Size(max = 150) String, @Size(max = 24) String> measurementUnits;
+    @jakarta.validation.constraints.Pattern(regexp = "sha256:[a-f0-9]{64}")
+    private String checklistVersion;
     private List<Map<String, Object>> materialsUsed = new ArrayList<>();
     private List<@Size(max = 2048) String> attachments = new ArrayList<>();
 
@@ -71,6 +75,8 @@ public class MaintenanceReportDto {
         report.setStartedAt(startedAt);
         report.setCompletedAt(completedAt);
         report.setMeasurements(measurements);
+        report.setMeasurementUnits(measurementUnits);
+        report.setChecklistVersion(checklistVersion);
         report.setMaterialsUsed(materialsUsed == null ? new ArrayList<>() : materialsUsed);
         report.setAttachments(attachments == null ? new ArrayList<>() : attachments);
         report.setLatitude(latitude);

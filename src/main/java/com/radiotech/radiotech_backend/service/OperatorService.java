@@ -1347,6 +1347,7 @@ public class OperatorService {
                             "Annulla l’incarico «" + java.util.Objects.toString(task.get("title"), task.getId())
                             + "» (" + task.getId() + ") nella sezione Incarichi prima di eliminare l’operatore.");
                 }
+                com.google.cloud.firestore.DocumentReference deleteIntent = null;
                 if (!isBlank(uid)) {
                     // A Firebase identity may not be removed through a foreign tenant record.
                     var linked = db.collection(COLLECTION).whereEqualTo("firebaseUid", uid).get().get();
@@ -1357,13 +1358,27 @@ public class OperatorService {
                         if (claimedRole != null && !java.util.Set.of("OPERATOR", "VIEWER").contains(claimedRole.toString().toUpperCase(java.util.Locale.ROOT))) throw new IllegalArgumentException("L’identità possiede un ruolo aziendale privilegiato e non può essere eliminata da questa sezione.");
                         Object claimedTenant = user.getCustomClaims().get("tenantId");
                         if (claimedTenant != null && !existing.getString("tenantId").equals(claimedTenant.toString())) throw new SecurityException("Account associato a un’altra azienda.");
+                        deleteIntent = new AuditService().beginIdentityAction("OPERATOR_DELETE", existing.getString("tenantId"), SecurityContextAccessor.currentUid(), uid, user.getCustomClaims(), Map.of());
+                        deleteIntent.update("operatorId", id).get();
                         FirebaseAuth.getInstance().revokeRefreshTokens(uid);
                         FirebaseAuth.getInstance().deleteUser(uid);
                     } catch (FirebaseAuthException error) {
                         if (error.getAuthErrorCode() != com.google.firebase.auth.AuthErrorCode.USER_NOT_FOUND) throw error;
                     }
                 }
-                document.delete().get();
+                String tenant = existing.getString("tenantId"), actor = SecurityContextAccessor.currentUid();
+                var audit = deleteIntent == null ? db.collection("auditLogs").document() : deleteIntent;
+                boolean intentExists = deleteIntent != null;
+                db.runTransaction(tx -> {
+                    var latest = tx.get(document).get();
+                    if (!latest.exists()) return null;
+                    requireDocumentTenant(latest, tenant);
+                    if (!java.util.Objects.equals(uid, latest.getString("firebaseUid"))) throw new SecurityException("Identità modificata durante la cancellazione.");
+                    tx.delete(document);
+                    if (intentExists) tx.update(audit, "result", "SUCCESS", "completedAt", Instant.now().toString(), "reconciliationRequired", false);
+                    else tx.create(audit, AuditService.transactionEntry("OPERATOR_DELETE", tenant, actor, COLLECTION, id, "SUCCESS", Instant.now().toString(), Map.of("existed",true), Map.of("deleted",true)));
+                    return null;
+                }).get();
         }
 
         /**

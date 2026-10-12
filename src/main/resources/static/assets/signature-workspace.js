@@ -1,7 +1,7 @@
 "use strict";
 
 /* Workspace navigation and private, tab-scoped notes. No remote note storage. */
-window.RadioTechSignatureWorkspace = function ({ state, switchView, initials }) {
+window.RadioTechSignatureWorkspace = function ({ state, switchView, initials, apiFetch }) {
   const $ = id => document.getElementById(id);
   const editor = $('sessionNotesEditor');
   const status = $('sessionNotesStatus');
@@ -71,6 +71,8 @@ window.RadioTechSignatureWorkspace = function ({ state, switchView, initials }) 
   function reset() {
     clearTimeout(timer); timer = null;
     if (owner) { try { sessionStorage.removeItem(owner); } catch (_) { /* An inaccessible key cannot be read by another identity. */ } }
+    if(owner){try{sessionStorage.removeItem(`${owner}:searches`);}catch(_){}}
+    ++resourceRequest;clearTimeout(resourceTimer);results.replaceChildren();
     owner = null; dirty = false; updatedAt = null; editor.value = ''; editor.disabled = true;
     $('topbarName').textContent = 'Account'; $('topbarAccountEmail').textContent = '—'; $('topbarAvatar').textContent = '—'; $('topbarRole').textContent = '—';
     setStatus('Accedi per usare le note.'); metadata(); closeMenus();
@@ -143,10 +145,50 @@ window.RadioTechSignatureWorkspace = function ({ state, switchView, initials }) 
     }
     return entries;
   }
+  let resourceTimer = null, resourceRequest = 0;
+  const savedSearch = $('workspaceSavedSearch');
+  function filters() { try { const values=JSON.parse(sessionStorage.getItem(`${owner}:searches`) || '[]');return Array.isArray(values)?values.filter(value=>typeof value==='string'&&value.length<=32).slice(0,5):[]; }catch(_){return [];} }
+  function renderFilters() {
+    if(!savedSearch)return;
+    savedSearch.replaceChildren(new Option('Ricerche salvate nella sessione',''));
+    if(owner)for(const value of filters())savedSearch.append(new Option(value,value));
+  }
+  $('workspaceSaveSearch')?.addEventListener('click',()=>{
+    const value=search.value.trim();if(!owner||value.length<2||value.length>32)return;
+    try{sessionStorage.setItem(`${owner}:searches`,JSON.stringify([...new Set([value,...filters()])].slice(0,5)));renderFilters();}catch(_){/* Search still works without persistence. */}
+  });
+  savedSearch?.addEventListener('change',()=>{if(savedSearch.value){search.value=savedSearch.value;renderCommands();search.focus();}});
+  function resourceSearch(term) {
+    clearTimeout(resourceTimer);const request=++resourceRequest,identity=owner;
+    if(term.length<2||term.length>32||!apiFetch||!identity)return;
+    resourceTimer=setTimeout(async()=>{
+      const section=document.createElement('section');section.setAttribute('aria-label','Risorse aziendali');
+      try {
+        const response=await apiFetch(`/api/v1/dashboard/search?q=${encodeURIComponent(term)}`);
+        if(request!==resourceRequest||identity!==owner||!dialog.open)return;
+        const heading=document.createElement('h3');heading.textContent='Risorse aziendali';section.append(heading);
+        const labels={antennas:'Impianto',tasks:'Incarico',maintenanceReports:'Report',operators:'Operatore',inventory:'Magazzino'};
+        for(const item of response.items || []) {
+          const row=document.createElement('details'),label=document.createElement('summary'),detail=document.createElement('p');
+          label.textContent=`${labels[item.type] || 'Risorsa'} · ${item.label}`;
+          detail.textContent=`${item.id} · ${item.status || 'Stato non indicato'} · Aggiornamento ${item.updatedAt || 'non disponibile'}`;
+          row.append(label,detail);section.append(row);
+        }
+        if(!(response.items?.length)){const empty=document.createElement('p');empty.textContent='Nessuna risorsa trovata. Cerca per inizio del nome.';section.append(empty);}
+        let cursor=response.nextCursor;
+        if(cursor){const more=document.createElement('button');more.type='button';more.className='btn';more.textContent='Carica altri risultati';section.append(more);
+          more.onclick=async()=>{more.disabled=true;try{const page=await apiFetch(`/api/v1/dashboard/search?q=${encodeURIComponent(term)}&cursor=${encodeURIComponent(cursor)}`);if(request!==resourceRequest||identity!==owner||!dialog.open)return;
+            for(const item of page.items||[]){const row=document.createElement('details'),label=document.createElement('summary'),detail=document.createElement('p');label.textContent=`${labels[item.type]||'Risorsa'} · ${item.label}`;detail.textContent=`${item.id} · ${item.status||'Stato non indicato'} · Aggiornamento ${item.updatedAt||'non disponibile'}`;row.append(label,detail);more.before(row);}cursor=page.nextCursor;more.hidden=!cursor;
+          }catch(_){more.textContent='Riprova a caricare altri risultati';}finally{more.disabled=false;}};
+        }
+      }catch(_){if(request!==resourceRequest||identity!==owner||!dialog.open)return;const message=document.createElement('p');message.textContent='Ricerca risorse temporaneamente non disponibile.';section.append(message);}
+      results.append(section);
+    },350);
+  }
   function renderCommands() {
     const term = search.value.trim().toLocaleLowerCase('it');
     commands = collectCommands().filter(command => command.label.toLocaleLowerCase('it').includes(term));
-    results.replaceChildren();
+    results.replaceChildren();resourceSearch(term);
     if (!commands.length) { const empty = document.createElement('p'); empty.className = 'empty'; empty.textContent = 'Nessuna sezione o azione disponibile con questo nome.'; results.append(empty); return; }
     commands.forEach(command => {
       const button = document.createElement('button'); button.type = 'button'; button.className = 'workspace-command-result';
@@ -159,7 +201,7 @@ window.RadioTechSignatureWorkspace = function ({ state, switchView, initials }) 
   }
   function openSearch() {
     if (!state.token || !$('app').classList.contains('ready') || document.querySelector('dialog[open]') || document.querySelector('.modal-backdrop.open')) return;
-    closeMenus(); returnFocus = document.activeElement; search.value = ''; renderCommands(); dialog.showModal(); search.focus();
+    closeMenus(); renderFilters(); returnFocus = document.activeElement; search.value = ''; renderCommands(); dialog.showModal(); search.focus();
   }
   $('workspaceShortcut').textContent = /Mac|iPhone|iPad/.test(navigator.platform) ? '⌘ K' : 'Ctrl K';
   $('workspaceSearchBtn').addEventListener('click', openSearch);

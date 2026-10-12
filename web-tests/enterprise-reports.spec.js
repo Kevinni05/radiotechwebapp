@@ -36,7 +36,7 @@ for(const status of ['SUBMITTED','APPROVAL_PENDING','APPROVED','REJECTED','DRAFT
     const pending=new Promise(resolve=>{release=resolve;});
     await session(page,'ADMIN',{'/reports':reports,respond:async(path,method,request)=>{
       if(path==='/reports/remove-me'&&method==='DELETE'){
-        deletes++;expect(request.headers()['authorization']).toBe('Bearer test-token');
+        deletes++;expect(request.postDataJSON().reason).toBe('Duplicato operativo verificato');expect(request.headers()['authorization']).toBe('Bearer test-token');
         await pending;reports.splice(0);return {success:true,id:'remove-me',removed:true};
       }
     }});
@@ -48,6 +48,7 @@ for(const status of ['SUBMITTED','APPROVAL_PENDING','APPROVED','REJECTED','DRAFT
     await page.keyboard.press('Escape');await expect(dialog).toHaveCount(0);expect(deletes).toBe(0);
     await page.locator('[data-report-delete]').click();
     const confirm=dialog.getByRole('button',{name:'Conferma eliminazione'});
+    await dialog.getByLabel('Motivo della rimozione').fill('Duplicato operativo verificato');
     await confirm.click();await expect(confirm).toBeDisabled();
     await expect.poll(()=>deletes).toBe(1);
     await page.keyboard.press('Escape');await expect(dialog).toBeVisible();
@@ -63,6 +64,7 @@ test('server refusal leaves report in place and confirmation can be retried or c
   await page.route('**/api/v1/reports/denied',route=>route.fulfill({status:403,json:{message:'Operazione non autorizzata'}}));
   await openReports(page);await page.locator('[data-report-delete]').click();
   const dialog=page.getByRole('dialog',{name:'Elimina report'});
+  await dialog.getByLabel('Motivo della rimozione').fill('Duplicato operativo verificato');
   await dialog.getByRole('button',{name:'Conferma eliminazione'}).click();
   await expect(dialog.getByRole('alert')).toContainText('non autorizzata');
   await expect(dialog.getByRole('button',{name:'Conferma eliminazione'})).toBeEnabled();

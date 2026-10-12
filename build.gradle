@@ -74,6 +74,13 @@ tasks.register('archiveMigration', JavaExec) {
     args project.findProperty('archiveMigrationMode') ?: 'dry-run'
 }
 
+tasks.register('attachmentMigration', JavaExec) {
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.radiotech.radiotech_backend.ops.AttachmentMigrationTool'
+    args project.findProperty('migrationMode') ?: 'dry-run', project.property('migrationTenant'),
+            project.findProperty('migrationAfter') ?: '', project.findProperty('migrationLimit') ?: '25'
+}
+
 tasks.register('backupDrill', JavaExec) {
     classpath = sourceSets.main.runtimeClasspath
     mainClass = 'com.radiotech.radiotech_backend.ops.BackupDrillTool'

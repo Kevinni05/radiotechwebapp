@@ -68,9 +68,9 @@ window.RadioTechPro = function ({apiFetch,state,escapeHtml:esc,toast,switchView}
     const record=records.find(r=>r.id===button.dataset.id),action=button.dataset.action,module=current.id,session=state.sessionEpoch; if(!record||button.disabled)return;
     const active=()=>session===state.sessionEpoch&&module===current?.id;
     let quantity=0,reason="";
-    if(["LOAD","RESERVE","CONSUME","RETURN"].includes(action)) { const answer=prompt("Quantità intera:"); if(answer===null)return; quantity=Number(answer); if(!Number.isInteger(quantity)||quantity<=0) { toast("Quantità non valida","Inserisci un intero positivo","error");return; } }
-    if(action==="PAUSE") { reason=prompt("Motivo della sospensione:"); if(!reason)return; }
-    if(!confirm(`${labels[action]}: ${record.name}?`))return; button.disabled=true;
+    if(["LOAD","RESERVE","CONSUME","RETURN"].includes(action)) { const answer=await window.RadioTechDialogs.prompt("Quantità intera:"); if(answer===null)return; quantity=Number(answer); if(!Number.isInteger(quantity)||quantity<=0) { toast("Quantità non valida","Inserisci un intero positivo","error");return; } }
+    if(action==="PAUSE") { reason=await window.RadioTechDialogs.prompt("Motivo della sospensione:"); if(!reason)return; }
+    if(!await window.RadioTechDialogs.confirm(`${labels[action]}: ${record.name}?`))return; button.disabled=true;
     const key=JSON.stringify([module,record.id,record.version,action,quantity,reason]);if(!actionOperations.has(key))actionOperations.set(key,crypto.randomUUID());
     try { await apiFetch(`/api/v1/pro/${module}/${record.id}/actions`,{method:"POST",body:JSON.stringify({action,quantity,reason,expectedVersion:record.version,operationId:actionOperations.get(key)})});if(active())await load(); } catch(error) { if(active())toast("Azione non riuscita",error.message,"error"); } finally {button.disabled=false;}
   };

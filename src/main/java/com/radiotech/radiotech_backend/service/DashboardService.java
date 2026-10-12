@@ -28,6 +28,8 @@ public class DashboardService {
 
     @Value("${radiotech.sla.warning-minutes:60}")
     private long slaWarningMinutes;
+    @Value("${radiotech.dashboard.projections-enabled:false}")
+    private boolean projectionsEnabled;
 
     private Firestore db() {
         return FirestoreClient.getFirestore();
@@ -39,6 +41,11 @@ public class DashboardService {
     }
 
     private Map<String, Object> computeDashboardStats(String tenant) throws Exception {
+
+        if (projectionsEnabled) {
+            var projected = DashboardProjectionReader.read(db(), tenant, slaWarningMinutes);
+            if (projected != null) return projected;
+        }
 
         QuerySnapshot antennasSnapshot = tenantQuery("antennas", tenant).select("status").get().get();
 
@@ -219,6 +226,47 @@ public class DashboardService {
             }
         }
         return new PendingReportSummary(total, unknownDate ? null : oldestAt);
+    }
+
+    public Map<String,Object> resourcePage(String collection,String cursor,int limit)throws Exception {
+        return resourcePage(collection,cursor,limit,"","","","","");
+    }
+    public Map<String,Object> resourcePage(String collection,String cursor,int limit,String search,String role,String category,String stock,String status)throws Exception {
+        if(!List.of("operators","inventory","antennas","tasks","maintenanceReports").contains(collection))throw new IllegalArgumentException("Archivio non valido.");
+        int safeLimit=Math.max(1,Math.min(limit,200));
+        if(cursor!=null&&(cursor.contains("/")||cursor.length()>1500))throw new IllegalArgumentException("Cursore non valido.");
+        String term=java.text.Normalizer.normalize(java.util.Objects.toString(search,"").trim(),java.text.Normalizer.Form.NFKD).replaceAll("\\p{M}","").toLowerCase(java.util.Locale.ROOT);
+        if(term.length()>100)throw new IllegalArgumentException("Ricerca troppo lunga.");
+        String selectedRole=java.util.Objects.toString(role,"").trim().toUpperCase(java.util.Locale.ROOT),selectedCategory=java.util.Objects.toString(category,""),selectedStock=java.util.Objects.toString(stock,""),selectedStatus=java.util.Objects.toString(status,"").trim().toUpperCase(java.util.Locale.ROOT);
+        if(selectedCategory.length()>120||selectedRole.length()>40||selectedStatus.length()>40||selectedStock.length()>16)throw new IllegalArgumentException("Filtro non valido.");
+        var items=new java.util.ArrayList<Map<String,Object>>();String after=cursor;boolean hasMore=false;
+        // Bounded server-side filtering preserves legacy records with missing/default fields.
+        // Initial unfiltered openings read one page; sparse searches never scan the full archive.
+        int budget=term.isEmpty()&&selectedRole.isEmpty()&&selectedCategory.isEmpty()&&selectedStock.isEmpty()&&selectedStatus.isEmpty()?1:5;
+        for(int batch=0;batch<budget;batch++) {
+            var query=db().collection(collection).whereEqualTo("tenantId",currentTenant()).orderBy(com.google.cloud.firestore.FieldPath.documentId());
+            if(after!=null&&!after.isBlank())query=query.startAfter(after);
+            var docs=query.limit(safeLimit+1).get().get().getDocuments();int scan=Math.min(safeLimit,docs.size());hasMore=docs.size()>safeLimit;
+            for(int index=0;index<scan;index++) {
+                var doc=docs.get(index);after=doc.getId();var item=new java.util.LinkedHashMap<String,Object>(doc.getData());item.put("id",doc.getId());
+                for(String key:List.of("qrCodeToken","fcmTokens","password","passwordHash","temporaryPassword"))item.remove(key);
+                if("operators".equals(collection)){var operator=OperatorService.mapOperator(doc);item.put("fullName",operator.getFullName());item.put("status",operator.getStatus());}
+                String itemRole=java.util.Objects.toString(item.get("role"),"OPERATOR").toUpperCase(java.util.Locale.ROOT),itemStatus=java.util.Objects.toString(item.get("status"),"").toUpperCase(java.util.Locale.ROOT);
+                if(!selectedRole.isEmpty()&&!selectedRole.equals(itemRole)||!selectedStatus.isEmpty()&&!selectedStatus.equals(itemStatus)||!selectedCategory.isEmpty()&&!selectedCategory.equals(item.get("category")))continue;
+                boolean active=!Boolean.FALSE.equals(item.get("active"));
+                long quantity=item.get("quantity") instanceof Number number?number.longValue():0,threshold=item.get("minimumThreshold") instanceof Number number?number.longValue():0;
+                if("ACTIVE".equals(selectedStock)&&!active||"ARCHIVED".equals(selectedStock)&&active||"LOW".equals(selectedStock)&&(!active||quantity>threshold))continue;
+                String text=List.of("id","name","fullName","email","sku","category","location","status","title","taskTitle").stream().map(key->java.util.Objects.toString(item.get(key),"")).collect(java.util.stream.Collectors.joining(" ")).toLowerCase(java.util.Locale.ROOT);
+                text=java.text.Normalizer.normalize(text,java.text.Normalizer.Form.NFKD).replaceAll("\\p{M}","");
+                if(!term.isEmpty()&&!text.contains(term))continue;
+                items.add(item);if(items.size()==safeLimit){hasMore=index+1<docs.size();break;}
+            }
+            if(items.size()==safeLimit||!hasMore)break;
+        }
+        var result=new java.util.LinkedHashMap<String,Object>();result.put("items",items);result.put("nextCursor",hasMore?after:null);result.put("hasMore",hasMore);return result;
+    }
+    public Map<String,Object> antennaPage(String cursor,int limit,String status)throws Exception {
+        return resourcePage("antennas",cursor,limit,"","","","",status);
     }
 
     public List<Map<String, Object>> getAntennas() throws Exception {
@@ -420,11 +468,8 @@ public class DashboardService {
         }
         requireDocumentTenant(document);
 
-        db()
-                .collection("antennas")
-                .document(id)
-                .delete()
-                .get();
+        AuditService.deleteResource(db(), "antennas", id, currentTenant(),
+                com.radiotech.radiotech_backend.security.SecurityContextAccessor.currentUid());
     }
 
     public Map<String, Object> updateTaskStatus(

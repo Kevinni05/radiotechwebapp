@@ -47,9 +47,13 @@ public class MaintenanceReportController {
     public Object page(@RequestParam(defaultValue = "50") int limit,
             @RequestParam(required = false) String cursor,
             @RequestParam(required = false) String status,
+            @RequestParam(required = false) String q,
+            @RequestParam(required = false) String operator,
+            @RequestParam(required = false) String from,
+            @RequestParam(required = false) String to,
             @RequestHeader(value = "X-Tenant-Id", required = false) String tenantId) throws Exception {
         requirePermission(Permission.REPORT_READ, tenantId);
-        return service.getPage(limit, cursor, null, null, status);
+        return service.searchPage(limit,cursor,status,q,operator,from,to);
     }
 
     @GetMapping("/count")
@@ -106,12 +110,15 @@ public class MaintenanceReportController {
         return Map.of("report", report, "verificationUrl", service.verificationUrl(report));
     }
 
+    public record RemovalRequest(@jakarta.validation.constraints.NotBlank @jakarta.validation.constraints.Size(min=3,max=500) String reason) {}
+
     @DeleteMapping("/{id}")
     public ResponseEntity<?> remove(@PathVariable String id, @RequestAttribute("firebaseUid") String uid,
-            @RequestHeader(value = "X-Tenant-Id", required = false) String tenantId) {
+            @RequestHeader(value = "X-Tenant-Id", required = false) String tenantId,
+            @jakarta.validation.Valid @RequestBody(required=false) RemovalRequest removal) {
         return ok(() -> {
             requirePermission(Permission.REPORT_DELETE, tenantId);
-            service.remove(id, uid);
+            if(removal==null)service.remove(id,uid);else service.remove(id,uid,removal.reason());
             return Map.of("success", true, "id", id, "removed", true,
                     "message", "Report rimosso dall'elenco. Documenti e audit conservati.");
         });

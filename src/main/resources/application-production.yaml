@@ -35,6 +35,8 @@ springdoc:
     enabled: false
 
 radiotech:
+  dashboard:
+    projections-enabled: ${RADIOTECH_DASHBOARD_PROJECTIONS_ENABLED:false}
   attachments:
     backend: ${RADIOTECH_ATTACHMENT_BACKEND:FIRESTORE}
   operations:
@@ -50,3 +52,6 @@ management:
     web:
       exposure:
         include: health,info,metrics,prometheus
+
+# Explicit environment badge; never infer production from a hostname.
+radiotech.environment-label: ${RADIOTECH_ENVIRONMENT_LABEL:PRODUZIONE}
