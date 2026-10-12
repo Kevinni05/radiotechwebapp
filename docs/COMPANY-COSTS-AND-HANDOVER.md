@@ -1,6 +1,6 @@
 # Proposta di consegna aziendale
 
-Aggiornamento: 12 ottobre 2026. Il progetto corrente rimane un ambiente di test: non vengono attivati abbonamenti, billing, bucket o Functions a pagamento.
+Aggiornamento: 12 ottobre 2026. Il progetto corrente rimane un test: non vengono attivati nuovi abbonamenti, bucket o Functions. La verifica read-only ha confermato billing già abilitato sul progetto esistente e nessun bucket Storage. Non è stato modificato il piano; non si deve descrivere il progetto come Spark o senza billing. L'uso resta a basso volume con gli adapter Firestore; le quote gratuite non garantiscono una fattura sempre nulla.
 
 ## Configurazione consigliata
 

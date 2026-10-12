@@ -2,7 +2,7 @@
 
 Aggiornato il 12 ottobre 2026. [Piano originale](commercial-consolidation-plan.md), [registro storico](commercial-progress-history.md), [costi e handover](COMPANY-COSTS-AND-HANDOVER.md).
 
-Il progetto corrente è un **test**, per scelta del proprietario. Non vengono attivati billing, abbonamenti, Storage o Functions a pagamento. Questa tabella sostituisce gli stati precedenti: download, outbox e controller feature erano ancora indicati come mancanti dopo la loro implementazione.
+Il progetto corrente è un **test**, per scelta del proprietario. Billing è già abilitato sul progetto esistente; la verifica read-only ha trovato zero bucket. Non vengono attivati nuovi abbonamenti, Storage o Functions. Questa tabella sostituisce gli stati precedenti: download, outbox e controller feature erano ancora indicati come mancanti dopo la loro implementazione.
 
 **Il gate commerciale resta aperto.** Implementazione, test e accettazione aziendale sono evidenze diverse. Frontend consolidato: [web PR36](https://github.com/Kevinni05/radiotechwebapp/pull/36), [mobile PR27](https://github.com/Kevinni05/gestionale_radio/pull/27). La precedente CI web ha superato 123 casi per ciascuno dei tre browser, backend, emulatori, JAR riproducibile e container. Questa iterazione aggiunge distribuzione autenticata, aggregazioni task e collaudi fisici/API.
 
@@ -14,7 +14,7 @@ Il progetto corrente è un **test**, per scelta del proprietario. Non vengono at
 | B04 | Audit atomico e intenti Auth durevoli con recovery | Retention e nomina responsabili |
 | B05 | Chiavi persistenti, tre retry testati; telefono conserva coda, bozza e ricevuta dopo riavvio e upgrade | Urgente/FCM fisico con rete degradata |
 | B06 | Filtri/cursor/cache tenant; aggregazioni storico task con fallback legacy; fixture 10.010 task trasferisce 10 documenti attivi | Benchmark globale fatturato e p95: 99,9% riguarda documenti task trasferiti, non letture globali fatturate |
-| B07 | Streaming con stage/digest prima degli header, limiti/concorrenza, cleanup su cancellazione; riferimenti atomici; migrazione/checkpoint/rollback e cleanup dry-run | Storage/migrazione reale sospesi per scelta test senza billing; carico/retention cliente |
+| B07 | Streaming con stage/digest prima degli header, limiti/concorrenza, cleanup su cancellazione; riferimenti atomici; migrazione/checkpoint/rollback e cleanup dry-run | Nuovo bucket/migrazione reale rinviati alla configurazione cliente; carico/retention approvati |
 | B08 | Task/calendario/PRO in outbox; retry per destinatario, lease, backoff, dead letter e allarme | FCM fisico; semantica almeno una volta dopo accettazione FCM |
 | B09 | Errori strutturati/requestId, deadline, risposte limitate, quote e concorrenza | Proxy/repliche e misure contrattuali |
 | B10 | Snapshot tecnico/versione/checksum/unità e PDF Flutter reale; replay, approvazione, rinomina e rimozione motivata provati via API | Modelli report approvati dal cliente |
