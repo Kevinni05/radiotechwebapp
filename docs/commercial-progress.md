@@ -9,7 +9,7 @@ Il progetto corrente è un **test**, per scelta del proprietario. Non vengono at
 | ID | Implementazione ed evidenza | Accettazione restante |
 |---|---|---|
 | B01 | Backup cifrato/offsite e restore isolato documenti, claims e allegati già riusciti; nuova verifica APK e heap dedicato al tool | Password/provider/MFA produzione; recupero chiave aziendale; RPO/RTO misurati |
-| B02 | Policy ruoli/tenant, ENGINEER distinto dall'amministratore; prove API reali di tenant estraneo, ruolo e account revocato | Matrice nel progetto cliente; App Check/MFA |
+| B02 | Policy ruoli/tenant, ENGINEER distinto dall'amministratore; prove API reali di tenant estraneo, ruolo e account revocato | Regole e indici pubblicati nel test, con letture negative reali; restano matrice cliente e App Check/MFA |
 | B03 | Transizioni atomiche, replay e riconciliazione; doppia approvazione reale con un consumo | Esercitazione guasti nell'ambiente cliente |
 | B04 | Audit atomico e intenti Auth durevoli con recovery | Retention e nomina responsabili |
 | B05 | Chiavi persistenti, tre retry testati; telefono conserva coda, bozza e ricevuta dopo riavvio e upgrade | Urgente/FCM fisico con rete degradata |
@@ -42,7 +42,7 @@ Il progetto corrente è un **test**, per scelta del proprietario. Non vengono at
 | M08 | Compressione foto, limiti PDF/download e produzione PDF Flutter reale | Foto reali su dispositivo medio |
 | M09 | Touch/textScale 2 e layout verificati | TalkBack e uso al sole |
 | M10 | Deep link/deduplica/sessione/logout e ricevute persistenti | FCM cold start sul telefono |
-| M11 | Firma originale, versionCode canonico 11001; updater privato autenticato al solo origin API; digest/appID/firma verificati | Installazione commerciale con consenso Android |
+| M11 | Firma originale, versionCode canonico 11002; updater privato autenticato al solo origin API; digest/appID/firma verificati | Installazione commerciale con consenso Android |
 | M12 | Samsung fisico: persistenza/riavvio/upgrade QA; Android 34 emulato: CI persistenza già riuscita | Camera, GPS, firma, FCM, App Check e rete degradata su fisico+emulatore |
 | M13 | Cache pack offline con freschezza, checklist per tipo e scorciatoie | Utilità/dimensioni cliente |
 

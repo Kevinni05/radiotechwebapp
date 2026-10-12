@@ -31,7 +31,7 @@ async function main(){
   if(deployedRelease.exists&&deployedRelease.get('available')===true){
    await db.collection('privateAppReleases').doc(tenant).set({...deployedRelease.data(),tenantId:tenant});
    const latest=await request('/distribution/latest.json',technician.token);
-   assert.equal(latest.applicationId,'com.example.gestionale_radio');assert.equal(latest.versionCode,11001);
+   assert.equal(latest.applicationId,'com.example.gestionale_radio');assert.equal(latest.versionCode,deployedRelease.get('versionCode'));
    assert.equal((await request('/distribution/latest.json',foreign.token)).available,false);
    await request('/distribution/latest.json',null,'GET',null,[401,403]);
    const response=await fetch(origin+'/api/v1/distribution/'+latest.filename,{headers:{Authorization:'Bearer '+technician.token},signal:AbortSignal.timeout(180000)});

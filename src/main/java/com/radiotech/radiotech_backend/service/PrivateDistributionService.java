@@ -38,11 +38,16 @@ public class PrivateDistributionService {
         try {
             MessageDigest digest=MessageDigest.getInstance("SHA-256");long size=0;
             try(var output=Files.newOutputStream(stage)){
-                for(int index=0;index<count;index++){
-                    var chunk=packageRef.collection("chunks").document(String.format(Locale.ROOT,"%06d",index)).get().get();var blob=chunk.getBlob("data");
+                for(int offset=0;offset<count;offset+=8){
+                  var refs=new java.util.ArrayList<com.google.cloud.firestore.DocumentReference>();
+                  for(int index=offset;index<Math.min(offset+8,count);index++)refs.add(packageRef.collection("chunks").document(String.format(Locale.ROOT,"%06d",index)));
+                  var batch=db.getAll(refs.toArray(com.google.cloud.firestore.DocumentReference[]::new)).get().stream().collect(java.util.stream.Collectors.toMap(com.google.cloud.firestore.DocumentSnapshot::getId,document->document));
+                  for(var ref:refs){
+                    var chunk=batch.get(ref.getId());var blob=chunk==null?null:chunk.getBlob("data");
                     if(!chunk.exists()||blob==null)throw new IllegalStateException("Pacchetto incompleto.");byte[] bytes=blob.toBytes();
                     if(bytes.length<1||bytes.length>512*1024||size+bytes.length>expected)throw new IllegalStateException("Dimensione pacchetto non valida.");
                     output.write(bytes);digest.update(bytes);size+=bytes.length;
+                  }
                 }
             }
             if(size!=expected||!MessageDigest.isEqual(HexFormat.of().formatHex(digest.digest()).getBytes(java.nio.charset.StandardCharsets.US_ASCII),sha.getBytes(java.nio.charset.StandardCharsets.US_ASCII)))throw new IllegalStateException("Integrità pacchetto non valida.");
