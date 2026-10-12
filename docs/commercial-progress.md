@@ -42,7 +42,7 @@ Il progetto corrente è un **test**, per scelta del proprietario. Billing è gi�
 | M08 | Compressione foto, limiti PDF/download e produzione PDF Flutter reale | Foto reali su dispositivo medio |
 | M09 | Touch/textScale 2 e layout verificati | TalkBack e uso al sole |
 | M10 | Deep link/deduplica/sessione/logout e ricevute persistenti | FCM cold start sul telefono |
-| M11 | Firma originale, versionCode canonico 11002; updater privato autenticato al solo origin API; digest/appID/firma verificati | Installazione commerciale con consenso Android |
+| M11 | Firma originale, versionCode canonico 11002; updater privato autenticato al solo origin API; digest/appID/firma verificati. Telefono aggiornato 10077→11002, riapertura/sessione e controllo privato riusciti | Consegna e installazione presso l'azienda; prova del download/installatore nativo di una release successiva |
 | M12 | Samsung fisico: persistenza/riavvio/upgrade QA; Android 34 emulato: CI persistenza già riuscita | Camera, GPS, firma, FCM, App Check e rete degradata su fisico+emulatore |
 | M13 | Cache pack offline con freschezza, checklist per tipo e scorciatoie | Utilità/dimensioni cliente |
 
