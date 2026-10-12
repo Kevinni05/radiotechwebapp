@@ -1,6 +1,11 @@
 import {test,expect} from '@playwright/test';
 import {session} from './fixtures/control-room-session.js';
 
+test('company personalization preserves the environment and tenant context',async({page})=>{
+ await session(page);await expect(page.locator('#workspaceEnvironment')).toHaveText('SVILUPPO');await expect(page.locator('#workspaceTenant')).toContainText('test-tenant');
+ await page.setViewportSize({width:390,height:844});await expect(page.locator('#workspaceEnvironment')).toBeVisible();
+});
+
 test('business confirmation supports cancel and keyboard submit without native prompts',async({page})=>{
  let status='ASSIGNED',writes=0;page.on('dialog',()=>{throw new Error('Unexpected native prompt');});
  await session(page,'ADMIN',{respond(path,method,request){if(path==='/tasks')return {data:[{id:'qa',title:'Verifica ponte',status}]};if(path==='/tasks/qa/status'&&method==='PATCH'){status=request.postDataJSON().status;writes++;return {success:true};}}});

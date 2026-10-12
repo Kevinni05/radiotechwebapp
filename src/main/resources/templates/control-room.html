@@ -147,7 +147,7 @@
             <header class="topbar signature-topbar" aria-label="Barra dello spazio operativo">
                 <div class="workspace-context">
                     <button class="icon-btn mobile-menu" id="mobileMenu" type="button" aria-label="Apri navigazione" aria-controls="sidebar" aria-expanded="false" data-icon="menu">☰</button>
-                    <div class="workspace-heading-copy"><div class="workspace-label"><span th:text="${brandName}">RadioTech</span> · <span th:text="${environmentLabel}">SVILUPPO</span> · <span id="workspaceTenant">Azienda —</span></div><h1 id="pageTitle">Panoramica</h1><p id="pageSubtitle" class="sr-only">Monitoraggio infrastruttura radio e operazioni tecniche</p></div>
+                    <div class="workspace-heading-copy"><div class="workspace-label"><span data-workspace-brand th:text="${brandName}">RadioTech</span><span id="workspaceEnvironment" th:text="${environmentLabel}">SVILUPPO</span><span id="workspaceTenant">Azienda —</span></div><h1 id="pageTitle">Panoramica</h1><p id="pageSubtitle" class="sr-only">Monitoraggio infrastruttura radio e operazioni tecniche</p></div>
                 </div>
                 <button class="workspace-search" id="workspaceSearchBtn" type="button" aria-label="Cerca sezioni e azioni" aria-haspopup="dialog" aria-controls="workspaceCommandDialog"><span data-icon="search" aria-hidden="true">⌕</span><span class="workspace-search-label">Cerca sezioni e azioni</span><kbd id="workspaceShortcut">Ctrl K</kbd></button>
                 <div class="top-actions">
