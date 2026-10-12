@@ -16,16 +16,16 @@
                         </div>
                         <div class="workspace-filterbar workspace-filterbar--operators">
                                 <div class="field"><label for="operatorSearch">Cerca operatore</label><input id="operatorSearch" aria-label="Cerca operatore" type="search" placeholder="Nome o email"></div>
-                                <div class="field"><label for="operatorRoleFilter">Ruolo</label><select id="operatorRoleFilter" aria-label="Filtra per ruolo">
-                                    <option value="" data-copy-key="copy-24">Tutti i ruoli</option>
-                                    <option value="OPERATOR" data-copy-key="copy-25">Operatore</option>
-                                    <option value="VIEWER" data-copy-key="copy-26">Sola lettura</option>
-                                </select></div>
-                                <span class="subtle" id="operatorsSummary">Caricamento…</span>
+                                <fieldset class="operator-filter-options"><legend>Ruolo</legend><input id="operatorRoleFilter" type="hidden" value="">
+                                    <label><input type="radio" name="operator-role-filter" value="" checked><span>Tutti</span></label>
+                                    <label><input type="radio" name="operator-role-filter" value="OPERATOR"><span>Operatori</span></label>
+                                    <label><input type="radio" name="operator-role-filter" value="VIEWER"><span>Sola lettura</span></label>
+                                </fieldset>
+                                <span class="subtle" id="operatorsSummary" role="status">Caricamento…</span>
                         </div>
                         <div class="table-wrap" tabindex="0" role="region" aria-label="Elenco operatori">
-                            <table class="operator-table"><colgroup><col style="width:25%"><col style="width:15%"><col style="width:20%"><col style="width:20%"><col style="width:20%"></colgroup>
-                                <thead>
+                            <table class="operator-table" role="table" aria-label="Squadra e gestione accessi">
+                                <thead class="sr-only" role="rowgroup">
                                     <tr>
                                         <th>Operatore</th>
                                         <th>Profilo</th>
@@ -34,7 +34,7 @@
                                         <th>Azioni</th>
                                     </tr>
                                 </thead>
-                                <tbody id="operatorsTableBody">
+                                <tbody id="operatorsTableBody" role="rowgroup">
                                     <tr>
                                         <td colspan="5">
                                             <div class="empty">Caricamento operatori...</div>

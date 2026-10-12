@@ -608,7 +608,6 @@ test('manager profile updates and badge retrieval use dedicated endpoints', asyn
   await expect(page.locator('#badgeToken')).toHaveText('badge-only-token');
   await expect(page.locator('#badgeModal')).toBeVisible();
   await page.locator('#closeBadgeModal').click();
-  await page.locator('.operator-actions-menu summary').first().click();
   await page.locator('[data-regenerate="o1"]').click();
   await page.locator('.ui-dialog').getByRole('button',{name:'Conferma',exact:true}).click();
   await expect(page.locator('#badgeModal')).toBeVisible();
@@ -856,8 +855,8 @@ test('TelcoTools calculates CIDR, VLSM and RF at narrow widths and exports the s
 
 test('QR validity config and operator deletion call their protected APIs',async({page})=>{
  await session(page);const requests=[];await page.route('**/api/v1/operators/**',route=>{requests.push({path:new URL(route.request().url()).pathname,method:route.request().method(),data:route.request().postDataJSON()});return route.fulfill({json:{message:'Operazione completata'}});});
- await page.locator('.nav [data-view="operators"]').click();await page.locator('.operator-actions-menu summary').first().click();const button=page.locator('[data-validity]').first();await button.click();await page.locator('#validityMode').selectOption('UNLIMITED');await page.locator('#validityForm [type=submit]').click();await expect.poll(()=>requests.some(r=>r.path.endsWith('/qr-validity'))).toBeTruthy();expect(requests.find(r=>r.path.endsWith('/qr-validity')).data).toEqual({mode:'UNLIMITED',expiresAt:null});
- if(!await page.locator('.operator-actions-menu').first().evaluate(e=>e.open))await page.locator('.operator-actions-menu summary').first().click();await page.locator('[data-delete-operator]').first().click();await page.locator('.ui-dialog').getByRole('button',{name:'Conferma',exact:true}).click();await expect.poll(()=>requests.some(r=>r.method==='DELETE')).toBeTruthy();
+ await page.locator('.nav [data-view="operators"]').click();const button=page.locator('[data-validity]').first();await button.click();await page.locator('#validityMode').selectOption('UNLIMITED');await page.locator('#validityForm [type=submit]').click();await expect.poll(()=>requests.some(r=>r.path.endsWith('/qr-validity'))).toBeTruthy();expect(requests.find(r=>r.path.endsWith('/qr-validity')).data).toEqual({mode:'UNLIMITED',expiresAt:null});
+ await page.locator('[data-delete-operator]').first().click();await page.locator('.ui-dialog').getByRole('button',{name:'Conferma',exact:true}).click();await expect.poll(()=>requests.some(r=>r.method==='DELETE')).toBeTruthy();
 });
 
 

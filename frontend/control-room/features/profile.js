@@ -12,7 +12,7 @@ export function createFeature(ctx){
                 const accountAdministration=allowed&&(ctx.state.authRole||ctx.state.user?.role)!=='ENGINEER';
                 for(const id of ['newOperatorBtn','syncOperatorBtn'])if(ctx.$(id))ctx.$(id).hidden=!accountAdministration;
                 document.querySelectorAll('[data-delete-operator],[data-reset-password],[data-validity],[data-save-role],[data-approve],[data-regenerate]').forEach(element=>{element.hidden=!accountAdministration;});
-                document.querySelectorAll('[data-operator-role]').forEach(element=>{element.disabled=!accountAdministration;});
+                document.querySelectorAll('[data-operator-role]').forEach(element=>{element.disabled=!accountAdministration||element.dataset.roleLocked==='true';});
             }
 
             function hydrateUser() {

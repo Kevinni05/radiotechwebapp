@@ -26,8 +26,8 @@ const pages=createPagedResource(ctx,{path:'/api/v1/dashboard/resources/operators
 
             function renderOperatorTable(){
                 const table=ctx.$('operatorsTableBody');
-                const expanded=new Set([...table.querySelectorAll('[data-operator-menu][open]')].map(menu=>menu.dataset.operatorMenu));
-                preserveTableInteraction(table,()=>{renderOperatorTableRows();for(const menu of table.querySelectorAll('[data-operator-menu]'))menu.open=expanded.has(menu.dataset.operatorMenu);});
+                if (!table) return;
+                preserveTableInteraction(table,renderOperatorTableRows);
             }
             function renderOperatorTableRows() {
                 const table = ctx.$("operatorsTableBody");
@@ -48,7 +48,7 @@ const pages=createPagedResource(ctx,{path:'/api/v1/dashboard/resources/operators
                 }
                 ctx.$("operatorsSummary").textContent = ctx.state.operatorLoadError
                     ? "Elenco non disponibile"
-                    : `${ctx.state.operators.length} operatori · ${active} attivi`;
+                    : `${visibleOperators.length} visibili · ${ctx.state.operators.length} caricati · ${active} attivi`;
                 if (ctx.state.operatorLoadError) {
                     table.innerHTML = `<tr><td colspan="5"><div class="empty">Impossibile caricare gli operatori: ${ctx.escapeHtml(ctx.state.operatorLoadError)}</div></td></tr>`;
                     return;
@@ -64,15 +64,16 @@ const pages=createPagedResource(ctx,{path:'/api/v1/dashboard/resources/operators
                     const role = (operator.role || "OPERATOR").toUpperCase();
                     const linked = Boolean(operator.firebaseUid);
                     const pending = (operator.status || "").toUpperCase() === "IN_ATTESA";
-                    return `<tr>
-                        <td><div class="operator-identity"><span class="operator-monogram" aria-hidden="true">${ctx.escapeHtml(name.trim().split(/\s+/).slice(0,2).map(part=>part[0]).join('').toUpperCase())}</span><div><strong>${ctx.escapeHtml(name)}</strong><div class="subtle">${ctx.escapeHtml(operator.email || "Email non collegata")}</div><div class="operator-account-state">${linked?'Account collegato':'Account da collegare'}</div></div></div></td>
-                        <td><strong>${ctx.escapeHtml(operator.level || "TECNICO")}</strong><div class="subtle">${ctx.escapeHtml(operator.shift || "Turno non indicato")}</div></td>
-                        <td><div class="operator-role-control"><select data-operator-role="${ctx.escapeHtml(id)}" aria-label="Ruolo di ${ctx.escapeHtml(name)}" ${linked && !pending ? "" : "disabled"}>
-                            <option value="OPERATOR" ${role === "OPERATOR" ? "selected" : ""}>Operatore</option>
-                            <option value="VIEWER" ${role === "VIEWER" ? "selected" : ""}>Sola lettura</option>
-                        </select><button class="mini-btn" data-save-role="${ctx.escapeHtml(id)}" ${linked && !pending ? "" : "disabled"}>Salva</button></div></td>
-                        <td><span class="badge ${pending ? "yellow" : "blue"}">${ctx.escapeHtml(ctx.formatStatus(operator.status || "OFFLINE"))}</span><div class="operator-presence ${online?'is-online':''}">${online?'Connesso ora':'Non connesso'}</div><div class="subtle">${operator.lastSeen && Number.isFinite(Date.parse(operator.lastSeen)) ? ctx.escapeHtml(new Date(operator.lastSeen).toLocaleString("it-IT")) : "Nessuna presenza registrata"}</div></td>
-                        <td><div class="actions operator-actions">${pending ? `<button class="mini-btn operator-action-wide" data-approve="${ctx.escapeHtml(id)}">Approva account</button>` : ""}<button class="mini-btn" data-operator-details="${ctx.escapeHtml(id)}">Scheda</button><button class="mini-btn" data-badge="${ctx.escapeHtml(id)}">Badge</button><details class="operator-actions-menu" data-operator-menu="${ctx.escapeHtml(id)}"><summary class="mini-btn">Altre azioni</summary><div class="operator-secondary-actions"><button class="mini-btn" data-regenerate="${ctx.escapeHtml(id)}">Rigenera QR</button><button class="mini-btn" data-validity="${ctx.escapeHtml(id)}">Validità QR</button><button class="mini-btn operator-action-wide" data-reset-password="${ctx.escapeHtml(id)}">Reimposta password</button><button class="mini-btn danger operator-action-wide" data-delete-operator="${ctx.escapeHtml(id)}">Elimina</button></div></details></div></td>
+                    const roleLocked = !linked || pending;
+                    return `<tr role="row" class="operator-card">
+                        <td role="cell" data-label="Operatore"><div class="operator-identity"><span class="operator-monogram" aria-hidden="true">${ctx.escapeHtml(name.trim().split(/\s+/).slice(0,2).map(part=>part[0]).join('').toUpperCase())}</span><div><strong>${ctx.escapeHtml(name)}</strong><div class="subtle">${ctx.escapeHtml(operator.email || "Email non collegata")}</div><div class="operator-account-state">${linked?'Account collegato':'Account da collegare'}</div></div></div></td>
+                        <td role="cell" data-label="Profilo"><strong>${ctx.escapeHtml(operator.level || "TECNICO")}</strong><div class="subtle">${ctx.escapeHtml(operator.shift || "Turno non indicato")}</div></td>
+                        <td role="cell" data-label="Accesso"><div class="operator-role-control"><fieldset class="operator-role-options" aria-label="Ruolo di ${ctx.escapeHtml(name)}"><legend class="sr-only">Ruolo applicativo</legend>
+                            <label><input type="radio" name="operator-role-${ctx.escapeHtml(id)}" value="OPERATOR" data-operator-role="${ctx.escapeHtml(id)}" data-role-option="OPERATOR" data-role-locked="${roleLocked}" ${role === "OPERATOR" ? "checked" : ""} ${roleLocked ? "disabled" : ""}><span>Operatore</span></label>
+                            <label><input type="radio" name="operator-role-${ctx.escapeHtml(id)}" value="VIEWER" data-operator-role="${ctx.escapeHtml(id)}" data-role-option="VIEWER" data-role-locked="${roleLocked}" ${role === "VIEWER" ? "checked" : ""} ${roleLocked ? "disabled" : ""}><span>Sola lettura</span></label>
+                        </fieldset><button type="button" class="mini-btn" data-save-role="${ctx.escapeHtml(id)}" ${roleLocked ? "disabled" : ""}>Salva ruolo</button></div>${roleLocked ? `<div class="operator-role-hint">${pending ? 'Approva l’account per assegnare il ruolo.' : 'Collega l’account per assegnare il ruolo.'}</div>` : ""}</td>
+                        <td role="cell" data-label="Presenza"><span class="badge ${pending ? "yellow" : "blue"}">${ctx.escapeHtml(ctx.formatStatus(operator.status || "OFFLINE"))}</span><div class="operator-presence ${online?'is-online':''}">${online?'Connesso ora':'Non connesso'}</div><div class="subtle">${operator.lastSeen && Number.isFinite(Date.parse(operator.lastSeen)) ? ctx.escapeHtml(new Date(operator.lastSeen).toLocaleString("it-IT")) : "Nessuna presenza registrata"}</div></td>
+                        <td role="cell" class="operator-card-actions" data-label="Azioni"><div class="actions operator-actions" role="group" aria-label="Azioni per ${ctx.escapeHtml(name)}">${pending ? `<button type="button" class="mini-btn primary" data-approve="${ctx.escapeHtml(id)}">Approva account</button>` : ""}<button type="button" class="mini-btn" data-operator-details="${ctx.escapeHtml(id)}">Scheda operatore</button><button type="button" class="mini-btn" data-badge="${ctx.escapeHtml(id)}">Visualizza badge</button><button type="button" class="mini-btn" data-regenerate="${ctx.escapeHtml(id)}">Rigenera QR</button><button type="button" class="mini-btn" data-validity="${ctx.escapeHtml(id)}">Validità QR</button><button type="button" class="mini-btn" data-reset-password="${ctx.escapeHtml(id)}">Reimposta password</button><button type="button" class="mini-btn danger" data-delete-operator="${ctx.escapeHtml(id)}">Elimina operatore</button></div></td>
                     </tr>`;
                 }).join("");
                 ctx.applyPermissions(); ctx.refreshReportTitles();
@@ -92,7 +93,7 @@ const pages=createPagedResource(ctx,{path:'/api/v1/dashboard/resources/operators
             }
 
             async function saveOperatorRole(id) {
-                const select = document.querySelector(`[data-operator-role="${ctx.CSS.escape(id)}"]`);
+                const select = document.querySelector(`[data-operator-role="${ctx.CSS.escape(id)}"]:checked`);
                 if (!select) return;
                 const operator = ctx.state.operators.find(item => item.id === id);
                 if (!operator) return;

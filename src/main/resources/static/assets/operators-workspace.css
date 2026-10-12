@@ -1,0 +1,104 @@
+/* Operator directory: every account action stays visible, with no disclosure menu.
+   The palette comes from the active theme; only this workspace changes geometry. */
+#app #view-operators .operator-overview { grid-template-columns: repeat(4,minmax(0,1fr)); gap: 16px; }
+#app #view-operators .operator-directory .panel-head { align-items: center; }
+#app #view-operators .workspace-filterbar--operators {
+  grid-template-columns: minmax(180px,1fr) minmax(300px,auto);
+  gap: 16px 24px; align-items: end;
+}
+#app #view-operators #operatorsSummary { grid-column: 1/-1; padding: 0; font-size: 12px; }
+#app #view-operators .operator-filter-options {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+  min-width: 0; border: 0; padding: 0; margin: 0;
+}
+#app #view-operators .operator-filter-options legend { padding: 0; margin-bottom: 7px; font-size: 12px; font-weight: 500; color: var(--workspace-muted); }
+#app #view-operators .operator-filter-options label {
+  display: inline-flex; align-items: center; gap: 7px; min-height: 42px;
+  padding: 9px 12px; margin: 0; border: 1px solid var(--workspace-line);
+  border-radius: 8px; background: var(--workspace-surface); color: var(--text); cursor: pointer;
+}
+#app #view-operators .operator-filter-options label:has(:checked) {
+  background: color-mix(in srgb,var(--primary) 9%,var(--workspace-surface));
+  border-color: color-mix(in srgb,var(--primary) 45%,var(--workspace-line)); color: var(--primary);
+}
+#app #view-operators :is(.operator-filter-options,.operator-role-options) label:has(:focus-visible) { outline: 2px solid var(--primary); outline-offset: 3px; }
+#app #view-operators :is(.operator-filter-options,.operator-role-options) input[type=radio] {
+  flex: 0 0 16px; width: 16px; height: 16px; min-height: 0; padding: 0; margin: 0; accent-color: var(--primary);
+}
+#app #view-operators .operator-directory .table-wrap { padding: 20px 24px 24px; overflow: visible; background: transparent; }
+#app #view-operators .operator-table { display: block; width: 100%; min-width: 0; table-layout: auto; border: 0; background: transparent; }
+#app #view-operators #operatorsTableBody { display: grid; grid-template-columns: minmax(0,1fr); gap: 16px; width: 100%; }
+#app #view-operators .operator-card {
+  display: grid; grid-template-columns: minmax(0,1.25fr) minmax(0,.75fr) minmax(0,1.2fr) minmax(0,1fr);
+  gap: 20px; padding: 22px 24px 0; border: 1px solid var(--workspace-line);
+  border-radius: 12px; background: var(--workspace-surface); min-width: 0;
+}
+#app #view-operators .operator-card > td,
+#app #view-operators .operator-card > td:first-child,
+#app #view-operators .operator-card > td:last-child {
+  display: block; min-width: 0; width: auto; padding: 0; border: 0; background: transparent;
+  overflow-wrap: anywhere; vertical-align: top;
+}
+#app #view-operators .operator-card > td::before {
+  content: attr(data-label); display: block; margin-bottom: 10px; color: var(--workspace-muted);
+  font-size: 10px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase;
+}
+#app #view-operators .operator-identity { gap: 12px; }
+#app #view-operators .operator-identity strong { font-size: 14px; line-height: 1.5; }
+#app #view-operators .operator-identity .subtle { margin-top: 3px; font-size: 12px; }
+#app #view-operators .operator-monogram { flex-basis: 40px; height: 40px; border-radius: 10px; font-size: 12px; }
+#app #view-operators .operator-account-state { font-size: 11px; line-height: 1.6; }
+#app #view-operators .operator-role-control { display: grid; grid-template-columns: minmax(0,1fr); gap: 8px; align-items: start; }
+#app #view-operators .operator-role-options { display: grid; gap: 6px; min-width: 0; padding: 0; margin: 0; border: 0; }
+#app #view-operators .operator-role-options label { display: flex; align-items: center; gap: 8px; margin: 0; color: var(--text); font-size: 12px; cursor: pointer; min-height: 28px; }
+#app #view-operators .operator-role-options label:has(:disabled) { color: var(--workspace-muted); cursor: not-allowed; }
+#app #view-operators .operator-role-control [data-save-role] { justify-self: start; min-height: 36px; }
+#app #view-operators .operator-role-hint { margin-top: 8px; font-size: 11px; line-height: 1.5; color: var(--workspace-muted); }
+#app #view-operators .operator-card .operator-presence { margin-top: 9px; }
+#app #view-operators .operator-card > .operator-card-actions {
+  grid-column: 1/-1; margin-inline: -24px; padding: 16px 24px 20px;
+  border-top: 1px solid var(--workspace-line);
+  background: color-mix(in srgb,var(--workspace-raised) 48%,var(--workspace-surface));
+  border-radius: 0 0 12px 12px;
+}
+#app #view-operators .operator-actions {
+  display: grid; grid-template-columns: repeat(auto-fit,minmax(min(100%,140px),1fr));
+  align-items: stretch; justify-content: stretch; gap: 10px;
+}
+#app #view-operators .operator-actions .mini-btn {
+  display: inline-flex; align-items: center; justify-content: center; width: 100%; min-height: 42px;
+  padding: 10px 12px; white-space: normal; line-height: 1.4; text-align: center;
+}
+#app #view-operators .operator-actions [data-approve] {
+  background: var(--primary); border-color: var(--primary); color: var(--bg);
+}
+#app #view-operators .operator-actions [hidden] { display: none; }
+#app #view-operators #operatorsTableBody > tr:not(.operator-card),
+#app #view-operators #operatorsTableBody > tr:not(.operator-card) > td { display: block; width: 100%; min-width: 0; border: 0; padding: 0; }
+#app #view-operators [id="operatorsTableBody-more"] { margin: 0 24px 24px; }
+html[data-appearance=light] #app #view-operators .operator-card { background: var(--panel-solid); border-color: var(--border); box-shadow: var(--shadow-soft); }
+html[data-appearance=light] #app #view-operators .operator-card > td { background: transparent; }
+html[data-appearance=light] #app #view-operators .operator-card > .operator-card-actions { background: var(--panel-2); }
+html[data-appearance=light] #app #view-operators .operator-actions [data-approve] { color: #fff; }
+html[data-contrast=high] #app #view-operators :is(.operator-card,.operator-filter-options label) { border-color: var(--text); }
+@container workspace (max-width: 1050px) {
+  #app #view-operators .operator-card { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 22px 28px; }
+  #app #view-operators .operator-overview { grid-template-columns: repeat(2,minmax(0,1fr)); }
+}
+@container workspace (max-width: 650px) {
+  #app #view-operators .workspace-filterbar--operators { grid-template-columns: minmax(0,1fr); padding: 18px; }
+  #app #view-operators .operator-directory .table-wrap { padding: 16px 18px 18px; }
+  #app #view-operators .operator-card { padding: 18px 18px 0; gap: 18px; }
+  #app #view-operators .operator-card > .operator-card-actions { margin-inline: -18px; padding: 16px 18px 18px; }
+  #app #view-operators .operator-actions { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 8px; }
+  #app #view-operators .operator-actions .mini-btn { min-height: 44px; padding: 10px 8px; font-size: 11px; }
+  #app #view-operators .operator-directory .panel-head { padding: 18px; align-items: flex-start; flex-wrap: wrap; }
+  #app #view-operators .operator-directory .panel-head .toolbar { flex-wrap: wrap; }
+}
+@container workspace (max-width: 420px) {
+  #app #view-operators .operator-card { grid-template-columns: minmax(0,1fr); }
+  #app #view-operators .operator-filter-options label { flex: 1; padding-inline: 8px; font-size: 11px; }
+}
+@media (pointer: coarse) {
+  #app #view-operators .operator-role-options label { min-height: 44px; }
+}

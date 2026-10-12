@@ -119,8 +119,7 @@ test('operator directory provides account details and aligned inventory actions'
  await page.locator('[data-operator-details="op1"]').click();
  const dialog=page.getByRole('dialog',{name:'Tecnico QA'});await expect(dialog).toContainText('+39 000 000000');await expect(dialog).toContainText('Mattina');
  await dialog.getByRole('button',{name:'Chiudi scheda'}).click();await expect(dialog).toHaveCount(0);
- await page.locator('[data-operator-menu="op1"] summary').click();await page.locator('#operatorsRefreshBtn').click();
- await expect(page.locator('[data-operator-menu="op1"]')).toHaveAttribute('open','');
+ await page.locator('#operatorsRefreshBtn').click();
  await expect(page.locator('[data-validity="op1"]')).toBeVisible();
  await page.locator('.nav [data-view="inventory"]').click();
  const edit=await page.locator('[data-inventory-edit="stock1"]').boundingBox(),archive=await page.locator('[data-inventory-archive="stock1"]').boundingBox();
