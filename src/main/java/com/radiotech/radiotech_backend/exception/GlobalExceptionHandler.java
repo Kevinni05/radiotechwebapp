@@ -18,6 +18,7 @@ import java.util.Map;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+        private static final org.slf4j.Logger log=org.slf4j.LoggerFactory.getLogger(GlobalExceptionHandler.class);
         @ExceptionHandler(org.springframework.web.servlet.resource.NoResourceFoundException.class)
         public ResponseEntity<Map<String,Object>> missingResource(org.springframework.web.servlet.resource.NoResourceFoundException exception) {
                 return buildResponse(HttpStatus.NOT_FOUND, "Risorsa non disponibile.");
@@ -115,6 +116,8 @@ public class GlobalExceptionHandler {
         @ExceptionHandler(Exception.class)
         public ResponseEntity<Map<String, Object>> handleException(
                         Exception exception) {
+                Throwable cause=exception;for(int depth=0;depth<10&&cause.getCause()!=null;depth++)cause=cause.getCause();
+                log.error("API failure type={} requestId={}",cause.getClass().getSimpleName(),org.slf4j.MDC.get("requestId"));
 
                 if (CloudQuota.exhausted(exception)) return buildResponse(HttpStatus.SERVICE_UNAVAILABLE, CloudQuota.MESSAGE);
                 return buildResponse(

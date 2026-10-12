@@ -26,6 +26,9 @@ RUN groupadd --gid 10001 radiotech \
     && usermod -a -G 1000 radiotech
 WORKDIR /app
 COPY --from=build --chown=radiotech:radiotech /workspace/build/libs/radiotech.jar app.jar
+RUN mkdir -p /app/.dist/private-files \
+    && chown 10001:10001 /app/.dist/private-files \
+    && chmod 700 /app/.dist/private-files
 USER 10001:10001
 ENV SPRING_PROFILES_ACTIVE=production
 EXPOSE 8080

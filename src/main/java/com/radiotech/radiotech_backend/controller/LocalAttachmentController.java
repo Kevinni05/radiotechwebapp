@@ -24,17 +24,19 @@ public class LocalAttachmentController {
  @GetMapping("/{id}") public Map<String,Object> download(@PathVariable String id)throws Exception{
   String tenant=tenant(Permission.REPORT_READ);Role role=SecurityContextAccessor.currentRole();return files.read(id,tenant,SecurityContextAccessor.currentUid(),role!=Role.OPERATOR);
  }
- @GetMapping("/{id}/content") public org.springframework.http.ResponseEntity<org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody> content(@PathVariable String id)throws Exception{
+ public org.springframework.http.ResponseEntity<org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody> content(String id)throws Exception{return content(id,null);}
+ @GetMapping("/{id}/content") public org.springframework.http.ResponseEntity<org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody> content(@PathVariable String id,HttpServletRequest request)throws Exception{
   String tenant=tenant(Permission.REPORT_READ);
   var reservation=files.reserveUpload();
   LocalAttachmentService.VerifiedDownload download;
   try {download=files.prepareDownload(id,tenant,SecurityContextAccessor.currentUid(),SecurityContextAccessor.currentRole()!=Role.OPERATOR);}
   catch(Exception error){reservation.close();throw error;}
+  var lease=com.radiotech.radiotech_backend.service.AsyncDownloadLease.bind(request,download,reservation);
   return org.springframework.http.ResponseEntity.ok()
    .contentType(org.springframework.http.MediaType.APPLICATION_OCTET_STREAM)
    .contentLength(download.size()).header("Cache-Control","private, no-store")
    .header("X-Content-Type-Options","nosniff").header("ETag","\""+download.digest()+"\"")
    .header("Content-Disposition",org.springframework.http.ContentDisposition.attachment().filename(download.name(),java.nio.charset.StandardCharsets.UTF_8).build().toString())
-   .body(output->{try(download;reservation){download.transferTo(output);}catch(Exception error){throw new java.io.IOException("Download interrotto.",error);}});
+   .body(output->{try(lease){download.transferTo(output);}catch(Exception error){throw new java.io.IOException("Download interrotto.",error);}});
  }
 }

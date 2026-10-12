@@ -277,9 +277,11 @@ get updateMap(){return updateMap;}};
             }
 
             async function apiFetch(url, options = {}) {
-                const { _retried = false, responseType, timeoutMs = CONFIG.REQUEST_TIMEOUT, ...requestOptions } = options;
+                const { _retried = false, responseType, maxResponseBytes, timeoutMs = CONFIG.REQUEST_TIMEOUT, ...requestOptions } = options;
+                const privatePackage=url.startsWith('/api/v1/distribution/');
+                const responseLimit=privatePackage&&maxResponseBytes===150*1024*1024?maxResponseBytes:10000000;
                 const controller = new AbortController();
-                const timeout = setTimeout(() => controller.abort(), Math.min(60000, timeoutMs));
+                const timeout = setTimeout(() => controller.abort(), Math.min(privatePackage?180000:60000, timeoutMs));
 
                 const token = getSessionToken();
                 const epoch = state.sessionEpoch || 0;
@@ -302,9 +304,9 @@ get updateMap(){return updateMap;}};
 
                     if (epoch !== (state.sessionEpoch || 0)) throw new Error("Sessione cambiata: richiesta annullata.");
                     if (response.ok && responseType === 'bytes' && !response.headers.get('Content-Type')?.includes('json')) {
-                        if (Number(response.headers.get('Content-Length')) > 10000000) throw new Error('Allegato troppo grande.');
+                        if (Number(response.headers.get('Content-Length')) > responseLimit) throw new Error('File troppo grande.');
                         const reader=response.body.getReader(),chunks=[];let length=0;
-                        while(true){const part=await reader.read();if(part.done)break;length+=part.value.length;if(length>10000000){await reader.cancel();throw new Error('Allegato troppo grande.');}chunks.push(part.value);}
+                        while(true){const part=await reader.read();if(part.done)break;length+=part.value.length;if(length>responseLimit){await reader.cancel();throw new Error('File troppo grande.');}chunks.push(part.value);}
                         if(epoch!==(state.sessionEpoch||0))throw new Error('Sessione cambiata.');
                         const bytes=new Uint8Array(length);let offset=0;for(const chunk of chunks){bytes.set(chunk,offset);offset+=chunk.length;}
                         const disposition=response.headers.get('Content-Disposition')||'';

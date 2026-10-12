@@ -57,9 +57,14 @@ public final class BackupDrillTool {
                 if (!HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(bytes)).equals(record.getString("digest"))) throw new IllegalStateException("Restored attachment mismatch");
                 verifiedAttachments++;
             }
+            int verifiedPrivatePackages=0;
+            var releases=new com.radiotech.radiotech_backend.service.PrivateDistributionService();
+            for(var record:db.collection("privateAppReleases").get().get().getDocuments()) {
+                if(Boolean.TRUE.equals(record.getBoolean("available")))try(var downloaded=releases.prepare(record.getId(),record.getString("filename"))){verifiedPrivatePackages++;}
+            }
             var result = Map.of("restored", true, "testedAt", java.time.Instant.now().toString(), "sourceProject", backup.get("projectId"),
                     "archiveSha256", HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(encrypted)),
-                    "documents", ((List<?>)backup.get("documents")).size(), "users", ((List<?>)backup.get("users")).size(), "attachments", verifiedAttachments);
+                    "documents", ((List<?>)backup.get("documents")).size(), "users", ((List<?>)backup.get("users")).size(), "attachments", verifiedAttachments, "privatePackages",verifiedPrivatePackages);
             Files.createDirectories(Path.of(".dist"));
             Files.writeString(Path.of(".dist/backup-drill-result.json"), json.writeValueAsString(result));
             System.out.println(json.writeValueAsString(result));

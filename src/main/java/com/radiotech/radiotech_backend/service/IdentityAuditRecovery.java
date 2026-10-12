@@ -17,10 +17,11 @@ import java.util.*;
 public class IdentityAuditRecovery {
     private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(IdentityAuditRecovery.class);
     private String cursor;
+    @org.springframework.beans.factory.annotation.Value("${radiotech.background.enabled:true}") private boolean backgroundEnabled=true;
 
     @Scheduled(fixedDelayString = "${radiotech.identity-recovery.delay-ms:60000}", initialDelay = 90000)
     public void scan() {
-        if (FirebaseApp.getApps().isEmpty()) return;
+        if (!backgroundEnabled || FirebaseApp.getApps().isEmpty()) return;
         try {
             var db = FirestoreClient.getFirestore();
             Query query = db.collection("auditLogs").whereEqualTo("result", "PENDING")

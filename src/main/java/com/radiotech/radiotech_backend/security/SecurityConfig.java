@@ -28,6 +28,11 @@ public class SecurityConfig {
                                                 SessionCreationPolicy.STATELESS))
                                 .authorizeHttpRequests(auth -> auth
 
+                                                // The initial REQUEST is authorized before streaming starts.
+                                                // Stateless Firebase authentication is not rerun on its ASYNC completion.
+                                                .dispatcherTypeMatchers(jakarta.servlet.DispatcherType.ASYNC)
+                                                .permitAll()
+
                                                 // Login e bootstrap (protetti da rate limit e da secret).
                                                 .requestMatchers(
                                                                 "/api/auth/login",
