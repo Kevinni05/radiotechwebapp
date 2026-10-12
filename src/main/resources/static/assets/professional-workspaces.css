@@ -1,0 +1,166 @@
+/* Operational workspaces only. Overview, its calendar and navigation are unchanged. */
+#app .main:has(.view.active:not(#view-dashboard)) { background: var(--bg-soft); }
+#app .main:has(.view.active:not(#view-dashboard)) .footer { background: var(--panel); border-radius: 12px; box-shadow: none; backdrop-filter: none; }
+#app .view:not(#view-dashboard) {
+  --workspace-surface: var(--brand-surface, #13161e);
+  --workspace-raised: #1a1e28;
+  --workspace-line: #303543;
+  --workspace-muted: var(--brand-muted, #a9afbe);
+  container: workspace / inline-size;
+  font-size: 14px;
+  line-height: 1.55;
+}
+#app .view:not(#view-dashboard) > * + * { margin-top: 24px; }
+#app .view:not(#view-dashboard) .section-head {
+  align-items: center; gap: 24px; margin: 0 0 24px; padding: 0 0 24px;
+  border-bottom: 1px solid var(--workspace-line); background: none;
+}
+#app .view:not(#view-dashboard) .section-head h2 {
+  margin: 0; font-size: clamp(24px, 2vw, 30px); font-weight: 600;
+  line-height: 1.25; letter-spacing: -.035em;
+}
+#app .view:not(#view-dashboard) .section-head p { margin: 8px 0 0; color: var(--workspace-muted); font-size: 13px; line-height: 1.65; }
+#app .view:not(#view-dashboard) .section-kicker { margin-bottom: 8px; font-size: 10px; letter-spacing: .12em; font-weight: 600; }
+#app .view:not(#view-dashboard) :is(.panel,.stat-card,.logistics-overview article,.management-metric) {
+  background: var(--workspace-surface); background-image: none;
+  border: 1px solid var(--workspace-line); border-radius: 12px;
+  box-shadow: none; backdrop-filter: none; transform: none;
+}
+#app .view:not(#view-dashboard) .panel { margin-bottom: 0; overflow: hidden; }
+#app .view:not(#view-dashboard) .panel-head {
+  padding: 20px 24px; min-height: 88px; gap: 16px;
+  background: none; border-bottom: 1px solid var(--workspace-line);
+  align-items: center;
+}
+#app .view:not(#view-dashboard) .panel-head h3 { margin: 0; font-size: 15px; line-height: 1.4; font-weight: 600; letter-spacing: -.015em; }
+#app .view:not(#view-dashboard) .panel-head > div > :is(span,p) { display: block; margin: 4px 0 0; color: var(--workspace-muted); font-size: 12px; line-height: 1.6; }
+#app .view:not(#view-dashboard) .panel-body { padding: 24px; }
+#app .view:not(#view-dashboard) :is(.grid-2,.grid-equal,.enterprise-grid,.notification-grid,.operations-actions,.management-grid) { gap: 24px; }
+#app .view:not(#view-dashboard) :is(.toolbar,.actions) { gap: 8px; align-items: center; }
+#app .view:not(#view-dashboard) .notification-compose-actions { align-items: flex-end; }
+#app .view:not(#view-dashboard) .section-head .toolbar { justify-content: flex-end; flex: 0 1 auto; }
+#app .view:not(#view-dashboard) :is(.btn,.mini-btn) {
+  min-height: 42px; padding: 9px 14px; border-radius: 7px;
+  font-size: 12px; line-height: 1.4; font-weight: 600;
+  background: var(--workspace-raised); border: 1px solid #3a4050;
+  color: var(--text); box-shadow: none; transform: none;
+}
+#app .view:not(#view-dashboard) :is(.btn,.mini-btn):hover:not(:disabled) { background: #252b38; border-color: #596175; transform: none; }
+#app .view:not(#view-dashboard) .btn.primary { background: var(--primary); border-color: var(--primary); color: #101218; }
+#app .view:not(#view-dashboard) .btn.primary:hover:not(:disabled) { background: var(--primary); border-color: var(--primary); filter: brightness(1.08); }
+#app .view:not(#view-dashboard) :is(.btn,.mini-btn).danger { color: #ffacb2; border-color: #67373f; background: #251b23; }
+#app .view:not(#view-dashboard) :is(button,input,select,textarea,summary):focus-visible { outline: 2px solid var(--primary); outline-offset: 3px; }
+#app .view:not(#view-dashboard) :is(input:not([type=checkbox]):not([type=radio]):not([type=file]),select,textarea) {
+  width: 100%; min-height: 42px; padding: 10px 12px; border-radius: 7px;
+  background: #0e1118; border: 1px solid #3a4050; box-shadow: none;
+  color: var(--text); font-size: 13px; line-height: 1.5;
+}
+#app .view:not(#view-dashboard) textarea { min-height: 112px; resize: vertical; }
+#app .view:not(#view-dashboard) input::placeholder,
+#app .view:not(#view-dashboard) textarea::placeholder { color: #8e97aa; }
+#app .view:not(#view-dashboard) .field { gap: 7px; }
+#app .view:not(#view-dashboard) .field > label { color: #c3c9d6; font-size: 12px; line-height: 1.5; font-weight: 500; }
+#app .view:not(#view-dashboard) .form-grid { gap: 18px 20px; align-items: start; }
+#app .view:not(#view-dashboard) .form-grid + .btn { margin-top: 20px; }
+#app .view:not(#view-dashboard) .workspace-filterbar {
+  display: grid; grid-template-columns: minmax(0,2fr) repeat(2,minmax(0,1fr));
+  align-items: end; gap: 16px; padding: 20px 24px;
+  background: #171b24; border-bottom: 1px solid var(--workspace-line);
+}
+#app .view:not(#view-dashboard) .workspace-filterbar--two { grid-template-columns: minmax(0,1fr) minmax(180px,280px); }
+#app .view:not(#view-dashboard) .workspace-filterbar--operators { grid-template-columns: minmax(0,2fr) minmax(180px,1fr) auto; }
+#app .view:not(#view-dashboard) .workspace-filterbar .subtle { align-self: end; padding-bottom: 11px; font-size: 12px; }
+#app .view:not(#view-dashboard) .workspace-catalog { padding: 0; }
+#app .view:not(#view-dashboard) .workspace-catalog > .workspace-filterbar { margin: 0; }
+#app .view:not(#view-dashboard) .workspace-filter-panel { padding: 20px 24px; background: var(--workspace-surface); border: 1px solid var(--workspace-line); border-radius: 12px; }
+#app .view:not(#view-dashboard) .workspace-filter-panel > .toolbar { margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--workspace-line); }
+#app .view:not(#view-dashboard) .management-filters { display: grid; grid-template-columns: repeat(auto-fit,minmax(min(100%,180px),1fr)); gap: 16px; margin: 0 0 20px; align-items: end; }
+#app #view-reports .management-filters { grid-template-columns: minmax(200px,1.6fr) repeat(4,minmax(120px,1fr)); margin-bottom: 0; }
+#app .view:not(#view-dashboard) .table-wrap { padding: 0; border-radius: 0; background: none; }
+#app .view:not(#view-dashboard) table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+#app .view:not(#view-dashboard) th {
+  padding: 13px 24px; background: #1b202b; color: #b4bccd;
+  font-size: 10px; line-height: 1.5; font-weight: 600; letter-spacing: .075em; text-transform: uppercase;
+  border-bottom: 1px solid var(--workspace-line); text-align: left;
+}
+#app .view:not(#view-dashboard) td {
+  padding: 16px 24px; border-bottom: 1px solid #272c38;
+  background: none; vertical-align: middle; font-size: 13px; line-height: 1.6;
+}
+#app .view:not(#view-dashboard) tbody tr:last-child td { border-bottom: 0; }
+#app .view:not(#view-dashboard) tbody tr:hover td { background: #1a1f29; }
+#app .view:not(#view-dashboard) td:first-child { min-width: 200px; }
+#app .view:not(#view-dashboard) td strong { font-weight: 600; }
+#app #view-antennas .asset-coordinates span { display: block; white-space: nowrap; font-variant-numeric: tabular-nums; }
+#app .view:not(#view-dashboard) td :is(.mini-btn,.btn) { min-height: 34px; padding: 7px 10px; font-size: 11px; white-space: nowrap; }
+#app #view-antennas :is(th,td):nth-child(n+4):nth-child(-n+7),
+#app #view-inventory :is(th,td):nth-child(5) { text-align: right; }
+#app :is(#view-antennas,#view-inventory) td:last-child .actions { display: grid; grid-template-columns: repeat(2,max-content); gap: 8px; justify-content: start; }
+#app .view:not(#view-dashboard) .badge { padding: 4px 9px; min-height: 24px; border-radius: 5px; font-size: 10px; font-weight: 600; letter-spacing: .025em; line-height: 1.4; }
+#app .view:not(#view-dashboard) :is(.stats-grid,.management-metrics,.enterprise-kpis,.logistics-overview) { gap: 16px; margin-block: 24px; }
+#app .view:not(#view-dashboard) :is(.stat-card,.management-metric,.logistics-overview article,.enterprise-kpis>.panel) { padding: 20px; }
+#app .view:not(#view-dashboard) :is(.stat-label,.stat-foot) { font-size: 12px; line-height: 1.5; color: var(--workspace-muted); }
+#app .view:not(#view-dashboard) .stat-value { margin: 10px 0; font-size: 30px; line-height: 1.2; font-weight: 600; letter-spacing: -.035em; font-variant-numeric: tabular-nums; }
+#app .view:not(#view-dashboard) #logisticsDashboard > * + * { margin-top: 20px; }
+#app .view:not(#view-dashboard) .logistics-alerts { border-radius: 7px; padding: 14px 18px; font-size: 13px; }
+#app .view:not(#view-dashboard) .empty { padding: 32px 20px; min-height: 100px; color: var(--workspace-muted); font-size: 13px; line-height: 1.7; }
+#app .view:not(#view-dashboard) :is(.pro-record,.management-item,.ai-message) { background: #171b24; background-image: none; border: 1px solid var(--workspace-line); border-radius: 8px; box-shadow: none; }
+#app .view:not(#view-dashboard) .pro-record h4 { margin: 0; font-size: 14px; font-weight: 600; }
+#app #view-reports #reportsList { display: grid; gap: 12px; }
+#app #view-reports .report-row,
+#app #view-reports .report-row.report-collapsed { display: block !important; padding: 0; gap: 0 !important; border-radius: 8px; background: #171b24; border: 1px solid var(--workspace-line); }
+#app #view-reports .report-row[hidden] { display: none !important; }
+#app #view-reports .report-row.report-collapsed { padding-block: 0 !important; }
+#app #view-reports .report-collapsed .report-main > .report-copy { display: block !important; }
+#app #view-reports .report-collapsed .report-main > .actions { display: flex !important; }
+#app #view-reports .report-collapsed .report-note { display: none; }
+#app #view-reports .report-main { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 20px; align-items: center; padding: 18px 20px; }
+#app #view-reports .report-main > .actions { justify-content: flex-end; max-width: 400px; }
+#app #view-reports .task-title { margin: 0; font-size: 14px; line-height: 1.5; font-weight: 600; }
+#app #view-reports .report-summary { margin-top: 5px; color: var(--workspace-muted); font-size: 12px; }
+#app #view-reports .report-note { margin-top: 7px; color: #c2c8d4; font-size: 12px; }
+#app #view-reports .report-content { padding: 0 20px 16px; }
+#app #view-reports .report-details { margin: 0; padding-top: 12px; border-top: 1px solid var(--workspace-line); }
+#app #view-reports .report-details > summary { font-size: 12px; line-height: 1.6; }
+#app #view-reports .report-collapsed .report-content { display: none; }
+#app #view-reports .report-main .mini-btn { min-height: 34px; padding: 7px 10px; font-size: 11px; }
+#app .view:not(#view-dashboard) .profile-hero { padding: 28px 24px; gap: 20px; background: none; border-bottom: 1px solid var(--workspace-line); }
+#app .view:not(#view-dashboard) .profile-name { margin: 0; font-size: 24px; font-weight: 600; letter-spacing: -.025em; }
+#app .view:not(#view-dashboard) .profile-role { margin-top: 6px; font-size: 13px; color: var(--workspace-muted); }
+#app .view:not(#view-dashboard) .profile-grid { padding: 24px; gap: 0; }
+#app .view:not(#view-dashboard) .profile-field { padding: 20px; border-radius: 0; border: 0; border-bottom: 1px solid var(--workspace-line); background: none; }
+#app .view:not(#view-dashboard) .profile-field label { font-size: 11px; color: var(--workspace-muted); }
+#app .view:not(#view-dashboard) .profile-field strong { margin-top: 7px; font-size: 14px; font-weight: 500; overflow-wrap: anywhere; }
+#app .view:not(#view-dashboard) .health-card { padding: 16px 0; margin: 0; border: 0; border-bottom: 1px solid var(--workspace-line); border-radius: 0; background: none; }
+#app .view:not(#view-dashboard) .health-card:last-child { border-bottom: 0; }
+#app .view:not(#view-dashboard) .health-value { font-size: 20px; line-height: 1.5; font-weight: 600; }
+body:has(#app .view.active:not(#view-dashboard)) :is(.modal-backdrop .modal,dialog.operation-dialog,dialog.ui-dialog,dialog.report-material-review,dialog.report-attachment-dialog) {
+  background: var(--panel); border: 1px solid #3a4050; border-radius: 12px; box-shadow: 0 24px 80px #0008;
+}
+body:has(#app .view.active:not(#view-dashboard)) :is(.modal-head,.modal-body,.modal-foot) { padding: 20px 24px; }
+body:has(#app .view.active:not(#view-dashboard)) .modal-head { border-bottom: 1px solid #303543; }
+body:has(#app .view.active:not(#view-dashboard)) .modal-foot { border-top: 1px solid #303543; gap: 10px; }
+body:has(#app .view.active:not(#view-dashboard)) :is(.modal,dialog.ui-dialog,dialog.report-material-review) :is(h2,h3) { font-weight: 600; letter-spacing: -.025em; }
+@container workspace (max-width: 900px) {
+  #app .view:not(#view-dashboard) .section-head { flex-wrap: wrap; align-items: flex-start; }
+  #app .view:not(#view-dashboard) .section-head .toolbar { width: 100%; justify-content: flex-start; }
+  #app #view-reports .management-filters { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  #app #view-reports .management-filters > .field:first-child { grid-column: 1 / -1; }
+  #app #view-reports .report-main { grid-template-columns: minmax(0,1fr); gap: 14px; }
+  #app #view-reports .report-main > .actions { justify-content: flex-start; max-width: none; }
+}
+@container workspace (max-width: 600px) {
+  #app .view:not(#view-dashboard) :is(.workspace-filterbar,.workspace-filterbar--two,.workspace-filterbar--operators) { grid-template-columns: minmax(0,1fr); }
+  #app .view:not(#view-dashboard) :is(.form-grid,.management-filters,.profile-grid,.branding-grid) { grid-template-columns: minmax(0,1fr); }
+  #app .view:not(#view-dashboard) :is(.panel-head,.panel-body,.workspace-filterbar,.workspace-filter-panel) { padding: 18px; }
+  #app .view:not(#view-dashboard) .section-head { gap: 16px; }
+  #app .view:not(#view-dashboard) :is(.stats-grid,.enterprise-kpis,.management-metrics,.logistics-overview) { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  #app .view:not(#view-dashboard) :is(.stat-card,.management-metric,.logistics-overview article,.enterprise-kpis>.panel) { padding: 16px; }
+  #app .view:not(#view-dashboard) :is(.stat-value,.logistics-overview strong) { font-size: 24px; }
+  #app .view:not(#view-dashboard) .profile-hero { padding: 20px 18px; flex-wrap: wrap; }
+  #app .view:not(#view-dashboard) .profile-grid { padding: 0 18px 18px; }
+  #app .view:not(#view-dashboard) .profile-field { padding: 18px 0; }
+}
+@media (pointer: coarse) {
+  #app .view:not(#view-dashboard) :is(.btn,.mini-btn,input:not([type=checkbox]):not([type=radio]):not([type=file]),select) { min-height: 44px !important; }
+}

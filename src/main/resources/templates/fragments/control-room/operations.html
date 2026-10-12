@@ -5,7 +5,7 @@
                             <p>Incarichi e indicatori chiave della squadra tecnica.</p>
                         </div>
                     </div>
-                    <div class="panel" style="margin-bottom:18px">
+                    <div class="panel">
                         <div class="panel-head">
                             <div>
                                 <h3 data-copy-key="copy-23">Gestione operatori</h3><span>Crea account, consulta la squadra e assegna ruoli applicativi</span>
@@ -14,16 +14,14 @@
                                     id="operatorsRefreshBtn">Aggiorna</button><button class="btn primary"
                                     id="newOperatorBtn">+ Nuovo operatore</button></div>
                         </div>
-                        <div class="panel-body">
-                            <div class="toolbar" style="margin-bottom:14px">
-                                <input id="operatorSearch" aria-label="Cerca operatore" type="search" placeholder="Cerca per nome o email">
-                                <select id="operatorRoleFilter" aria-label="Filtra per ruolo">
+                        <div class="workspace-filterbar workspace-filterbar--operators">
+                                <div class="field"><label for="operatorSearch">Cerca operatore</label><input id="operatorSearch" aria-label="Cerca operatore" type="search" placeholder="Nome o email"></div>
+                                <div class="field"><label for="operatorRoleFilter">Ruolo</label><select id="operatorRoleFilter" aria-label="Filtra per ruolo">
                                     <option value="" data-copy-key="copy-24">Tutti i ruoli</option>
                                     <option value="OPERATOR" data-copy-key="copy-25">Operatore</option>
                                     <option value="VIEWER" data-copy-key="copy-26">Sola lettura</option>
-                                </select>
+                                </select></div>
                                 <span class="subtle" id="operatorsSummary">Caricamento…</span>
-                            </div>
                         </div>
                         <div class="table-wrap" tabindex="0" role="region" aria-label="Elenco operatori">
                             <table>
@@ -48,7 +46,7 @@
                             </table>
                         </div>
                     </div>
-                    <div class="panel" style="margin-bottom:18px">
+                    <div class="panel">
                         <div class="panel-head">
                             <div>
                                 <h3 data-copy-key="copy-27">Collega account Firebase</h3>
@@ -63,7 +61,7 @@
                             </div>
                         </div>
                     </div>
-                    <div class="panel" style="margin-bottom:18px">
+                    <div class="panel">
                         <div class="panel-head">
                             <div>
                                 <h3 data-copy-key="copy-30">Report manutenzione</h3><span>Report inviati dagli operatori tramite app
@@ -76,7 +74,7 @@
                         <div class="panel-body"><span id="reportsPageStatus" aria-live="polite"></span> <button class="mini-btn" id="reportsMoreBtn" hidden>Carica altri report</button></div>
                     </div>
                     <div class="operations-actions">
-                    <div class="panel" style="margin-bottom:18px">
+                    <div class="panel">
                         <div class="panel-head">
                             <div>
                                 <h3 data-copy-key="copy-31">Assegna incarico</h3><span>Invio operativo diretto all'app mobile dell'operatore</span>
