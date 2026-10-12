@@ -1,23 +1,29 @@
-/* Shared dark canvas with restrained red bokeh across all pages. */
-body {
-  --canvas-base: #0e0e16;
-  background: var(--canvas-base); isolation: isolate;
-}
+/* Shared decorative light field. Foreground surfaces retain their theme tokens. */
+body { --canvas-base: #0e0e16; background: var(--canvas-base); isolation: isolate; }
+/* Static fallback for disabled JavaScript or unavailable Canvas 2D. */
 body::before {
-  content: ''; position: fixed; inset: -12%; z-index: -1; pointer-events: none;
-  background: radial-gradient(circle at 14% 22%, #d637491f 0 42px, #ae26330b 68px, transparent 100px),
-    radial-gradient(circle at 76% 15%, #d637491a 0 64px, #ae26330a 96px, transparent 140px),
-    radial-gradient(circle at 88% 64%, #d637491c 0 36px, #ae26330a 60px, transparent 92px),
-    radial-gradient(circle at 38% 84%, #d6374917 0 56px, #ae263309 88px, transparent 132px),
-    radial-gradient(circle at 49% 43%, #d6374912 0 24px, transparent 72px);
-  filter: blur(12px); opacity: .8;
-  animation: canvas-drift 36s ease-in-out infinite alternate;
+  content: ''; position: fixed; inset: 0; z-index: -1; pointer-events: none;
+  background: radial-gradient(ellipse at 12% 20%, #75253838, transparent 52%),
+    radial-gradient(ellipse at 90% 58%, #9e372b24, transparent 48%),
+    radial-gradient(ellipse at 42% 95%, #56202e30, transparent 52%);
+  filter: none; opacity: 1; animation: none; transform: none; will-change: auto;
 }
-body::after { opacity: .012; background-size: 100px 100px; }
+/* Remove the previous grid and full-screen filter/compositing cost. */
+body::after { content: none; }
+body.ambient-ready::before { content: none; }
+.ambient-field { position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; contain: strict; }
+.ambient-field canvas { display: block; width: 100%; height: 100%; }
+/* Contrast veil: above the lights, below every interactive surface. */
+.ambient-field::after {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(180deg, #0e0e1638, #0e0e1666 50%, #0e0e164d),
+    radial-gradient(ellipse at 50% 38%, #0e0e1633 15%, #0e0e1600 60%, #0e0e1673 100%);
+}
 #app .main, #app .main:has(.view.active:not(#view-dashboard)), #loginScreen { background: transparent; }
-@keyframes canvas-drift {
-  from { transform: translate(-2%, -1%) scale(1); opacity: .65; }
-  to { transform: translate(2%, 1.5%) scale(1.04); opacity: .85; }
-}
-@media (prefers-reduced-motion: reduce) { body::before { animation: none; transform: none; } }
-@media print { body { background: white; } body::before, body::after { display: none; } }
+html[data-appearance=light] body { background: var(--bg, #f3f4f7); }
+html[data-appearance=light] .ambient-field { opacity: .14; }
+html[data-appearance=light] .ambient-field::after { background: linear-gradient(#f3f4f766, #f3f4f799); }
+html[data-appearance=light] body::before { opacity: .1; }
+html[data-contrast=high] .ambient-field, html[data-contrast=high] body::before { display: none; }
+@media (forced-colors: active) { .ambient-field, body::before { display: none; } }
+@media print { body { background: white; } .ambient-field, body::before, body::after { display: none; } }
