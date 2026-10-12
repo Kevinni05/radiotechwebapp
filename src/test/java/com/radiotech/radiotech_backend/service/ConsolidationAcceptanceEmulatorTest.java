@@ -66,6 +66,21 @@ class ConsolidationAcceptanceEmulatorTest {
   }
  }
  private void identity(String tenant,String role){var auth=new org.springframework.security.authentication.UsernamePasswordAuthenticationToken("qa",null,List.of(new org.springframework.security.core.authority.SimpleGrantedAuthority("ROLE_"+role)));auth.setDetails(new com.radiotech.radiotech_backend.security.FirebaseAuthenticationDetails("qa",null,"QA",tenant));org.springframework.security.core.context.SecurityContextHolder.getContext().setAuthentication(auth);}
+ @Test void reportAndTaskFiltersContinueBeyondFirstArchivePage()throws Exception{
+  String tenant="archive-filter-qa-"+UUID.randomUUID();identity(tenant,"ADMIN");
+  try(var db=database();var client=mockStatic(FirestoreClient.class)){
+   client.when(FirestoreClient::getFirestore).thenReturn(db);
+   for(int index=0;index<8;index++){
+    db.collection("maintenanceReports").document(tenant+index).set(Map.of("tenantId",tenant,"archiveAt",100L-index,"status","SUBMITTED","taskTitle",index<6?"Altro":"Città verifica","operatorName","Tecnico QA","submittedAt","2026-10-12T09:00:00Z")).get();
+    db.collection("tasks").document(tenant+index).set(Map.of("tenantId",tenant,"archiveAt",100L-index,"status","ASSIGNED","title",index<6?"Altro":"Città verifica")).get();
+   }
+   var reports=new MaintenanceReportService(null,null,null,null);var first=reports.searchPage(1,null,"SUBMITTED","citta","Tecnico QA","2026-10-12","2026-10-12");assertTrue(first.items().isEmpty());assertTrue(first.hasMore());
+   var next=reports.searchPage(1,first.nextCursor(),"SUBMITTED","citta","Tecnico QA","2026-10-12","2026-10-12");assertEquals(1,next.items().size());assertEquals(tenant+6,next.items().getFirst().getId());
+   var tasks=new TaskService(null,null,null);var taskFirst=tasks.searchPage(1,null,"citta");assertTrue(taskFirst.items().isEmpty());assertTrue(taskFirst.hasMore());
+   assertEquals(tenant+6,tasks.searchPage(1,taskFirst.nextCursor(),"citta").items().getFirst().getId());
+   assertThrows(IllegalArgumentException.class,()->reports.searchPage(1,null,null,null,null,"2026-10-13","2026-10-12"));
+  }finally{org.springframework.security.core.context.SecurityContextHolder.clearContext();}
+ }
  @Test void searchWorksBeforeProjectionDeploymentAndCursorIsTenantScoped()throws Exception{
   String tenant="fallback-qa-"+UUID.randomUUID();identity(tenant,"ADMIN");
   try(var db=database();var client=mockStatic(FirestoreClient.class)){

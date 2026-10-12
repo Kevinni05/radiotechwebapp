@@ -47,9 +47,13 @@ public class MaintenanceReportController {
     public Object page(@RequestParam(defaultValue = "50") int limit,
             @RequestParam(required = false) String cursor,
             @RequestParam(required = false) String status,
+            @RequestParam(required = false) String q,
+            @RequestParam(required = false) String operator,
+            @RequestParam(required = false) String from,
+            @RequestParam(required = false) String to,
             @RequestHeader(value = "X-Tenant-Id", required = false) String tenantId) throws Exception {
         requirePermission(Permission.REPORT_READ, tenantId);
-        return service.getPage(limit, cursor, null, null, status);
+        return service.searchPage(limit,cursor,status,q,operator,from,to);
     }
 
     @GetMapping("/count")

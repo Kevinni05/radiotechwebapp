@@ -764,7 +764,7 @@ function loadAudit(...args){return feature_system.loadAudit(...args);}
                 printWindow.focus();
                 printWindow.print();
             });
-            $("taskSearch")?.addEventListener("input", renderTaskList);
+            $("taskSearch")?.addEventListener("input", () => {renderTaskList();clearTimeout(window.radioTechTaskSearchTimer);window.radioTechTaskSearchTimer=setTimeout(()=>loadTasks(),350);});
             $("tbLinkBtn")?.addEventListener("click", calculateLinkBudget);
             $("tbPowerBtn")?.addEventListener("click", calculatePower);
             $("tbVswrBtn")?.addEventListener("click", calculateVswr);

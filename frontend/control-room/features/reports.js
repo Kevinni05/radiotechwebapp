@@ -1,6 +1,7 @@
 // reports: presentation and operations for this feature.
 export function createFeature(ctx){
 let reportAttachments,lastStatusFilter=null;
+const reportFilters=()=>({status:ctx.$('reportStatusFilter')?.value||'',q:ctx.$('reportSearch')?.value.trim()||'',operator:ctx.$('reportOperatorFilter')?.value||'',from:ctx.$('reportDateFrom')?.value||'',to:ctx.$('reportDateTo')?.value||''});
             function attachmentViewer() { return reportAttachments ??= window.RadioTechReportAttachments({apiFetch: ctx.apiFetch, escapeHtml: ctx.escapeHtml}); }
             function reportDisplayTitle(report) {
                 const task = ctx.state.tasks.find(t => t.id === report.taskId);
@@ -28,14 +29,14 @@ let reportAttachments,lastStatusFilter=null;
                 const epoch = ctx.state.sessionEpoch || 0;
                 ctx.loadingReports = true; ctx.$('reportsMoreBtn').disabled = true;
                 try {
-                    const statusFilter=ctx.$('reportStatusFilter')?.value||'';
+                    const filters=reportFilters(),statusFilter=JSON.stringify(filters);
                     const depth=append?1:statusFilter===lastStatusFilter?Math.max(1,Math.ceil((ctx.state.reports||[]).length/50)):1;
                     let cursor=append?ctx.reportsCursor:null,items=[],data;
                     for(let page=0;page<depth;page++) {
-                        const params=new ctx.URLSearchParams({limit:'50'});if(statusFilter)params.set('status',statusFilter);if(cursor)params.set('cursor',cursor);
+                        const params=new ctx.URLSearchParams({limit:'50'});for(const [key,value] of Object.entries(filters))if(value)params.set(key,value);if(cursor)params.set('cursor',cursor);
                         const response=await ctx.apiFetch(`/api/v1/reports/page?${params}`);data=response?.data??response;
                         if(epoch!==(ctx.state.sessionEpoch||0))return;
-                        if(statusFilter!==(ctx.$('reportStatusFilter')?.value||'')){ctx.reloadReports=true;return;}
+                        if(statusFilter!==JSON.stringify(reportFilters())){ctx.reloadReports=true;return;}
                         items.push(...(Array.isArray(data)?data:(data?.items||[])));cursor=data?.nextCursor||null;if(!cursor)break;
                     }
                     const reports=[...new Map([...(append?ctx.state.reports||[]:[]),...items].map(item=>[item.id,item])).values()];

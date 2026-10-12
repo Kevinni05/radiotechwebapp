@@ -597,6 +597,12 @@ public class TaskService {
                 return ArchiveQueries.page(query, limit, cursor, this::mapDocument);
         }
 
+        public ArchiveQueries.Page<Task> searchPage(int limit,String cursor,String search)throws Exception {
+                String term=ArchiveQueries.searchTerm(search);if(term.isEmpty())return getPage(limit,cursor,null,null);
+                var query=FirestoreClient.getFirestore().collection(COLLECTION).whereEqualTo("tenantId",requireCurrentTenant());
+                return ArchiveQueries.filteredPage(query,limit,cursor,this::mapDocument,task->ArchiveQueries.searchText(task.getId(),task.getTitle(),task.getDescription(),task.getOperatorName(),task.getOperatorId(),task.getStatus(),task.getAntennaId()).contains(term));
+        }
+
         public List<Task> getByAntenna(
                         String antennaId)
                         throws Exception {

@@ -136,6 +136,23 @@ public class MaintenanceReportService {
         return activePage(filterStatus(query, status), limit, cursor);
     }
 
+    public ArchiveQueries.Page<MaintenanceReport> searchPage(int limit,String cursor,String status,String search,String operator,String from,String to)throws Exception {
+        String term=ArchiveQueries.searchTerm(search),selected=java.util.Objects.toString(operator,"").trim();
+        String start=java.util.Objects.toString(from,""),end=java.util.Objects.toString(to,"");
+        if(selected.length()>180)throw new IllegalArgumentException("Operatore non valido.");
+        try{if(!start.isEmpty())java.time.LocalDate.parse(start);if(!end.isEmpty())java.time.LocalDate.parse(end);}catch(java.time.DateTimeException invalid){throw new IllegalArgumentException("Data non valida.");}
+        if(!start.isEmpty()&&!end.isEmpty()&&start.compareTo(end)>0)throw new IllegalArgumentException("Intervallo date non valido.");
+        if(term.isEmpty()&&selected.isEmpty()&&start.isEmpty()&&end.isEmpty())return getPage(limit,cursor,null,null,status);
+        var query=filterStatus(FirestoreClient.getFirestore().collection(COLLECTION).whereEqualTo("tenantId",currentTenant()),status);
+        return ArchiveQueries.filteredPage(query,limit,cursor,this::mapDocument,report->{
+            if(report.getRemovedAt()!=null)return false;
+            String date=java.util.Objects.toString(report.getSubmittedAt(),java.util.Objects.toString(report.getCompletedAt(),""));date=date.length()>=10?date.substring(0,10):"";
+            if(!start.isEmpty()&&(date.isEmpty()||date.compareTo(start)<0)||!end.isEmpty()&&(date.isEmpty()||date.compareTo(end)>0))return false;
+            if(!selected.isEmpty()&&!selected.equals(report.getOperatorName())&&!selected.equals(report.getOperatorId())&&!selected.equals(report.getOperatorFirebaseUid()))return false;
+            return term.isEmpty()||ArchiveQueries.searchText(report.getId(),report.getTaskTitle(),report.getTaskId(),report.getOperatorName(),report.getOperatorId(),report.getOperatorNotes(),report.getDescription()).contains(term);
+        });
+    }
+
     public long count(String status) throws Exception {
         return activeCount(filterStatus(FirestoreClient.getFirestore().collection(COLLECTION)
                 .whereEqualTo("tenantId", currentTenant()), status));

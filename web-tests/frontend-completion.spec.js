@@ -24,6 +24,13 @@ test('refresh preserves loaded asset pages and the server receives search filter
  await page.locator('#antennaSearch').fill('Alfa');await expect.poll(()=>requests.some(query=>query.q==='Alfa')).toBe(true);
 });
 
+test('task search and report date filters query the server with a fresh cursor',async({page})=>{
+ const queries=[];await session(page,'ADMIN',{respond(path,method,request){const url=new URL(request.url()),route=url.pathname.replace('/api/v1','');if(route==='/tasks/page'||route==='/reports/page'){queries.push({path:route,params:Object.fromEntries(url.searchParams)});return {items:[],nextCursor:null};}}});
+ await page.locator('[data-view="operations"]').first().click();await page.locator('#taskSearch').fill('Ponte remoto');await expect.poll(()=>queries.some(query=>query.path==='/tasks/page'&&query.params.q==='Ponte remoto'&&!query.params.cursor)).toBe(true);
+ await page.locator('[data-view="reports"]').first().click();await page.locator('#reportDateFrom').fill('2026-10-01');await page.locator('#reportDateTo').fill('2026-10-12');await page.locator('#reportSearch').fill('Verifica remota');
+ await expect.poll(()=>queries.some(query=>query.path==='/reports/page'&&query.params.q==='Verifica remota'&&query.params.from==='2026-10-01'&&query.params.to==='2026-10-12'&&!query.params.cursor)).toBe(true);
+});
+
 test('calendar keyboard navigation protects an unsaved note',async({page})=>{
  await session(page);await page.locator('#calendarNote').fill('Nota non ancora salvata');const selected=await page.locator('#calendarDay').inputValue();
  await page.locator('.calendar-day').first().focus();await page.keyboard.press('ArrowRight');

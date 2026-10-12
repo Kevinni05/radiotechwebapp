@@ -9,6 +9,25 @@ import java.util.function.Function;
 /** Indexed archives: bounded reads, stable time/ID order, no offset scans. */
 public final class ArchiveQueries {
     private ArchiveQueries() {}
+    public static String searchText(String... values) {
+        String text=Arrays.stream(values).map(value->Objects.toString(value,"")).collect(java.util.stream.Collectors.joining(" "));
+        return java.text.Normalizer.normalize(text,java.text.Normalizer.Form.NFKD).replaceAll("\\p{M}","").toLowerCase(Locale.ROOT);
+    }
+    public static String searchTerm(String value) {
+        String normalized=searchText(Objects.toString(value,"").trim());
+        if(normalized.length()>100)throw new IllegalArgumentException("Ricerca troppo lunga.");
+        return normalized;
+    }
+    public static <T> Page<T> filteredPage(Query query,int limit,String cursor,Function<DocumentSnapshot,T> mapper,java.util.function.Predicate<T> include)throws Exception {
+        if(limit<1||limit>100)throw new IllegalArgumentException("Dimensione pagina tra 1 e 100.");
+        var items=new ArrayList<T>();String after=cursor;boolean more=false;
+        for(int batch=0;batch<5;batch++){
+            var page=page(query,limit-items.size(),after,mapper);
+            items.addAll(page.items().stream().filter(include).toList());after=page.nextCursor();more=page.hasMore();
+            if(items.size()==limit||!more)break;
+        }
+        return new Page<>(items,after,more);
+    }
     public record Page<T>(List<T> items, String nextCursor, boolean hasMore) {}
     public static List<String> identities(String... values) {
         return Arrays.stream(values).filter(Objects::nonNull).map(String::trim)

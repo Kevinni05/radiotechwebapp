@@ -1,25 +1,28 @@
 // tasks: presentation and operations for this feature.
 export function createFeature(ctx){
 let loadingTasks = false, loadingReports = false, reloadReports = false;
+let lastSearch=null,reloadTasks=false;
             async function loadTasks(append = false) {
                 append = append === true;
-                if (loadingTasks) return;
+                if (loadingTasks) {if(!append)reloadTasks=true;return;}
                 loadingTasks = true; ctx.$('tasksMoreBtn').disabled = true;
                 try {
-                    const depth=append?1:Math.max(1,Math.ceil(ctx.state.tasks.length/50));
+                    const search=ctx.$('taskSearch')?.value.trim()||'';
+                    const depth=append?1:search===lastSearch?Math.max(1,Math.ceil(ctx.state.tasks.length/50)):1;
                     let cursor=append?ctx.tasksCursor:null,items=[];
                     for(let page=0;page<depth;page++) {
-                        const params=new ctx.URLSearchParams({limit:'50'});if(cursor)params.set('cursor',cursor);
+                        const params=new ctx.URLSearchParams({limit:'50'});if(search)params.set('q',search);if(cursor)params.set('cursor',cursor);
                         const response=await ctx.apiFetch(`/api/v1/tasks/page?${params}`),data=response?.data??response;
+                        if(search!==(ctx.$('taskSearch')?.value.trim()||'')){reloadTasks=true;return;}
                         items.push(...(Array.isArray(data)?data:(data?.items||[])));cursor=data?.nextCursor||null;if(!cursor)break;
                     }
                     ctx.state.tasks=[...new Map([...(append?ctx.state.tasks:[]),...items].map(item=>[item.id,item])).values()];
-                    ctx.tasksCursor=cursor;
+                    ctx.tasksCursor=cursor;lastSearch=search;
                     ctx.$('tasksMoreBtn').hidden = !ctx.tasksCursor;
                     ctx.$('tasksPageStatus').textContent = `${ctx.state.tasks.length} incarichi caricati${ctx.tasksCursor ? ' · altri disponibili' : ' · fine elenco'}`;
                     renderTaskList(); populateTaskSelectors(); ctx.refreshReportTitles();
                 } catch (e) { if (append || ctx.state.tasks.length) ctx.toast('Caricamento non riuscito', e.message, 'error'); else ctx.$("tasksList").innerHTML = `<div class="empty">Incarichi non disponibili: ${ctx.escapeHtml(e.message)}</div>`; }
-                finally { loadingTasks = false; ctx.$('tasksMoreBtn').disabled = false; }
+                finally { loadingTasks = false; ctx.$('tasksMoreBtn').disabled = false;if(reloadTasks){reloadTasks=false;if(ctx.state.token)loadTasks();} }
             }
             function eligibleOperators() {
                 return ctx.state.operators.filter(operator => {
@@ -34,8 +37,9 @@ let loadingTasks = false, loadingReports = false, reloadReports = false;
             }
             function renderTaskList() {
                 if (!ctx.$('tasksList')) return;
-                const query = (ctx.$('taskSearch')?.value || '').trim().toLowerCase();
-                const list = ctx.state.tasks.filter(t => !query || [t.title, t.description, t.operatorName, t.operatorId, t.status, t.antennaId].join(' ').toLowerCase().includes(query));
+                const normalize=value=>String(value||'').normalize('NFKD').replace(/\p{M}/gu,'').toLowerCase();
+                const query = normalize((ctx.$('taskSearch')?.value || '').trim());
+                const list = ctx.state.tasks.filter(t => !query || normalize([t.id,t.title, t.description, t.operatorName, t.operatorId, t.status, t.antennaId].join(' ')).includes(query));
                 ctx.$('tasksList').innerHTML = list.length ? list.map(t => `<div class="task-row"><div><div class="task-title">${ctx.escapeHtml(t.title || t.id)}</div><div class="task-meta">${ctx.escapeHtml(t.operatorName || t.operatorId || t.operator_uid || "Non assegnato")} · ${ctx.escapeHtml(t.antennaId || "—")} · ${t.dueAt ? `scade ${ctx.escapeHtml(new Date(t.dueAt).toLocaleString('it-IT'))}` : 'senza scadenza'} · ID ${ctx.escapeHtml(t.id)}</div></div><div class="actions"><span class="badge ${ctx.badgeClass(t.status)}">${ctx.escapeHtml(ctx.formatStatus(t.status))}</span>${!["COMPLETED", "REPORT_SUBMITTED", "APPROVED", "CLOSED", "CANCELLED"].includes(t.status) ? `<button class="mini-btn" data-task-cancel="${ctx.escapeHtml(t.id)}">Annulla incarico</button>` : ''}</div></div>`).join('') : '<div class="empty">Nessun incarico.</div>';
                 ctx.$('tasksList').querySelectorAll('[data-task-cancel]').forEach(button => {
                     button.hidden = !["ADMIN", "SUPER_ADMIN", "CHIEF_EXECUTIVE", "CAPO", "NETWORK_MANAGER", "ENGINEER"].includes(ctx.state.authRole || ctx.state.user?.role);

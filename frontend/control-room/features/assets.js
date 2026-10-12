@@ -20,11 +20,12 @@ export function createFeature(ctx){
 
             function renderAntennas(){preserveTableInteraction(ctx.$("antennasTableBody"),renderAntennaRows);}
             function renderAntennaRows() {
-                const query = ctx.$("antennaSearch").value.trim().toLowerCase();
+                const normalize=value=>String(value||'').normalize('NFKD').replace(/\p{M}/gu,'').toLowerCase();
+                const query = normalize(ctx.$("antennaSearch").value.trim());
                 const filter = ctx.$("antennaStatusFilter").value.toUpperCase();
 
                 const list = ctx.state.antennas.filter(a => {
-                    const haystack = [a.id, a.name, a.status, a.lat, a.lng].join(" ").toLowerCase();
+                    const haystack = normalize([a.id, a.name, a.status, a.lat, a.lng].join(" "));
                     return (!query || haystack.includes(query)) &&
                         (!filter || String(a.status || "").toUpperCase() === filter);
                 });
