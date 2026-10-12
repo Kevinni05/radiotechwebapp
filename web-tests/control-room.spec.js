@@ -153,7 +153,7 @@ test('access form keeps account binding and revocation functional after redesign
   await page.locator('#accessPermissions').fill('clients:READ, purchases:READ');
   await page.locator('#accessForm [type="submit"]').click();await expect(page.locator('#accessStatus')).toContainText('Accesso assegnato');
   expect(calls[0]).toMatchObject({method:'PUT',body:{role:'OPERATOR',mfaRequired:true,proPermissions:['clients:READ','purchases:READ']}});
-  page.once('dialog',dialog=>dialog.accept());await page.locator('#accessRevoke').click();await expect(page.locator('#accessStatus')).toHaveText('Sessioni revocate.');
+  await page.locator('#accessRevoke').click();await page.locator('.ui-dialog').getByRole('button',{name:'Conferma',exact:true}).click();await expect(page.locator('#accessStatus')).toHaveText('Sessioni revocate.');
   expect(calls[1].path).toBe('/pro/security/accounts/account-test/revoke');
 });
 
@@ -242,7 +242,7 @@ test('inventory creates, edits, moves, archives and restores an item on a narrow
   await expect(page.locator('#inventoryMovementModal')).toBeHidden(); expect(items[0].quantity).toBe(8);
   await page.locator('#inventoryMovementsBtn').click(); await expect(page.locator('#inventoryMovementsBody')).toContainText('5 → 8');
   await page.locator('#inventoryMovementsHistoryModal .modal-foot button').click();
-  page.once('dialog',dialog => dialog.accept()); await page.locator('[data-inventory-archive="s1"]').click();
+  await page.locator('[data-inventory-archive="s1"]').click();await page.locator('.ui-dialog').getByRole('button',{name:'Conferma',exact:true}).click();
   await expect(page.locator('[data-inventory-move="s1"]')).toHaveCount(0);
   await page.locator('#inventoryStockFilter').selectOption('ARCHIVED'); await page.locator('[data-inventory-restore="s1"]').click();
   await page.locator('#inventoryStockFilter').selectOption('ACTIVE'); await expect(page.locator('[data-inventory-move="s1"]')).toBeVisible();
@@ -501,10 +501,11 @@ test('all assignments remain visible beyond fifty and an active task can be canc
   await expect(page.locator('#tasksList .task-row')).toHaveCount(50);
   await page.locator('#tasksMoreBtn').click();
   await expect(page.locator('#tasksList .task-row')).toHaveCount(55);
-  page.once('dialog', dialog => dialog.accept());
   await page.locator('[data-task-cancel="task-54"]').click();
+  await page.locator('.ui-dialog').getByRole('button',{name:'Conferma',exact:true}).click();
   await expect(page.locator('[data-task-cancel="task-54"]')).toHaveCount(0);
-  await page.locator('#tasksMoreBtn').click();
+  await expect(page.locator('#tasksList .task-row')).toHaveCount(55);
+  await expect(page.locator('#tasksMoreBtn')).toBeHidden();
   expect(changes).toEqual([{status: 'CANCELLED'}]);
   await expect(page.locator('#tasksList .task-row').last()).toContainText('Annullato');
 });
@@ -607,8 +608,8 @@ test('manager profile updates and badge retrieval use dedicated endpoints', asyn
   await expect(page.locator('#badgeToken')).toHaveText('badge-only-token');
   await expect(page.locator('#badgeModal')).toBeVisible();
   await page.locator('#closeBadgeModal').click();
-  page.once('dialog', dialog => dialog.accept());
   await page.locator('[data-regenerate="o1"]').click();
+  await page.locator('.ui-dialog').getByRole('button',{name:'Conferma',exact:true}).click();
   await expect(page.locator('#badgeModal')).toBeVisible();
   await expect(page.locator('#badgeToken')).toHaveText('fresh-badge-token');
 });
@@ -853,7 +854,7 @@ test('TelcoTools calculates CIDR, VLSM and RF at narrow widths and exports the s
 test('QR validity config and operator deletion call their protected APIs',async({page})=>{
  await session(page);const requests=[];await page.route('**/api/v1/operators/**',route=>{requests.push({path:new URL(route.request().url()).pathname,method:route.request().method(),data:route.request().postDataJSON()});return route.fulfill({json:{message:'Operazione completata'}});});
  await page.locator('.nav [data-view="operators"]').click();const button=page.locator('[data-validity]').first();await button.click();await page.locator('#validityMode').selectOption('UNLIMITED');await page.locator('#validityForm [type=submit]').click();await expect.poll(()=>requests.some(r=>r.path.endsWith('/qr-validity'))).toBeTruthy();expect(requests.find(r=>r.path.endsWith('/qr-validity')).data).toEqual({mode:'UNLIMITED',expiresAt:null});
- page.on('dialog',d=>d.accept());await page.locator('[data-delete-operator]').first().click();await expect.poll(()=>requests.some(r=>r.method==='DELETE')).toBeTruthy();
+ await page.locator('[data-delete-operator]').first().click();await page.locator('.ui-dialog').getByRole('button',{name:'Conferma',exact:true}).click();await expect.poll(()=>requests.some(r=>r.method==='DELETE')).toBeTruthy();
 });
 
 
@@ -921,4 +922,32 @@ test('compact environment starts closed and operational widgets use actual recor
  for(const motion of ['reduce','no-preference']){await page.emulateMedia({reducedMotion:motion});await page.locator('footer').scrollIntoViewIfNeeded();expect(await page.evaluate(()=>document.scrollingElement.scrollTop)).toBeGreaterThan(200);await page.locator('#footerBackTop').click();await expect.poll(()=>page.evaluate(()=>document.scrollingElement.scrollTop),{timeout:8000}).toBe(0);}
  await page.setViewportSize({width:1440,height:1000});await page.screenshot({path:test.info().outputPath('weather-compact-desktop.png')});
  await page.setViewportSize({width:390,height:1000});await page.screenshot({path:test.info().outputPath('weather-compact-mobile.png')});
+});
+
+test('asset pages load on request, preserve prior rows and avoid a legacy full scan',async({page})=>{
+ const requests=[];
+ await session(page,'ADMIN',{respond(path,method,request){
+  if(path==='/dashboard/antenne/page') {
+   const cursor=new URL(request.url()).searchParams.get('cursor');requests.push(cursor);
+   return {items:[{id:cursor?'second':'first',name:cursor?'Secondo impianto':'Primo impianto',status:'ATTIVA'}],nextCursor:cursor?null:'first'};
+  }
+ }});
+ await page.locator('[data-view="antennas"]').first().click();
+ await expect(page.locator('#antennasTableBody')).toContainText('Primo impianto');
+ expect(requests.length).toBeGreaterThan(0);expect(requests.every(cursor=>cursor===null)).toBe(true);
+ await page.locator('#antennaLoadMore').click();
+ await expect(page.locator('#antennasTableBody')).toContainText('Secondo impianto');
+ await expect(page.locator('#antennasTableBody')).toContainText('Primo impianto');
+ expect(requests.at(-1)).toBe('first');await expect(page.locator('#antennaLoadMore')).toBeHidden();
+});
+
+test('resource search escapes labels and saves filters only for the current session',async({page})=>{
+ await session(page,'ADMIN',{respond(path){if(path==='/dashboard/search')return {items:[{id:'a-search',type:'antennas',label:'Ponte <img src=x onerror=alert(1)>',status:'ATTIVA',updatedAt:'2026-10-12'}]};}});
+ await page.locator('#workspaceSearchBtn').click();await page.locator('#workspaceCommandInput').fill('ponte');
+ await expect(page.locator('#workspaceCommandResults details summary')).toContainText('Ponte <img');
+ expect(await page.locator('#workspaceCommandResults img').count()).toBe(0);
+ await page.locator('#workspaceSaveSearch').click();
+ await expect(page.locator('#workspaceSavedSearch option[value="ponte"]')).toHaveCount(1);
+ await page.locator('#workspaceCommandInput').fill('altra');await page.locator('#workspaceSavedSearch').selectOption('ponte');
+ await expect(page.locator('#workspaceCommandInput')).toHaveValue('ponte');
 });

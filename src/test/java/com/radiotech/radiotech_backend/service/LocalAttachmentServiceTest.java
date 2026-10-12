@@ -22,4 +22,23 @@ class LocalAttachmentServiceTest {
   var testFiles=new LocalAttachmentService(new MockEnvironment().withProperty("radiotech.local-files.directory",folder.toString()));
   assertThrows(IllegalArgumentException.class,()->testFiles.read("../secrets","t","u",true));
  }
+ @Test void streamsAuthorizeBeforeStagingVerifyBytesAndRemoveTemporaryFiles()throws Exception{
+  var files=new LocalAttachmentService(new MockEnvironment().withProperty("radiotech.local-files.directory",folder.toString()));
+  byte[] bytes="%PDF-test bytes".getBytes();var saved=files.save("t","u","stream","a.pdf",bytes);
+  String id=saved.get("reference").toString().substring("radiotech-file:".length());
+  assertThrows(SecurityException.class,()->files.prepareDownload(id,"foreign","u",true));
+  Path staged;
+  try(var stream=files.prepareDownload(id,"t","u",false)){
+   staged=stream.file();var output=new java.io.ByteArrayOutputStream();stream.transferTo(output);assertArrayEquals(bytes,output.toByteArray());
+  }
+  assertFalse(Files.exists(staged));
+  Files.write(folder.resolve(id+".bin"),"tampered".getBytes());
+  assertThrows(IllegalStateException.class,()->files.prepareDownload(id,"t","u",false));
+  try(var paths=Files.list(folder.resolve("verified-downloads"))){assertEquals(0,paths.count());}
+ }
+ @Test void uploadMagicAndExtensionMustAgree(){
+  LocalAttachmentService.validateUploadContent("report.pdf","%PDF-1.7".getBytes());
+  assertThrows(IllegalArgumentException.class,()->LocalAttachmentService.validateUploadContent("report.pdf","<script>alert(1)</script>".getBytes()));
+  assertThrows(IllegalArgumentException.class,()->LocalAttachmentService.validateUploadContent("report.html","%PDF-1.7".getBytes()));
+ }
 }

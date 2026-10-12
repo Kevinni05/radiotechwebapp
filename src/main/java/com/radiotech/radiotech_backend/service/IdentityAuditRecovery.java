@@ -59,6 +59,31 @@ public class IdentityAuditRecovery {
         String reason = "UNSUPPORTED_INTENT";
         try {
             String action = Objects.toString(intent.get("action"), "");
+            if ("OPERATOR_DELETE".equals(action)) {
+                boolean missing = false;
+                try { auth.getUser((String) intent.get("resourceId")); }
+                catch (com.google.firebase.auth.FirebaseAuthException error) {
+                    if (error.getAuthErrorCode() != com.google.firebase.auth.AuthErrorCode.USER_NOT_FOUND) throw error;
+                    missing = true;
+                }
+                if (missing) {
+                    String tenant = Objects.toString(intent.get("tenantId"), "");
+                    String operatorId = Objects.toString(intent.get("operatorId"), "");
+                    if (tenant.isBlank() || operatorId.isBlank() || operatorId.contains("/")) reason = "INVALID_DELETE_INTENT";
+                    else {
+                        var operator = db.collection("operators").document(operatorId);
+                        confirmed = db.runTransaction(tx -> {
+                            var current = tx.get(operator).get();
+                            var event = tx.get(ref).get();
+                            if (!lease.equals(event.getString("recoveryLease"))) return false;
+                            if (!current.exists()) return true;
+                            if (!tenant.equals(current.getString("tenantId")) || !Objects.equals(intent.get("resourceId"),current.getString("firebaseUid"))) return false;
+                            tx.delete(operator);return true;
+                        }).get();
+                        reason = confirmed ? "DELETED_IDENTITY_AND_PROFILE_CONFIRMED" : "PROFILE_IDENTITY_CHANGED";
+                    }
+                } else reason = "DELETE_REQUIRES_OPERATOR_REVIEW";
+            }
             if (Set.of("IDENTITY_BIND", "SESSION_REVOKE").contains(action)) {
                 String tenant = Objects.toString(intent.get("tenantId"), "");
                 var user = auth.getUser((String) intent.get("resourceId"));

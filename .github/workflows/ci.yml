@@ -70,6 +70,9 @@ jobs:
       - name: Ensure Gradle wrapper is executable
         run: chmod +x gradlew
 
+      - name: Install projection dependencies
+        run: npm ci --prefix functions
+
       - name: Firestore and Auth emulator integration tests
         run: npm run test:firestore
 
@@ -126,6 +129,8 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run build:auth
+      - run: npm run build:control-room
+      - run: npm run build:operations
       - run: npx playwright install --with-deps ${{ matrix.browser }}
       - run: bash gradlew bootJar --no-daemon --console=plain
       - run: npm run test:web -- --project=${{ matrix.browser }}

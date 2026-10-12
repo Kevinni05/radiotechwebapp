@@ -389,7 +389,8 @@ public class AntennaService {
         }
         requireDocumentTenant(existing);
 
-        docRef.delete().get();
+        AuditService.deleteResource(db, COLLECTION, id, existing.getString("tenantId"),
+                com.radiotech.radiotech_backend.security.SecurityContextAccessor.currentUid());
     }
 
     /**

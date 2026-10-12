@@ -1,0 +1,6 @@
+{
+  "name": "radiotech-projections", "private": true, "main": "index.cjs",
+  "engines": { "node": "22" },
+  "scripts": { "test": "node --test test/*.test.cjs", "backfill": "node backfill.cjs" },
+  "dependencies": { "firebase-admin": "14.5.0", "firebase-functions": "7.4.0" }
+}

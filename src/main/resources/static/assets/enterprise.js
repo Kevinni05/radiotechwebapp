@@ -163,9 +163,9 @@ window.RadioTechEnterprise = function ({ apiFetch, state, escapeHtml: esc, toast
                 const incident = incidents.find(i => i.id === button.dataset.incidentNext);
                 const payload = { status: next[incident.status] };
                 if (payload.status === "RESOLVED") {
-                    payload.rootCause = prompt("Causa dell'incidente:");
+                    payload.rootCause = await window.RadioTechDialogs.prompt("Causa dell'incidente:");
                     if (!payload.rootCause?.trim()) return;
-                    payload.resolution = prompt("Intervento risolutivo:");
+                    payload.resolution = await window.RadioTechDialogs.prompt("Intervento risolutivo:");
                     if (!payload.resolution?.trim()) return;
                 }
                 await apiFetch(`/api/v1/incidents/${encodeURIComponent(incident.id)}/transitions`, { method: "POST", body: JSON.stringify(payload) });

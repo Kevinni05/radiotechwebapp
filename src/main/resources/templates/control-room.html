@@ -147,7 +147,7 @@
             <header class="topbar signature-topbar" aria-label="Barra dello spazio operativo">
                 <div class="workspace-context">
                     <button class="icon-btn mobile-menu" id="mobileMenu" type="button" aria-label="Apri navigazione" aria-controls="sidebar" aria-expanded="false" data-icon="menu">☰</button>
-                    <div class="workspace-heading-copy"><div class="workspace-label" th:text="${brandName}">RadioTech</div><h1 id="pageTitle">Panoramica</h1><p id="pageSubtitle" class="sr-only">Monitoraggio infrastruttura radio e operazioni tecniche</p></div>
+                    <div class="workspace-heading-copy"><div class="workspace-label"><span th:text="${brandName}">RadioTech</span> · <span th:text="${environmentLabel}">SVILUPPO</span> · <span id="workspaceTenant">Azienda —</span></div><h1 id="pageTitle">Panoramica</h1><p id="pageSubtitle" class="sr-only">Monitoraggio infrastruttura radio e operazioni tecniche</p></div>
                 </div>
                 <button class="workspace-search" id="workspaceSearchBtn" type="button" aria-label="Cerca sezioni e azioni" aria-haspopup="dialog" aria-controls="workspaceCommandDialog"><span data-icon="search" aria-hidden="true">⌕</span><span class="workspace-search-label">Cerca sezioni e azioni</span><kbd id="workspaceShortcut">Ctrl K</kbd></button>
                 <div class="top-actions">
@@ -177,6 +177,7 @@
             <dialog class="workspace-command-dialog" id="workspaceCommandDialog" aria-labelledby="workspaceCommandTitle">
                 <div class="workspace-command-head"><div><h2 id="workspaceCommandTitle" data-copy-key="copy-8">Trova nel workspace</h2><p>Sezioni e azioni disponibili per il tuo ruolo.</p></div><button class="icon-btn" id="workspaceCommandClose" type="button" aria-label="Chiudi ricerca">×</button></div>
                 <label class="sr-only" for="workspaceCommandInput" data-copy-key="copy-9">Cerca sezioni e azioni autorizzate</label><input id="workspaceCommandInput" type="search" placeholder="Cerca una sezione o un’azione…" autocomplete="off" aria-controls="workspaceCommandResults">
+                <div class="actions"><button type="button" class="btn" id="workspaceSaveSearch">Salva ricerca</button><select id="workspaceSavedSearch" aria-label="Ricerche salvate nella sessione"><option value="">Ricerche salvate nella sessione</option></select></div>
                 <div class="workspace-command-results" id="workspaceCommandResults" aria-live="polite"></div><div class="workspace-command-help">↑ ↓ per scegliere · Invio per aprire · Esc per chiudere</div>
             </dialog>
 
@@ -233,25 +234,25 @@
                 <div class="modal-body">
                     <input type="hidden" id="antennaId">
                     <div class="form-grid">
-                        <div class="field"><label for="antennaName" data-copy-key="copy-99">Nome</label><input id="antennaName" required
+                        <div class="field"><label for="antennaName" data-copy-key="copy-99">Nome</label><input id="antennaName" name="name" required
                                 placeholder="ANT-ROMA-001"></div>
                         <div class="field"><label for="antennaStatus" data-copy-key="copy-100">Stato</label>
-                            <select id="antennaStatus">
+                            <select id="antennaStatus" name="status">
                                 <option value="ATTIVA" data-copy-key="copy-101">ATTIVA</option>
                                 <option value="MANUTENZIONE" data-copy-key="copy-102">MANUTENZIONE</option>
                                 <option value="OFFLINE" data-copy-key="copy-103">OFFLINE</option>
                             </select>
                         </div>
-                        <div class="field"><label for="antennaLat" data-copy-key="copy-104">Latitudine</label><input id="antennaLat" type="number" step="any"
+                        <div class="field"><label for="antennaLat" data-copy-key="copy-104">Latitudine</label><input id="antennaLat" name="lat" type="number" step="any"
                                 required></div>
-                        <div class="field"><label for="antennaLng" data-copy-key="copy-105">Longitudine</label><input id="antennaLng" type="number" step="any"
+                        <div class="field"><label for="antennaLng" data-copy-key="copy-105">Longitudine</label><input id="antennaLng" name="lng" type="number" step="any"
                                 required></div>
-                        <div class="field"><label for="antennaFreq" data-copy-key="copy-106">Frequenza</label><input id="antennaFreq" type="number" step="any">
+                        <div class="field"><label for="antennaFreq" data-copy-key="copy-106">Frequenza</label><input id="antennaFreq" name="specs.frequencyMHz" type="number" step="any">
                         </div>
-                        <div class="field"><label for="antennaPower" data-copy-key="copy-107">Potenza</label><input id="antennaPower" type="number" step="any">
+                        <div class="field"><label for="antennaPower" data-copy-key="copy-107">Potenza</label><input id="antennaPower" name="specs.powerWatts" type="number" step="any">
                         </div>
-                        <div class="field"><label for="antennaRos" data-copy-key="copy-108">ROS</label><input id="antennaRos" type="number" step="any"></div>
-                        <div class="field"><label for="antennaTemp" data-copy-key="copy-109">Temperatura</label><input id="antennaTemp" type="number" step="any">
+                        <div class="field"><label for="antennaRos" data-copy-key="copy-108">ROS</label><input id="antennaRos" name="specs.ros" type="number" step="any"></div>
+                        <div class="field"><label for="antennaTemp" data-copy-key="copy-109">Temperatura</label><input id="antennaTemp" name="specs.temperatureC" type="number" step="any">
                         </div>
                     </div>
                 </div>
@@ -404,9 +405,9 @@
             <form id="profileForm">
                 <div class="modal-body">
                     <div class="form-grid">
-                        <div class="field"><label for="editProfileName" data-copy-key="copy-151">Nome completo</label><input id="editProfileName"></div>
-                        <div class="field"><label for="editProfilePhone" data-copy-key="copy-152">Telefono</label><input id="editProfilePhone" type="tel"></div>
-                        <div class="field full"><label for="editProfileCompany" data-copy-key="copy-153">Azienda</label><input id="editProfileCompany"></div>
+                        <div class="field"><label for="editProfileName" data-copy-key="copy-151">Nome completo</label><input id="editProfileName" name="fullName"></div>
+                        <div class="field"><label for="editProfilePhone" data-copy-key="copy-152">Telefono</label><input id="editProfilePhone" name="phone" type="tel"></div>
+                        <div class="field full"><label for="editProfileCompany" data-copy-key="copy-153">Azienda</label><input id="editProfileCompany" name="company"></div>
                         <div class="field full"><label for="profilePhotoFile" data-copy-key="copy-154">Foto profilo</label><input id="profilePhotoFile" type="file" accept="image/png,image/jpeg,image/webp"><p class="field-help">Ritaglia il volto, regola lo zoom e salva la foto nel tuo profilo.</p><div class="actions"><button type="button" class="btn" id="profilePhotoRemove">Rimuovi foto</button><span id="profilePhotoStatus" role="status"></span></div></div>
                     </div>
                 </div>
@@ -439,6 +440,8 @@
     <script src="/assets/report-material-review.js" defer></script>
     <link rel="stylesheet" href="/assets/report-material-review.css">
     <script src="/assets/design-system.js" defer></script>
+    <script src="/assets/ui-dialogs.js"></script>
+    <script src="/assets/ui-forms.js"></script>
     <script src="/assets/control-room.js"></script>
 
 </body>

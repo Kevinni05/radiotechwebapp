@@ -76,10 +76,10 @@ window.RadioTechCompanyHub = function ({ apiFetch, state, escapeHtml: esc, toast
   $("peopleSignalForm").addEventListener("submit", event => {
     event.preventDefault(); action(event.submitter, async () => { await apiFetch("/api/v1/workforce/signals", { method: "POST", body: JSON.stringify({ type: $("signalType").value, severity: $("signalSeverity").value, description: $("signalDescription").value.trim(), assetId: $("signalAsset").value.trim() || null, operationId: crypto.randomUUID() }) }); event.target.reset(); await loadPeople(); toast("Segnalazione registrata", "I responsabili possono prenderla in carico."); });
   });
-  $("peopleSignals").addEventListener("click", event => {
+  $("peopleSignals").addEventListener("click", async event => {
     const button = event.target.closest("[data-review-signal]"); if (!button) return;
     const signal = signals.find(s => s.id === button.dataset.reviewSignal); let resolution = "";
-    if (signal.status === "ACKNOWLEDGED") { resolution = prompt("Descrivi la risoluzione della segnalazione:"); if (!resolution?.trim()) return; }
+    if (signal.status === "ACKNOWLEDGED") { resolution = await window.RadioTechDialogs.prompt("Descrivi la risoluzione della segnalazione:"); if (!resolution?.trim()) return; }
     action(button, async () => { await apiFetch(`/api/v1/workforce/signals/${encodeURIComponent(signal.id)}`, { method: "PATCH", body: JSON.stringify({ status: signal.status === "OPEN" ? "ACKNOWLEDGED" : "RESOLVED", resolution, expectedVersion: signal.version }) }); await loadPeople(); });
   });
   $("peopleRefresh").addEventListener("click", e => action(e.currentTarget, loadPeople));

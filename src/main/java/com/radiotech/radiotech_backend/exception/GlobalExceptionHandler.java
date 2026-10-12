@@ -99,7 +99,11 @@ public class GlobalExceptionHandler {
                                 .map(error -> error.getField() + ": " + error.getDefaultMessage())
                                 .findFirst()
                                 .orElse("Dati della richiesta non validi.");
-                return buildResponse(HttpStatus.BAD_REQUEST, message);
+                var response = buildResponse(HttpStatus.BAD_REQUEST, message);
+                var fields = new java.util.LinkedHashMap<String,String>();
+                exception.getBindingResult().getFieldErrors().forEach(error -> fields.putIfAbsent(error.getField(), java.util.Objects.toString(error.getDefaultMessage(), "Valore non valido.")));
+                response.getBody().put("fieldErrors", fields);
+                return response;
         }
 
         @ExceptionHandler(org.springframework.web.server.ResponseStatusException.class)
@@ -125,6 +129,10 @@ public class GlobalExceptionHandler {
                 Map<String, Object> response = new LinkedHashMap<>();
 
                 response.put("success", false);
+                response.put("code", status.name());
+                response.put("retryable", status == HttpStatus.SERVICE_UNAVAILABLE || status == HttpStatus.GATEWAY_TIMEOUT || status == HttpStatus.TOO_MANY_REQUESTS);
+                String requestId = org.slf4j.MDC.get("requestId");
+                if (requestId != null) response.put("requestId", requestId);
                 response.put("status", status.value());
                 response.put("error", status.getReasonPhrase());
                 response.put(

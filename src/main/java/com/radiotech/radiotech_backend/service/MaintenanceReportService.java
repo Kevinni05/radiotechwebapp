@@ -173,6 +173,11 @@ public class MaintenanceReportService {
 
     /** Preserve the original report and its signed artifacts; audit and removal commit atomically. */
     public void remove(String id, String actorUid) throws Exception {
+        remove(id,actorUid,"Rimozione da client precedente senza motivazione strutturata.");
+    }
+    public void remove(String id, String actorUid,String reason) throws Exception {
+        if(reason==null||reason.trim().length()<3||reason.trim().length()>500)throw new IllegalArgumentException("Specifica una motivazione da 3 a 500 caratteri.");
+        String removalReason=reason.trim();
         if (!TenantAccessPolicy.canAccess(SecurityContextAccessor.currentRole(), Permission.REPORT_DELETE))
             throw new SecurityException("Permessi insufficienti per rimuovere il report.");
         String tenantId = currentTenant();
@@ -189,7 +194,7 @@ public class MaintenanceReportService {
                 throw new IllegalArgumentException("Report non trovato.");
             if (!isActive(snapshot)) return null; // Idempotent; retain the first actor and timestamp.
             String now = Instant.now().toString();
-            transaction.update(reference, "removedAt", now, "removedBy", actorUid);
+            transaction.update(reference, "removedAt", now, "removedBy", actorUid,"removalReason",removalReason);
             Map<String, Object> entry = new LinkedHashMap<>();
             entry.put("action", "REPORT_REMOVED");
             entry.put("tenantId", tenantId);
@@ -200,7 +205,7 @@ public class MaintenanceReportService {
             entry.put("timestamp", now);
             entry.put("before", Map.of("status", nullSafe(snapshot.getString("status"))));
             entry.put("after", Map.of("removedAt", now, "removedBy", actorUid,
-                    "retained", true, "status", nullSafe(snapshot.getString("status"))));
+                    "retained", true, "reason",removalReason, "status", nullSafe(snapshot.getString("status"))));
             transaction.set(audit, entry);
             return null;
         }));
@@ -314,6 +319,13 @@ public class MaintenanceReportService {
         }
 
         report.setTaskTitle(linkedTask == null ? null : linkedTask.getTitle());
+        if (report.getChecklistVersion() != null) {
+            String expected = "sha256:" + HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(
+                    new com.google.gson.GsonBuilder().disableHtmlEscaping().create().toJson(report.getChecklist() == null ? List.of() : report.getChecklist().keySet().stream().sorted().toList()).getBytes(StandardCharsets.UTF_8)));
+            if (!expected.equals(report.getChecklistVersion())) throw new IllegalArgumentException("Versione checklist non coerente con il documento.");
+        }
+        if (report.getMeasurementUnits() != null && (report.getMeasurements() == null || !report.getMeasurements().keySet().containsAll(report.getMeasurementUnits().keySet())))
+            throw new IllegalArgumentException("Unità senza misura corrispondente.");
         String requestHash = reportRequestHash(report);
 
         validateAttachmentReferences(report.getAttachments(), tenantId, authenticatedUid);
@@ -324,7 +336,7 @@ public class MaintenanceReportService {
         report.setStatus(SUBMITTED);
         report.setSubmittedAt(Instant.now().toString());
         Map<String, Object> technicalSnapshot = new LinkedHashMap<>();
-        technicalSnapshot.put("schemaVersion", 1L);
+        technicalSnapshot.put("schemaVersion", 2L);
         technicalSnapshot.put("capturedAt", report.getSubmittedAt());
         technicalSnapshot.put("asset", assetSnapshot);
         Map<String, Object> operatorSnapshot = new LinkedHashMap<>();
@@ -343,6 +355,12 @@ public class MaintenanceReportService {
             }
         }
         technicalSnapshot.put("task", taskSnapshot);
+        var checklistSnapshot = new LinkedHashMap<String,Object>();
+        checklistSnapshot.put("definition",report.getChecklist()==null ? List.of() : report.getChecklist().keySet().stream().sorted().toList());
+        checklistSnapshot.put("results",report.getChecklist()==null ? Map.of() : report.getChecklist());
+        checklistSnapshot.put("version",report.getChecklistVersion()==null ? "legacy-unversioned" : report.getChecklistVersion());
+        technicalSnapshot.put("checklist",checklistSnapshot);
+        technicalSnapshot.put("measurementUnits",report.getMeasurementUnits()==null ? Map.of() : report.getMeasurementUnits());
         // Ignore a snapshot supplied by a client: only authoritative records are captured.
         report.setTechnicalSnapshot(technicalSnapshot);
         report.setArchiveAt(ArchiveQueries.timestamp(report.getSubmittedAt()));
@@ -362,10 +380,10 @@ public class MaintenanceReportService {
         boolean created = true;
         MaintenanceReport resultReport = report;
         if (keyDocumentId == null) {
-            var batch = db.batch();
-            batch.set(ref, report);
-            batch.set(submissionAudit, submissionEvent);
-            batch.commit().get();
+            awaitTransaction(db.runTransaction(transaction -> {
+                if (localFiles != null) localFiles.bindToReport(db,transaction,report.getAttachments(),tenantId,authenticatedUid,report.getId());
+                transaction.set(ref,report);transaction.set(submissionAudit,submissionEvent);return null;
+            }));
         } else {
             DocumentReference keyReference = db.collection(IDEMPOTENCY_COLLECTION).document(keyDocumentId);
             SubmissionResult result;
@@ -388,6 +406,7 @@ public class MaintenanceReportService {
                         return new SubmissionResult(existingResourceId, false, existingHash);
                     }
 
+                    if (localFiles != null) localFiles.bindToReport(db,transaction,report.getAttachments(),tenantId,authenticatedUid,report.getId());
                     transaction.set(ref, report);
                     transaction.set(submissionAudit, submissionEvent);
                     Map<String, Object> keyEntry = new LinkedHashMap<>();
@@ -586,6 +605,8 @@ public class MaintenanceReportService {
         immutable.put("latitude", report.getLatitude()); immutable.put("longitude", report.getLongitude());
         immutable.put("operatorNotes", report.getOperatorNotes()); immutable.put("checklist", report.getChecklist());
         immutable.put("digitalSignature", report.getDigitalSignature());
+        if(report.getMeasurementUnits()!=null&&!report.getMeasurementUnits().isEmpty())immutable.put("measurementUnits",report.getMeasurementUnits());
+        if(report.getChecklistVersion()!=null)immutable.put("checklistVersion",report.getChecklistVersion());
         boolean versioned = report.getTechnicalSnapshot() != null;
         if (versioned) {
             immutable.put("technicalSnapshot", report.getTechnicalSnapshot());
@@ -640,6 +661,8 @@ public class MaintenanceReportService {
         request.put("operatorNotes", report.getOperatorNotes());
         request.put("checklist", report.getChecklist());
         request.put("digitalSignature", report.getDigitalSignature());
+        if(report.getMeasurementUnits()!=null&&!report.getMeasurementUnits().isEmpty())request.put("measurementUnits",report.getMeasurementUnits());
+        if(report.getChecklistVersion()!=null)request.put("checklistVersion",report.getChecklistVersion());
 
         String canonicalRequest = REQUEST_HASH_GSON.toJson(sortJsonMaps(request));
         byte[] digest = MessageDigest.getInstance("SHA-256").digest(canonicalRequest.getBytes(StandardCharsets.UTF_8));

@@ -42,3 +42,39 @@ Mobile: `flutter analyze`, `flutter test --reporter expanded --timeout 2m`, comp
 Il [backlog unico](https://github.com/Kevinni05/radiotechwebapp/blob/main/docs/commercial-progress.md) contiene tutti i B/W/M e i gate ancora aperti. Migrazione object storage/streaming/cleanup, aggregazioni delle altre risorse, refactoring completo delle feature, E2E autenticato, IAM/regole effettive, device, carico, provisioning/handover, condizioni commerciali e pilota non sono completati da questa modifica. Il gate di vendita resta aperto.
 
 Riferimenti tecnici: [index merging Firestore](https://firebase.google.com/docs/firestore/query-data/index-overview), [limiti degli eventi di rete](https://pub.dev/packages/connectivity_plus/versions/7.0.0).
+
+
+## Estensione del consolidamento
+
+Base di questa estensione: web main 98576da, mobile main d2ac0b9. Aggiunti proiezioni idempotenti/backfill e lettore dashboard con flag disabilitato, ricerca indicizzata con verifica del documento corrente, paginazione impianti, streaming autorizzato e verificato, migrazione con checkpoint/rollback e copie legacy conservate, binding atomico degli allegati ai report e pulizia conservativa degli upload nuovi non referenziati. Le cancellazioni degli asset hanno audit atomico; la cancellazione identità operatore persiste intenzione e riconcilia la rimozione del profilo quando Auth risulta già eliminato. Errori globali includono requestId, retryable, code e fieldErrors; Firebase Auth ha timeout di connessione/lettura.
+
+Il controller web è suddiviso in dieci moduli sorgente, con bundle ricostruito anche dal Dockerfile. Barra azienda/ambiente, selezione mappa→lista, query salvate nella sessione e protezione delle note calendario durante l'editing completano i flussi coinvolti. Home/report/tools Flutter sono in feature con repository e provider; checklist, risultati e unità alimentano PDF/API dallo stesso payload immutabile. Ricevute notifiche accettate dall'archivio cifrato nativo; download mobile limitato e vincolato alla sessione; fotografie compresse e limitate a otto da massimo 5 MB.
+
+Canale scelto: APK 1.5.2 build 2023, firmato con il keystore esistente, dal sito HTTPS del proprietario ancora da creare. Non è richiesta un'organizzazione Android Enterprise. La build genera manifest e testo di avviso quando viene fornito un URL valido. Non vengono inviati messaggi ai clienti. Aggiornamenti, digest, certificato e redirect sono verificati anche nel codice nativo.
+
+Collaudo: 149 test Flutter, analisi statica pulita; test reale del database SQLite/Keystore sul Samsung SM-S731U, in installazione QA separata. AVD RadioTech_QA creato sul PC ma avvio impedito dall'accelerazione non disponibile; aggiunto lo stesso test su emulatore Android 34 nella CI. Gli emulatori Firebase verificano contatori, eventi duplicati, spostamento tenant, binding report/allegati, cleanup policy, audit e recovery. L'accesso locale al database Firebase conferma eur3; functions:list sul progetto esistente non riesce. Non sono stati eseguiti carico, migrazione distruttiva o cleanup sulla produzione.
+
+[Procedure, manuali, capacità e consegna](OPERATIONS-AND-DELIVERY.md) nel repository web e [distribuzione privata](https://github.com/Kevinni05/gestionale_radio/blob/main/docs/PRIVATE-APK-DELIVERY.md) nel mobile. Il registro precedente è storico: le voci sopra aggiornano lo stato del codice ma non attestano attivazione delle Functions, collaudo QR/GPS/foto/FCM/App Check, upgrade operativo, benchmark, identità di recovery, pilota o condizioni contrattuali.
+
+## Frontend web — implementazione e collaudo
+
+Le voci seguenti descrivono il codice implementato. Il pilota, il confronto con utenti reali e i benchmark restano criteri di accettazione esterni.
+
+| Voce | Risultato verificabile |
+|---|---|
+| W01 | Token condivisi, densità dei controlli, target touch, focus, errori per campo e dialoghi riutilizzabili. |
+| W02 | Dieci moduli della control room; calendario autonomo; sorgenti e build ripetibile in CI e Docker. |
+| W03 | Shell responsive, azienda/ambiente, ricerca, notifiche, account e stato sincronizzazione. |
+| W04 | KPI con definizioni e timestamp; scorciatoie per report pendenti, stock basso e incarichi scaduti impostano i filtri di destinazione. |
+| W05 | Presentazione, orologio/meteo, statistiche e operazioni ordinati; pannelli responsive con altezza naturale. |
+| W06 | Report compatti, approvazione/materiali/PDF, rimozione motivata e protetta; dettagli/espansione conservati dopo refresh. |
+| W07 | Simbolo antenna, legenda con testo, stato accessibile, selezione lista/mappa in entrambe le direzioni; refresh conserva zoom. |
+| W08 | Calendario isolato, selezione da tastiera, padding e touch; modifica non salvata protetta da cambio giorno/account e aggiornamenti. |
+| W09 | Pagine e filtri server per impianti/operatori/magazzino; cursori, errori e conservazione delle pagine già caricate per tutte le liste operative. |
+| W10 | Coordinatore selettivo, richieste deduplicate, protezione di editing/focus/visibilità e risposte da sessioni precedenti. |
+| W11 | Dialoghi con Escape e ripristino focus, etichette/errori annunciati; prove browser anche a zoom 200%. |
+| W12 | Nessun confirm/prompt nativo nei flussi coinvolti; MFA guidata con QR, riautenticazione e recupero già presenti. |
+| W13 | Persistenza Firebase gestita, logout e cambi account/multitab protetti dai contratti di sessione esistenti. |
+| W14 | Ricerca autorizzata tenant/query con cursore, fallback prima del deploy delle proiezioni, ricerche salvate nella sessione e azioni coerenti con il ruolo. |
+
+Regressioni dedicate: `web-tests/frontend-completion.spec.js`; suite completa browser e test emulatori Firebase. I browser usano risposte API sintetiche: non attestano MFA/FCM/meteo reali, disponibilità di un servizio esterno o accettazione degli utenti. Le misure di carico e il collaudo operativo rimangono distinti dai test automatici.

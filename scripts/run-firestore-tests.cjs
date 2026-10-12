@@ -1,5 +1,5 @@
 const path = require('node:path');
-const { spawn } = require('node:child_process');
+const { spawn, spawnSync } = require('node:child_process');
 
 const tests = [
   '*EmulatorTest', // Include future emulator regressions automatically; keep nonstandard test names below.
@@ -34,6 +34,9 @@ const tests = [
 const gradle = process.platform === 'win32' ? 'gradlew.bat' : './gradlew';
 const args = ['test', '--rerun-tasks', '--no-daemon', '--console=plain'];
 for (const test of tests) args.push('--tests', test);
+
+const projections = spawnSync(process.execPath, ['--test', 'functions/test/projection.test.cjs'], {cwd:path.resolve(__dirname, '..'),stdio:'inherit'});
+if(projections.status !== 0) process.exit(projections.status ?? 1);
 
 const child = spawn(gradle, args, {
   cwd: path.resolve(__dirname, '..'),

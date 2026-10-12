@@ -51,7 +51,9 @@ public class FirebaseConfig {
 
         FirebaseOptions.Builder optionsBuilder = FirebaseOptions.builder()
                 .setCredentials(credentials)
-                .setProjectId(projectId);
+                .setProjectId(projectId)
+                .setConnectTimeout(5000)
+                .setReadTimeout(30000);
         if (databaseUrl != null && !databaseUrl.isBlank()) {
             optionsBuilder.setDatabaseUrl(databaseUrl.trim());
         }

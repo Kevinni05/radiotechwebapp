@@ -17,6 +17,9 @@
   --ui-radius-md: 12px;
   --ui-radius-lg: 16px;
   --ui-control-height: 40px;
+  --ui-control-height-compact: 32px;
+  --ui-font-body: 14px;
+  --ui-font-caption: 12px;
   --ui-surface-border: var(--glass-border, var(--border));
   --ui-content-width: 1520px;
 }
@@ -470,3 +473,13 @@
     flex-basis: 100%;
   }
 }
+
+/* Shared component states and declared density variants. */
+.ui-dialog { background: var(--panel); color: var(--text); border-color: var(--border-strong); border-radius: var(--ui-radius-lg); padding: var(--ui-space-6); }
+.ui-dialog .toolbar { justify-content: flex-end; flex-wrap: wrap; gap: var(--ui-space-3); margin-top: var(--ui-space-5); }
+.ui-dialog p { overflow-wrap: anywhere; }
+.ui-dialog textarea { width: 100%; resize: vertical; }
+.field-error { color: var(--red); font-size: var(--ui-font-caption); margin-top: var(--ui-space-2); }
+[aria-invalid="true"] { border-color: var(--red) !important; }
+[data-density="compact"] :is(.btn,.mini-btn,input,select) { min-height: var(--ui-control-height-compact); }
+@media (pointer:coarse) { .ui-dialog button, #app :is(.mini-btn,.calendar-day) { min-height:44px; } }

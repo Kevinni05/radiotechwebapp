@@ -385,3 +385,5 @@ textarea { resize: vertical; }
 @media (max-width: 1200px) { .pro-toolbar { grid-template-columns: repeat(2,minmax(0,1fr)); }.pro-toolbar > .actions { grid-column: 1/-1; }.access-layout { grid-template-columns: minmax(0,1.5fr) minmax(240px,1fr); gap: 20px; } }
 @media (max-width: 850px) { .access-layout { grid-template-columns: 1fr; }.access-aside { grid-template-columns: repeat(2,minmax(0,1fr)); } }
 @media (max-width: 600px) { .pro-toolbar,#proForm,.access-form,.access-aside { grid-template-columns: minmax(0,1fr); }.pro-toolbar { gap: 16px; }.pro-toolbar .actions .btn { flex: 1 1 100px; }.pro-details { grid-template-columns: 1fr; gap: 12px; }.pro-record { padding: 18px; }.workspace-heading { align-items: flex-start; }.access-layout { gap: 18px; } }
+
+.workspace-heading-copy .workspace-label { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: min(42vw, 320px); }

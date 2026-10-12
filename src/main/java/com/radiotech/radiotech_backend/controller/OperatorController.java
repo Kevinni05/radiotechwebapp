@@ -638,6 +638,7 @@ public class OperatorController {
         }
 
         private void requirePermission(Permission permission, String tenantId) {
+                if(SecurityContextAccessor.currentRole()==Role.ENGINEER && java.util.Set.of(Permission.USER_CREATE,Permission.USER_UPDATE,Permission.USER_DELETE).contains(permission))throw new SecurityException("Amministrazione account non autorizzata.");
                 Role role = SecurityContextAccessor.currentRole();
                 if (!TenantAccessPolicy.canAccess(role, permission)) {
                         throw new SecurityException("Permessi insufficienti per l'operazione richiesta.");

@@ -7,7 +7,9 @@
         "test:rules": "firebase emulators:exec --only firestore,storage --project demo-radiotech \"node --test rules-tests/*.test.js\"",
         "test:firestore": "firebase emulators:exec --only firestore,auth --project demo-radiotech \"node scripts/run-firestore-tests.cjs\"",
         "build:pdf": "node scripts/copy-pdfjs.mjs",
-        "test:telco": "node --test scripts/qa-telco-core.test.mjs"
+        "test:telco": "node --test scripts/qa-telco-core.test.mjs",
+        "build:control-room": "esbuild frontend/control-room/main.js --bundle --format=iife --outfile=src/main/resources/static/assets/control-room.js",
+        "build:operations": "esbuild frontend/operations/main.js --bundle --format=iife --outfile=src/main/resources/static/assets/operations-upgrade.js"
     },
     "devDependencies": {
         "@firebase/rules-unit-testing": "^5.0.2",

@@ -6,3 +6,10 @@
 !settings.gradle
 !src/
 !src/**
+
+!package.json
+!package-lock.json
+!scripts/
+!scripts/**
+!frontend/
+!frontend/**

@@ -19,3 +19,5 @@ serviceAccountKey.json
 firebase-service-account.json
 __pycache__/
 *.pyc
+
+functions/node_modules/
