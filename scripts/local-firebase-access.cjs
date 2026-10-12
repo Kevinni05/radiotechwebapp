@@ -6,6 +6,12 @@ const {getFirestore}=dependency('firebase-admin/firestore');
 const {getAuth}=dependency('firebase-admin/auth');
 async function main(){
  const root=path.join(process.env.USERPROFILE,'.radiotech','cloud');fs.mkdirSync(root,{recursive:true});
+ if(process.platform==='win32'){
+  const {execFileSync}=require('node:child_process');
+  const sid=execFileSync('whoami',['/user','/fo','csv','/nh'],{encoding:'utf8'}).match(/"(S-1-[0-9-]+)"/)?.[1];
+  if(!sid)throw new Error('Unable to determine the credential owner.');
+  execFileSync('icacls',[root,'/inheritance:r','/grant:r',`*${sid}:(OI)(CI)F`],{stdio:'pipe'});
+ }
  const cli=JSON.parse(fs.readFileSync(path.join(process.env.USERPROFILE,'.config/configstore/firebase-tools.json'),'utf8'));
  if(!cli.tokens?.refresh_token)throw new Error('Existing Firebase CLI login required.');
  const api=require(path.join(process.env.APPDATA,'npm/node_modules/firebase-tools/lib/api.js'));

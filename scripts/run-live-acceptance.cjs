@@ -34,11 +34,20 @@ async function main(){
    assert.equal(latest.applicationId,'com.example.gestionale_radio');assert.equal(latest.versionCode,deployedRelease.get('versionCode'));
    assert.equal((await request('/distribution/latest.json',foreign.token)).available,false);
    await request('/distribution/latest.json',null,'GET',null,[401,403]);
+   const started=performance.now();
    const response=await fetch(origin+'/api/v1/distribution/'+latest.filename,{headers:{Authorization:'Bearer '+technician.token},signal:AbortSignal.timeout(180000)});
+   proof.privateHeadersMs=Math.round(performance.now()-started);
    assert.equal(response.status,200);const digest=crypto.createHash('sha256');let size=0;
    for await(const bytes of response.body){digest.update(bytes);size+=bytes.length;}
    assert.equal(size,latest.size);assert.equal(digest.digest('hex'),latest.sha256);
+   proof.privateDownloadMs=Math.round(performance.now()-started);
+   assert(proof.privateHeadersMs<60000,'Private staging exceeds native header deadline');
+   assert(proof.privateDownloadMs<180000,'Private download exceeds native total deadline');
    add('private signed APK authenticated download, tenant isolation and byte integrity');
+  }
+  if(process.argv.includes('--distribution-only')){
+   assert(deployedRelease.exists&&deployedRelease.get('available')===true,'Published package required');
+   proof.success=true;return;
   }
   const operatorId='qa-'+run,badge=crypto.randomBytes(32).toString('base64url');
   await db.collection('operators').doc(operatorId).set({tenantId:tenant,firebaseUid:technician.uid,email:technician.email,fullName:'RadioTech QA technician',role:'OPERATOR',status:'ATTIVO',qrCodeToken:badge,qrExpiresAt:new Date(Date.now()+600000).toISOString()});
