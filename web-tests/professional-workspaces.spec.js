@@ -51,8 +51,8 @@ test('infrastructure filter labels and table columns share a precise alignment',
  });
  expect(Math.abs(positions.header-positions.filter)).toBeLessThanOrEqual(1);
  expect(Math.abs(positions.header-positions.text)).toBeLessThanOrEqual(1);
- await page.getByLabel('Cerca antenna',{exact:true}).fill('Monte');
- await expect(page.getByLabel('Cerca antenna',{exact:true})).toHaveValue('Monte');
+ await page.getByRole('searchbox',{name:'Cerca antenna',exact:true}).fill('Monte');
+ await expect(page.getByRole('searchbox',{name:'Cerca antenna',exact:true})).toHaveValue('Monte');
 });
 
 test('report actions remain available while compact rows preserve full-width details',async({page})=>{
