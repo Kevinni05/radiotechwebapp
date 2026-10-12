@@ -46,7 +46,7 @@ export function createFeature(ctx){
                         <div class="antenna-name">${ctx.escapeHtml(a.name || a.id)}</div>
                         <div class="coordinates">${ctx.escapeHtml(a.id || "")}</div>
                     </td>
-                    <td>${ctx.number(a.lat, 5)}, ${ctx.number(a.lng, 5)}</td>
+                    <td class="asset-coordinates"><span title="Latitudine">${ctx.number(a.lat, 5)}</span> <span title="Longitudine">${ctx.number(a.lng, 5)}</span></td>
                     <td><span class="badge ${ctx.badgeClass(a.status)}">${ctx.escapeHtml(ctx.formatStatus(a.status))}</span></td>
                     <td>${ctx.escapeHtml(specs.Frequenza ?? "—")}</td>
                     <td>${ctx.escapeHtml(specs.Potenza ?? "—")}</td>

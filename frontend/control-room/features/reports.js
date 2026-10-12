@@ -76,14 +76,15 @@ const reportFilters=()=>({status:ctx.$('reportStatusFilter')?.value||'',q:ctx.$(
                 const id = ctx.escapeHtml(report.id || ""), status = report.status || "SUBMITTED";
                 const date = report.submittedAt || report.completedAt || report.createdAt;
                 return `<article class="task-row report-row" data-report-id="${id}" data-status="${ctx.escapeHtml(status)}" data-operator="${ctx.escapeHtml(report.operatorName || report.operatorId || "")}" data-date="${ctx.escapeHtml((date || "").slice(0,10))}">
-                    <div class="report-copy"><div class="task-title">${ctx.escapeHtml(reportDisplayTitle(report))}</div>
+                    <div class="report-main"><div class="report-copy"><h3 class="task-title">${ctx.escapeHtml(reportDisplayTitle(report))}</h3>
                     <div class="task-meta report-summary">${ctx.escapeHtml(reportDisplaySummary(report))}</div>
                     <div class="task-meta report-note">${ctx.escapeHtml(report.operatorNotes || report.description || "Nessuna nota")}</div>
-                    ${reportDetails(report)}${attachmentViewer().markup(report.attachments)}</div>
+                    </div>
                     <div class="actions"><span class="badge ${ctx.badgeClass(status)}">${ctx.escapeHtml(ctx.formatStatus(status))}</span>
                     ${canManageReports() && ["SUBMITTED", "APPROVAL_PENDING"].includes(status) ? `<button type="button" class="mini-btn" data-report-approve="${id}">${status === "APPROVAL_PENDING" ? "Riprendi approvazione" : "Approva"}</button>${status === "SUBMITTED" ? `<button type="button" class="mini-btn" data-report-reject="${id}">Rifiuta</button>` : ""}` : ""}
                     ${canManageReports() ? `<button type="button" class="btn danger mini-btn" data-report-delete="${id}">Elimina</button>` : ""}
-                    <button type="button" class="mini-btn" data-report-toggle aria-expanded="true" aria-label="Comprimi report">⌃</button></div></article>`;
+                    <button type="button" class="mini-btn" data-report-toggle aria-expanded="true" aria-label="Comprimi report">⌃</button></div></div>
+                    <div class="report-content">${reportDetails(report)}${attachmentViewer().markup(report.attachments)}</div></article>`;
             }
             async function deleteReport(id, trigger) {
                 if (!canManageReports() || trigger.disabled) return;

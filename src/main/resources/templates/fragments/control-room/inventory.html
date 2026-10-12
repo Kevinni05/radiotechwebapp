@@ -23,14 +23,14 @@
                                 <h3 data-copy-key="copy-75">Articoli e disponibilità</h3><span id="inventoryStatus">Sincronizzazione...</span>
                             </div>
                         </div>
-                        <div class="panel-body">
-                            <div class="toolbar" style="margin-bottom:14px">
-                                <input id="inventorySearch" aria-label="Cerca articolo inventario" type="search" placeholder="Cerca nome, SKU, barcode, posizione">
-                                <select id="inventoryCategoryFilter" aria-label="Categoria magazzino"><option value="" data-copy-key="copy-76">Tutte le categorie</option></select>
-                                <select id="inventoryStockFilter" aria-label="Stato scorte">
+                        <div class="panel-body workspace-catalog">
+                            <div class="workspace-filterbar">
+                                <div class="field"><label for="inventorySearch">Cerca articolo</label><input id="inventorySearch" aria-label="Cerca articolo inventario" type="search" placeholder="Nome, SKU, barcode o posizione"></div>
+                                <div class="field"><label for="inventoryCategoryFilter">Categoria</label><select id="inventoryCategoryFilter" aria-label="Categoria magazzino"><option value="" data-copy-key="copy-76">Tutte le categorie</option></select></div>
+                                <div class="field"><label for="inventoryStockFilter">Stato scorte</label><select id="inventoryStockFilter" aria-label="Stato scorte">
                                     <option value="ACTIVE" data-copy-key="copy-77">Articoli attivi</option><option value="ALL" data-copy-key="copy-78">Tutti gli articoli</option>
                                     <option value="LOW" data-copy-key="copy-79">Sotto scorta</option><option value="ARCHIVED" data-copy-key="copy-80">Archiviati</option>
-                                </select>
+                                </select></div>
                             </div>
                             <div class="table-wrap" tabindex="0" role="region" aria-label="Elenco articoli">
                                 <table>

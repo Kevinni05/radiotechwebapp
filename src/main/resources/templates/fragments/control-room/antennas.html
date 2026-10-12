@@ -5,14 +5,6 @@
                             <p>Controlla e modifica l'infrastruttura direttamente dal Centro operativo.</p>
                         </div>
                         <div class="toolbar">
-                            <input class="search" id="antennaSearch" aria-label="Cerca antenna" type="search" placeholder="Cerca antenna...">
-                            <select id="antennaStatusFilter" aria-label="Filtra stato antenna">
-                                <option value="" data-copy-key="copy-16">Tutti gli stati</option>
-                                <option value="ATTIVA" data-copy-key="copy-17">Attiva</option>
-                                <option value="MANUTENZIONE" data-copy-key="copy-18">Manutenzione</option>
-                                <option value="OFFLINE" data-copy-key="copy-19">Non connessa</option>
-                                <option value="CRITICA" data-copy-key="copy-20">Critica</option>
-                            </select>
                             <button class="btn primary" id="newAntennaBtn">+ Nuova antenna</button>
                         </div>
                     </div>
@@ -23,6 +15,16 @@
                                 <h3 data-copy-key="copy-21">Elenco antenne</h3><span id="antennaCountLabel">—</span>
                             </div>
                             <button class="mini-btn" id="reloadAntennasBtn">Aggiorna</button>
+                        </div>
+                        <div class="workspace-filterbar workspace-filterbar--two">
+                            <div class="field"><label for="antennaSearch">Cerca antenna</label><input class="search" id="antennaSearch" aria-label="Cerca antenna" type="search" placeholder="Nome o identificativo dell'antenna"></div>
+                            <div class="field"><label for="antennaStatusFilter">Stato antenna</label><select id="antennaStatusFilter" aria-label="Filtra stato antenna">
+                                <option value="" data-copy-key="copy-16">Tutti gli stati</option>
+                                <option value="ATTIVA" data-copy-key="copy-17">Attiva</option>
+                                <option value="MANUTENZIONE" data-copy-key="copy-18">Manutenzione</option>
+                                <option value="OFFLINE" data-copy-key="copy-19">Non connessa</option>
+                                <option value="CRITICA" data-copy-key="copy-20">Critica</option>
+                            </select></div>
                         </div>
                         <div class="table-wrap" tabindex="0" role="region" aria-label="Elenco antenne">
                             <table>
