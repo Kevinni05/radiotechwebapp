@@ -1,20 +1,23 @@
-/* One softly moving slate canvas for the console, sign-in and customer portal. */
+/* Shared dark canvas with restrained red bokeh across all pages. */
 body {
-  --canvas-base: color-mix(in srgb, var(--brand-background, #303348) 24%, #394863);
+  --canvas-base: #0e0e16;
   background: var(--canvas-base); isolation: isolate;
 }
 body::before {
-  content: ''; position: fixed; inset: -8%; z-index: -1; pointer-events: none;
-  background: radial-gradient(ellipse at 12% 18%, #a797dc38, transparent 48%),
-    radial-gradient(ellipse at 87% 44%, #78a9ce30, transparent 50%),
-    radial-gradient(ellipse at 42% 92%, #81b7aa20, transparent 52%);
-  opacity: .85; animation: canvas-drift 36s ease-in-out infinite alternate;
+  content: ''; position: fixed; inset: -12%; z-index: -1; pointer-events: none;
+  background: radial-gradient(circle at 14% 22%, #d637491f 0 42px, #ae26330b 68px, transparent 100px),
+    radial-gradient(circle at 76% 15%, #d637491a 0 64px, #ae26330a 96px, transparent 140px),
+    radial-gradient(circle at 88% 64%, #d637491c 0 36px, #ae26330a 60px, transparent 92px),
+    radial-gradient(circle at 38% 84%, #d6374917 0 56px, #ae263309 88px, transparent 132px),
+    radial-gradient(circle at 49% 43%, #d6374912 0 24px, transparent 72px);
+  filter: blur(12px); opacity: .8;
+  animation: canvas-drift 36s ease-in-out infinite alternate;
 }
-body::after { opacity: .025; background-size: 100px 100px; }
+body::after { opacity: .012; background-size: 100px 100px; }
 #app .main, #app .main:has(.view.active:not(#view-dashboard)), #loginScreen { background: transparent; }
 @keyframes canvas-drift {
-  from { transform: translate(-1%, -.5%) scale(1); }
-  to { transform: translate(1.5%, 1%) scale(1.035); }
+  from { transform: translate(-2%, -1%) scale(1); opacity: .65; }
+  to { transform: translate(2%, 1.5%) scale(1.04); opacity: .85; }
 }
 @media (prefers-reduced-motion: reduce) { body::before { animation: none; transform: none; } }
 @media print { body { background: white; } body::before, body::after { display: none; } }
