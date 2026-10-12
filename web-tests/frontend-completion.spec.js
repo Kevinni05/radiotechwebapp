@@ -51,7 +51,7 @@ test('asset validation announces field errors and keeps the form available for r
 
 test('report refresh preserves collapsed rows and open intervention details',async({page})=>{
  await session(page,'ADMIN',{'/reports':[{id:'keep',status:'SUBMITTED'},{id:'details',status:'APPROVED'}]});await page.locator('[data-view="reports"]').first().click();
- await page.locator('[data-report-id="keep"] [data-report-toggle]').click();await page.locator('[data-report-id="details"] .report-details summary').click();
+ await expect(page.locator('[data-report-id="keep"] [data-report-toggle]')).toHaveAttribute('aria-expanded','false');await page.locator('[data-report-id="details"] [data-report-toggle]').click();await page.locator('[data-report-id="details"] .report-details summary').click();
  await page.locator('#reportsRefreshBtn').click();await expect(page.locator('[data-report-id="keep"]')).toHaveClass(/report-collapsed/);await expect(page.locator('[data-report-id="details"] .report-details')).toHaveAttribute('open','');
 });
 

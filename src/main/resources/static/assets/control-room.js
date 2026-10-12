@@ -344,7 +344,7 @@
         ctx.updateMap();
       } catch (error) {
         console.error(error);
-        ctx.$("antennasTableBody").innerHTML = `<tr><td colspan="8"><div class="empty">Impossibile caricare le antenne: ${ctx.escapeHtml(error.message)}</div></td></tr>`;
+        ctx.$("antennasTableBody").innerHTML = `<tr><td colspan="6"><div class="empty">Impossibile caricare le antenne: ${ctx.escapeHtml(error.message)}</div></td></tr>`;
         throw error;
       }
     }
@@ -361,7 +361,7 @@
       });
       ctx.setText("antennaCountLabel", `${list.length} di ${ctx.state.antennas.length} antenne`);
       if (!list.length) {
-        ctx.$("antennasTableBody").innerHTML = `<tr><td colspan="8"><div class="empty">Nessuna antenna trovata.</div></td></tr>`;
+        ctx.$("antennasTableBody").innerHTML = `<tr><td colspan="6"><div class="empty">Nessuna antenna trovata.</div></td></tr>`;
         return;
       }
       ctx.$("antennasTableBody").innerHTML = list.map((a) => {
@@ -374,10 +374,8 @@
                     </td>
                     <td class="asset-coordinates"><span title="Latitudine">${ctx.number(a.lat, 5)}</span> <span title="Longitudine">${ctx.number(a.lng, 5)}</span></td>
                     <td><span class="badge ${ctx.badgeClass(a.status)}">${ctx.escapeHtml(ctx.formatStatus(a.status))}</span></td>
-                    <td>${ctx.escapeHtml(specs.Frequenza ?? "\u2014")}</td>
-                    <td>${ctx.escapeHtml(specs.Potenza ?? "\u2014")}</td>
-                    <td>${ctx.escapeHtml(specs.ROS ?? "\u2014")}</td>
-                    <td>${ctx.escapeHtml(specs.Temperatura ?? "\u2014")}</td>
+                    <td><div class="asset-telemetry"><span>Freq.</span><strong>${antennaReading(specs.Frequenza, "MHz")}</strong><span>Potenza</span><strong>${antennaReading(specs.Potenza, "W")}</strong></div></td>
+                    <td><div class="asset-telemetry"><span>ROS</span><strong>${antennaReading(specs.ROS, "")}</strong><span>Temp.</span><strong>${antennaReading(specs.Temperatura, "\xB0C")}</strong></div></td>
                     <td>
                         <div class="actions">
                             <button class="mini-btn" data-qr="${ctx.escapeHtml(a.id)}">QR Code</button>
@@ -448,6 +446,10 @@
         ROS: s.ros ?? s.ROS,
         Temperatura: s.temperatura ?? s.Temperatura ?? s.temperature
       };
+    }
+    function antennaReading(value, unit) {
+      if (value === null || value === void 0 || value === "") return "\u2014";
+      return `${ctx.escapeHtml(value)}${unit && Number.isFinite(Number(value)) ? ` <small class="asset-unit">${unit}</small>` : ""}`;
     }
     async function saveAntenna(event) {
       event.preventDefault();
@@ -779,7 +781,7 @@
     function renderReportRow(report) {
       const id = ctx.escapeHtml(report.id || ""), status = report.status || "SUBMITTED";
       const date = report.submittedAt || report.completedAt || report.createdAt;
-      return `<article class="task-row report-row" data-report-id="${id}" data-status="${ctx.escapeHtml(status)}" data-operator="${ctx.escapeHtml(report.operatorName || report.operatorId || "")}" data-date="${ctx.escapeHtml((date || "").slice(0, 10))}">
+      return `<article class="task-row report-row report-collapsed" data-report-id="${id}" data-status="${ctx.escapeHtml(status)}" data-operator="${ctx.escapeHtml(report.operatorName || report.operatorId || "")}" data-date="${ctx.escapeHtml((date || "").slice(0, 10))}">
                     <div class="report-main"><div class="report-copy"><h3 class="task-title">${ctx.escapeHtml(reportDisplayTitle(report))}</h3>
                     <div class="task-meta report-summary">${ctx.escapeHtml(reportDisplaySummary(report))}</div>
                     <div class="task-meta report-note">${ctx.escapeHtml(report.operatorNotes || report.description || "Nessuna nota")}</div>
@@ -787,7 +789,7 @@
                     <div class="actions"><span class="badge ${ctx.badgeClass(status)}">${ctx.escapeHtml(ctx.formatStatus(status))}</span>
                     ${canManageReports() && ["SUBMITTED", "APPROVAL_PENDING"].includes(status) ? `<button type="button" class="mini-btn" data-report-approve="${id}">${status === "APPROVAL_PENDING" ? "Riprendi approvazione" : "Approva"}</button>${status === "SUBMITTED" ? `<button type="button" class="mini-btn" data-report-reject="${id}">Rifiuta</button>` : ""}` : ""}
                     ${canManageReports() ? `<button type="button" class="btn danger mini-btn" data-report-delete="${id}">Elimina</button>` : ""}
-                    <button type="button" class="mini-btn" data-report-toggle aria-expanded="true" aria-label="Comprimi report">\u2303</button></div></div>
+                    <button type="button" class="mini-btn" data-report-toggle aria-expanded="false" aria-label="Espandi report">\u2304</button></div></div>
                     <div class="report-content">${reportDetails(report)}${attachmentViewer().markup(report.attachments)}</div></article>`;
     }
     async function deleteReport(id, trigger) {
@@ -968,7 +970,12 @@
       return Number.isFinite(timestamp) && Date.now() - timestamp < 5 * 60 * 1e3;
     }
     function renderOperatorTable() {
-      preserveTableInteraction(ctx.$("operatorsTableBody"), renderOperatorTableRows);
+      const table = ctx.$("operatorsTableBody");
+      const expanded = new Set([...table.querySelectorAll("[data-operator-menu][open]")].map((menu) => menu.dataset.operatorMenu));
+      preserveTableInteraction(table, () => {
+        renderOperatorTableRows();
+        for (const menu of table.querySelectorAll("[data-operator-menu]")) menu.open = expanded.has(menu.dataset.operatorMenu);
+      });
     }
     function renderOperatorTableRows() {
       const table = ctx.$("operatorsTableBody");
@@ -981,13 +988,19 @@
         return (!search || name.includes(search)) && (!roleFilter || role === roleFilter);
       });
       const active = ctx.state.operators.filter((operator) => (operator.status || "").toUpperCase() === "ATTIVO").length;
+      const overview = ctx.$("operatorOverview");
+      if (overview) {
+        const pending = ctx.state.operators.filter((operator) => (operator.status || "").toUpperCase() === "IN_ATTESA").length;
+        const online = ctx.state.operators.filter((operator) => operatorOnline(operator.lastSeen)).length;
+        overview.innerHTML = [["Account caricati", ctx.state.operators.length, "Nell\u2019elenco corrente"], ["Attivi", active, "Fra gli account caricati"], ["Da approvare", pending, "Attendono abilitazione"], ["Connessi", online, "Presenza negli ultimi 5 min."]].map(([label, value, description]) => `<article class="stat-card"><div class="stat-label">${label}</div><div class="stat-value">${ctx.state.operatorLoadError ? "\u2014" : value}</div><div class="stat-foot">${description}</div></article>`).join("");
+      }
       ctx.$("operatorsSummary").textContent = ctx.state.operatorLoadError ? "Elenco non disponibile" : `${ctx.state.operators.length} operatori \xB7 ${active} attivi`;
       if (ctx.state.operatorLoadError) {
-        table.innerHTML = `<tr><td colspan="7"><div class="empty">Impossibile caricare gli operatori: ${ctx.escapeHtml(ctx.state.operatorLoadError)}</div></td></tr>`;
+        table.innerHTML = `<tr><td colspan="5"><div class="empty">Impossibile caricare gli operatori: ${ctx.escapeHtml(ctx.state.operatorLoadError)}</div></td></tr>`;
         return;
       }
       if (!visibleOperators.length) {
-        table.innerHTML = `<tr><td colspan="7"><div class="empty">${ctx.state.operators.length ? "Nessun operatore corrisponde ai filtri." : "Nessun operatore registrato."}</div></td></tr>`;
+        table.innerHTML = `<tr><td colspan="5"><div class="empty">${ctx.state.operators.length ? "Nessun operatore corrisponde ai filtri." : "Nessun operatore registrato."}</div></td></tr>`;
         return;
       }
       table.innerHTML = visibleOperators.map((operator) => {
@@ -998,16 +1011,14 @@
         const linked = Boolean(operator.firebaseUid);
         const pending = (operator.status || "").toUpperCase() === "IN_ATTESA";
         return `<tr>
-                        <td><strong>${ctx.escapeHtml(name)}</strong><div class="subtle">${ctx.escapeHtml(operator.email || "Email non collegata")}</div></td>
-                        <td><div class="actions"><select data-operator-role="${ctx.escapeHtml(id)}" aria-label="Ruolo di ${ctx.escapeHtml(name)}" ${linked && !pending ? "" : "disabled"}>
+                        <td><div class="operator-identity"><span class="operator-monogram" aria-hidden="true">${ctx.escapeHtml(name.trim().split(/\s+/).slice(0, 2).map((part) => part[0]).join("").toUpperCase())}</span><div><strong>${ctx.escapeHtml(name)}</strong><div class="subtle">${ctx.escapeHtml(operator.email || "Email non collegata")}</div><div class="operator-account-state">${linked ? "Account collegato" : "Account da collegare"}</div></div></div></td>
+                        <td><strong>${ctx.escapeHtml(operator.level || "TECNICO")}</strong><div class="subtle">${ctx.escapeHtml(operator.shift || "Turno non indicato")}</div></td>
+                        <td><div class="operator-role-control"><select data-operator-role="${ctx.escapeHtml(id)}" aria-label="Ruolo di ${ctx.escapeHtml(name)}" ${linked && !pending ? "" : "disabled"}>
                             <option value="OPERATOR" ${role === "OPERATOR" ? "selected" : ""}>Operatore</option>
                             <option value="VIEWER" ${role === "VIEWER" ? "selected" : ""}>Sola lettura</option>
                         </select><button class="mini-btn" data-save-role="${ctx.escapeHtml(id)}" ${linked && !pending ? "" : "disabled"}>Salva</button></div></td>
-                        <td>${ctx.escapeHtml(operator.level || "TECNICO")}</td>
-                        <td>${ctx.escapeHtml(operator.shift || "\u2014")}</td>
-                        <td><span class="badge ${online ? "green" : pending ? "red" : "blue"}">${online ? "CONNESSO" : ctx.escapeHtml(ctx.formatStatus(operator.status || "OFFLINE"))}</span></td>
-                        <td>${operator.lastSeen ? ctx.escapeHtml(new Date(operator.lastSeen).toLocaleString("it-IT")) : "\u2014"}</td>
-                        <td><div class="actions">${pending ? `<button class="mini-btn" data-approve="${ctx.escapeHtml(id)}">Approva</button>` : ""}<button class="mini-btn" data-badge="${ctx.escapeHtml(id)}">Badge</button><button class="mini-btn" data-regenerate="${ctx.escapeHtml(id)}">Rigenera QR</button><button class="mini-btn" data-validity="${ctx.escapeHtml(id)}">Validit\xE0 QR</button><button class="mini-btn" data-reset-password="${ctx.escapeHtml(id)}">Reimposta password</button><button class="mini-btn danger" data-delete-operator="${ctx.escapeHtml(id)}">Elimina</button></div></td>
+                        <td><span class="badge ${pending ? "yellow" : "blue"}">${ctx.escapeHtml(ctx.formatStatus(operator.status || "OFFLINE"))}</span><div class="operator-presence ${online ? "is-online" : ""}">${online ? "Connesso ora" : "Non connesso"}</div><div class="subtle">${operator.lastSeen && Number.isFinite(Date.parse(operator.lastSeen)) ? ctx.escapeHtml(new Date(operator.lastSeen).toLocaleString("it-IT")) : "Nessuna presenza registrata"}</div></td>
+                        <td><div class="actions operator-actions">${pending ? `<button class="mini-btn operator-action-wide" data-approve="${ctx.escapeHtml(id)}">Approva account</button>` : ""}<button class="mini-btn" data-operator-details="${ctx.escapeHtml(id)}">Scheda</button><button class="mini-btn" data-badge="${ctx.escapeHtml(id)}">Badge</button><details class="operator-actions-menu" data-operator-menu="${ctx.escapeHtml(id)}"><summary class="mini-btn">Altre azioni</summary><div class="operator-secondary-actions"><button class="mini-btn" data-regenerate="${ctx.escapeHtml(id)}">Rigenera QR</button><button class="mini-btn" data-validity="${ctx.escapeHtml(id)}">Validit\xE0 QR</button><button class="mini-btn operator-action-wide" data-reset-password="${ctx.escapeHtml(id)}">Reimposta password</button><button class="mini-btn danger operator-action-wide" data-delete-operator="${ctx.escapeHtml(id)}">Elimina</button></div></details></div></td>
                     </tr>`;
       }).join("");
       ctx.applyPermissions();
@@ -1016,6 +1027,19 @@
       table.querySelectorAll("[data-approve]").forEach((button) => button.addEventListener("click", () => approveOperator(button.dataset.approve)));
       table.querySelectorAll("[data-badge]").forEach((button) => button.addEventListener("click", () => showBadge(button.dataset.badge)));
       table.querySelectorAll("[data-regenerate]").forEach((button) => button.addEventListener("click", () => regenerateQr(button.dataset.regenerate)));
+      table.querySelectorAll("[data-operator-details]").forEach((button) => button.addEventListener("click", () => showOperatorDetails(button.dataset.operatorDetails)));
+    }
+    function showOperatorDetails(id) {
+      const operator = ctx.state.operators.find((item) => item.id === id);
+      if (!operator) return;
+      const dialog = document.createElement("dialog");
+      dialog.className = "operation-dialog operator-detail-dialog";
+      dialog.setAttribute("aria-labelledby", "operatorDetailTitle");
+      const fields = [["Email", operator.email], ["Telefono", operator.phone], ["Livello", operator.level], ["Turno", operator.shift], ["Ruolo", ctx.formatStatus(operator.role || "OPERATOR")], ["Stato account", ctx.formatStatus(operator.status || "OFFLINE")], ["Collegamento account", operator.firebaseUid ? "Collegato" : "Da collegare"], ["Ultima presenza", operator.lastSeen && Number.isFinite(Date.parse(operator.lastSeen)) ? new Date(operator.lastSeen).toLocaleString("it-IT") : null]];
+      dialog.innerHTML = `<form method="dialog"><div class="operator-detail-heading"><span class="section-kicker">Anagrafica della squadra</span><h2 id="operatorDetailTitle">${ctx.escapeHtml(operator.fullName || operator.email || "Operatore")}</h2></div><dl class="operator-detail-grid">${fields.map(([label, value]) => `<div><dt>${label}</dt><dd>${ctx.escapeHtml(value || "Non indicato")}</dd></div>`).join("")}</dl><div class="toolbar"><button class="btn" type="submit">Chiudi scheda</button></div></form>`;
+      dialog.addEventListener("close", () => dialog.remove(), { once: true });
+      document.body.append(dialog);
+      dialog.showModal();
     }
     async function saveOperatorRole(id) {
       const select = document.querySelector(`[data-operator-role="${ctx.CSS.escape(id)}"]`);
@@ -1354,7 +1378,7 @@
                         <td>${ctx.escapeHtml([item.warehouse, item.aisle, item.rack, item.bin, item.location].filter(Boolean).join(" \xB7 ") || "\u2014")}${item.supplier ? `<div class="subtle">${ctx.escapeHtml(item.supplier)}</div>` : ""}</td>
                         <td>${new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR" }).format(value)}<div class="subtle">${new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR" }).format(Number(item.unitCost || 0))} / ${ctx.escapeHtml(item.unit || "pz")}</div></td>
                         <td><span class="badge ${!active ? "red" : low ? "yellow" : "green"}">${!active ? "ARCHIVIATO" : stockLabel}</span></td>
-                        <td><div class="actions">${active ? `<button class="mini-btn" data-inventory-move="${ctx.escapeHtml(item.id)}">Movimenta</button><button class="mini-btn" data-inventory-edit="${ctx.escapeHtml(item.id)}">Modifica</button><button class="mini-btn" data-inventory-archive="${ctx.escapeHtml(item.id)}">Archivia</button>` : `<button class="mini-btn" data-inventory-restore="${ctx.escapeHtml(item.id)}">Ripristina</button>`}</div></td>
+                        <td><div class="actions">${active ? `<button class="mini-btn" data-inventory-edit="${ctx.escapeHtml(item.id)}">Modifica</button><button class="mini-btn" data-inventory-archive="${ctx.escapeHtml(item.id)}">Archivia</button><button class="mini-btn" data-inventory-move="${ctx.escapeHtml(item.id)}">Movimenta</button>` : `<button class="mini-btn" data-inventory-restore="${ctx.escapeHtml(item.id)}">Ripristina</button>`}</div></td>
                     </tr>`;
       }).join("");
       ctx.applyPermissions();
@@ -2373,6 +2397,7 @@
       const nav = document.querySelector(`.nav button[data-view="${view}"]`);
       if (target) target.classList.add("active");
       if (nav) nav.classList.add("active");
+      window.dispatchEvent(new CustomEvent("radiotech:view-changed", { detail: { view } }));
       const titles = {
         dashboard: ["Panoramica", "Monitoraggio infrastruttura radio e operazioni tecniche"],
         antennas: ["Antenne", "Gestione e controllo dell'infrastruttura"],

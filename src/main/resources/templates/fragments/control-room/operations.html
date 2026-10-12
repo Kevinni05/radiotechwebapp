@@ -5,13 +5,13 @@
                             <p>Incarichi e indicatori chiave della squadra tecnica.</p>
                         </div>
                     </div>
-                    <div class="panel">
+                    <div class="panel operator-directory">
                         <div class="panel-head">
                             <div>
                                 <h3 data-copy-key="copy-23">Gestione operatori</h3><span>Crea account, consulta la squadra e assegna ruoli applicativi</span>
                             </div>
                             <div class="toolbar"><button class="mini-btn"
-                                    id="operatorsRefreshBtn">Aggiorna</button><button class="btn primary"
+                                    id="operatorsRefreshBtn">Aggiorna</button><button class="mini-btn" id="operatorsClearFilters" type="button">Azzera filtri</button><button class="btn primary"
                                     id="newOperatorBtn">+ Nuovo operatore</button></div>
                         </div>
                         <div class="workspace-filterbar workspace-filterbar--operators">
@@ -24,21 +24,19 @@
                                 <span class="subtle" id="operatorsSummary">Caricamento…</span>
                         </div>
                         <div class="table-wrap" tabindex="0" role="region" aria-label="Elenco operatori">
-                            <table>
+                            <table class="operator-table"><colgroup><col style="width:25%"><col style="width:15%"><col style="width:20%"><col style="width:20%"><col style="width:20%"></colgroup>
                                 <thead>
                                     <tr>
                                         <th>Operatore</th>
-                                        <th>Ruolo</th>
-                                        <th>Livello</th>
-                                        <th>Turno</th>
-                                        <th>Stato</th>
-                                        <th>Ultima presenza</th>
+                                        <th>Profilo</th>
+                                        <th>Accesso</th>
+                                        <th>Presenza</th>
                                         <th>Azioni</th>
                                     </tr>
                                 </thead>
                                 <tbody id="operatorsTableBody">
                                     <tr>
-                                        <td colspan="7">
+                                        <td colspan="5">
                                             <div class="empty">Caricamento operatori...</div>
                                         </td>
                                     </tr>
@@ -49,15 +47,15 @@
                     <div class="panel">
                         <div class="panel-head">
                             <div>
-                                <h3 data-copy-key="copy-27">Collega account Firebase</h3>
-                                <span>Associa un utente Firebase esistente al tenant e alla squadra</span>
+                                <h3 data-copy-key="copy-27">Collega un account esistente</h3>
+                                <span>Associa alla squadra un account già registrato tramite la sua email</span>
                             </div>
                         </div>
                         <div class="panel-body">
-                            <div class="toolbar">
-                                <label class="sr-only" for="syncOperatorEmail" data-copy-key="copy-28">Email account Firebase</label><input id="syncOperatorEmail" type="email" placeholder="Email account Firebase">
-                                <label class="sr-only" for="syncOperatorName" data-copy-key="copy-29">Nome operatore</label><input id="syncOperatorName" placeholder="Nome operatore (facoltativo)">
-                                <button class="btn" id="syncOperatorBtn" type="button">Sincronizza operatore</button>
+                            <div class="operator-link-form">
+                                <div class="field"><label for="syncOperatorEmail" data-copy-key="copy-28">Email account</label><input id="syncOperatorEmail" type="email" placeholder="nome@azienda.it" autocomplete="email"></div>
+                                <div class="field"><label for="syncOperatorName" data-copy-key="copy-29">Nome operatore</label><input id="syncOperatorName" placeholder="Nome e cognome (facoltativo)" autocomplete="name"></div>
+                                <button class="btn" id="syncOperatorBtn" type="button">Collega account</button>
                             </div>
                         </div>
                     </div>

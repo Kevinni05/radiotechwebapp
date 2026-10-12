@@ -1,5 +1,4 @@
 /* Operational workspaces only. Overview, its calendar and navigation are unchanged. */
-#app .main:has(.view.active:not(#view-dashboard)) { background: var(--bg-soft); }
 #app .main:has(.view.active:not(#view-dashboard)) .footer { background: var(--panel); border-radius: 12px; box-shadow: none; backdrop-filter: none; }
 #app .view:not(#view-dashboard) {
   --workspace-surface: var(--brand-surface, #13161e);
@@ -92,8 +91,17 @@
 #app .view:not(#view-dashboard) td:first-child { min-width: 200px; }
 #app .view:not(#view-dashboard) td strong { font-weight: 600; }
 #app #view-antennas .asset-coordinates span { display: block; white-space: nowrap; font-variant-numeric: tabular-nums; }
+#app #view-antennas .asset-directory { table-layout: fixed; min-width: 900px; }
+#app #view-antennas .asset-directory :is(th,td) { padding-inline: 12px; }
+#app #view-antennas .asset-directory :is(th,td):first-child { padding-left: 24px; min-width: 0; }
+#app #view-antennas .asset-directory :is(th,td):last-child { padding-right: 24px; }
+#app #view-antennas .asset-directory th:last-child { text-align: left; }
+#app #view-antennas .antenna-name, #app #view-antennas .coordinates { overflow-wrap: anywhere; }
+#app #view-antennas .asset-telemetry { display: grid; grid-template-columns: auto minmax(0,1fr); gap: 6px 10px; align-items: baseline; }
+#app #view-antennas .asset-telemetry span { color: var(--workspace-muted); font-size: 11px; }
+#app #view-antennas .asset-telemetry strong { text-align: right; overflow-wrap: anywhere; }
+#app #view-antennas .asset-unit { font-size: 10px; font-weight: 400; color: var(--workspace-muted); }
 #app .view:not(#view-dashboard) td :is(.mini-btn,.btn) { min-height: 34px; padding: 7px 10px; font-size: 11px; white-space: nowrap; }
-#app #view-antennas :is(th,td):nth-child(n+4):nth-child(-n+7),
 #app #view-inventory :is(th,td):nth-child(5) { text-align: right; }
 #app :is(#view-antennas,#view-inventory) td:last-child .actions { display: grid; grid-template-columns: repeat(2,max-content); gap: 8px; justify-content: start; }
 #app .view:not(#view-dashboard) .badge { padding: 4px 9px; min-height: 24px; border-radius: 5px; font-size: 10px; font-weight: 600; letter-spacing: .025em; line-height: 1.4; }
@@ -131,6 +139,40 @@
 #app .view:not(#view-dashboard) .profile-field { padding: 20px; border-radius: 0; border: 0; border-bottom: 1px solid var(--workspace-line); background: none; }
 #app .view:not(#view-dashboard) .profile-field label { font-size: 11px; color: var(--workspace-muted); }
 #app .view:not(#view-dashboard) .profile-field strong { margin-top: 7px; font-size: 14px; font-weight: 500; overflow-wrap: anywhere; }
+#app #view-operators .operator-overview { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 16px; }
+#app #view-operators .operator-table { table-layout: fixed; min-width: 920px; }
+#app #view-operators .operator-table :is(th,td) { padding-inline: 16px; }
+#app #view-operators .operator-table :is(th,td):first-child { padding-left: 24px; min-width: 0; }
+#app #view-operators .operator-table :is(th,td):last-child { padding-right: 24px; }
+#app #view-operators .operator-identity { display: flex; gap: 12px; align-items: flex-start; }
+#app #view-operators .operator-identity > div { min-width: 0; overflow-wrap: anywhere; }
+#app #view-operators .operator-monogram { display: grid; place-items: center; flex: 0 0 34px; height: 34px; border-radius: 9px; background: #29334a; color: #d7e3fa; font-size: 11px; font-weight: 600; }
+#app #view-operators .operator-account-state { margin-top: 5px; color: var(--workspace-muted); font-size: 11px; }
+#app #view-operators .operator-role-control { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 7px; align-items: center; }
+#app #view-operators .operator-role-control select { padding-inline: 8px; font-size: 12px; }
+#app #view-operators .operator-role-control .mini-btn { min-height: 42px; }
+#app #view-operators .operator-presence { margin: 8px 0 2px; font-size: 11px; color: var(--workspace-muted); }
+#app #view-operators .operator-presence.is-online { color: #96dbba; }
+#app #view-operators .operator-actions { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 7px; }
+#app #view-operators .operator-actions .mini-btn { padding-inline: 7px; white-space: normal; }
+#app #view-operators .operator-action-wide { grid-column: 1 / -1; }
+#app #view-operators .operator-actions-menu { grid-column: 1 / -1; min-width: 0; }
+#app #view-operators .operator-actions-menu summary { cursor: pointer; text-align: center; list-style: none; }
+#app #view-operators .operator-actions-menu summary::after { content: '⌄'; margin-left: 8px; }
+#app #view-operators .operator-actions-menu[open] summary::after { content: '⌃'; }
+#app #view-operators .operator-secondary-actions { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 7px; margin-top: 7px; }
+#app #view-operators .operator-link-form { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr) auto; gap: 20px; align-items: end; }
+.operator-detail-dialog { width: min(620px,calc(100vw - 32px)); color: var(--text); }
+.operator-detail-heading h2 { margin: 10px 0 24px; font-size: 24px; overflow-wrap: anywhere; }
+.operator-detail-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 20px; margin: 0 0 24px; }
+.operator-detail-grid > div { padding-bottom: 14px; border-bottom: 1px solid #343b4d; min-width: 0; }
+.operator-detail-grid dt { color: var(--muted); font-size: 12px; }
+.operator-detail-grid dd { margin: 7px 0 0; font-size: 14px; overflow-wrap: anywhere; }
+#app #view-system .system-status-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); align-items: stretch; grid-auto-rows: 1fr; }
+#app #view-system .system-status-grid > .panel { display: flex; flex-direction: column; }
+#app #view-system .system-status-grid .panel-body { flex: 1; display: flex; flex-direction: column; gap: 16px; }
+#app #view-system .system-status-grid .task-list { flex: 1; }
+#app #view-system .system-status-grid #logoutBtn { margin-top: auto !important; }
 #app .view:not(#view-dashboard) .health-card { padding: 16px 0; margin: 0; border: 0; border-bottom: 1px solid var(--workspace-line); border-radius: 0; background: none; }
 #app .view:not(#view-dashboard) .health-card:last-child { border-bottom: 0; }
 #app .view:not(#view-dashboard) .health-value { font-size: 20px; line-height: 1.5; font-weight: 600; }
@@ -142,6 +184,8 @@ body:has(#app .view.active:not(#view-dashboard)) .modal-head { border-bottom: 1p
 body:has(#app .view.active:not(#view-dashboard)) .modal-foot { border-top: 1px solid #303543; gap: 10px; }
 body:has(#app .view.active:not(#view-dashboard)) :is(.modal,dialog.ui-dialog,dialog.report-material-review) :is(h2,h3) { font-weight: 600; letter-spacing: -.025em; }
 @container workspace (max-width: 900px) {
+  #app #view-operators .operator-link-form { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  #app #view-operators .operator-link-form > button { grid-column: 1 / -1; justify-self: start; }
   #app .view:not(#view-dashboard) .section-head { flex-wrap: wrap; align-items: flex-start; }
   #app .view:not(#view-dashboard) .section-head .toolbar { width: 100%; justify-content: flex-start; }
   #app #view-reports .management-filters { grid-template-columns: repeat(2,minmax(0,1fr)); }
@@ -150,6 +194,11 @@ body:has(#app .view.active:not(#view-dashboard)) :is(.modal,dialog.ui-dialog,dia
   #app #view-reports .report-main > .actions { justify-content: flex-start; max-width: none; }
 }
 @container workspace (max-width: 600px) {
+  #app #view-operators .operator-overview { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  #app #view-operators .operator-link-form { grid-template-columns: minmax(0,1fr); }
+  #app #view-system .system-status-grid { grid-template-columns: minmax(0,1fr); }
+  /* Legacy mobile report rules position individual fields in two columns. */
+  #app #view-reports .management-filters > .field { grid-column: auto !important; grid-row: auto !important; }
   #app .view:not(#view-dashboard) :is(.workspace-filterbar,.workspace-filterbar--two,.workspace-filterbar--operators) { grid-template-columns: minmax(0,1fr); }
   #app .view:not(#view-dashboard) :is(.form-grid,.management-filters,.profile-grid,.branding-grid) { grid-template-columns: minmax(0,1fr); }
   #app .view:not(#view-dashboard) :is(.panel-head,.panel-body,.workspace-filterbar,.workspace-filter-panel) { padding: 18px; }
@@ -161,6 +210,7 @@ body:has(#app .view.active:not(#view-dashboard)) :is(.modal,dialog.ui-dialog,dia
   #app .view:not(#view-dashboard) .profile-grid { padding: 0 18px 18px; }
   #app .view:not(#view-dashboard) .profile-field { padding: 18px 0; }
 }
+@media (max-width: 600px) { .operator-detail-grid { grid-template-columns: minmax(0,1fr); } }
 @media (pointer: coarse) {
   #app .view:not(#view-dashboard) :is(.btn,.mini-btn,input:not([type=checkbox]):not([type=radio]):not([type=file]),select) { min-height: 44px !important; }
 }
