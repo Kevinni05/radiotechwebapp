@@ -1,0 +1,20 @@
+/* One softly moving slate canvas for the console, sign-in and customer portal. */
+body {
+  --canvas-base: color-mix(in srgb, var(--brand-background, #303348) 24%, #394863);
+  background: var(--canvas-base); isolation: isolate;
+}
+body::before {
+  content: ''; position: fixed; inset: -8%; z-index: -1; pointer-events: none;
+  background: radial-gradient(ellipse at 12% 18%, #a797dc38, transparent 48%),
+    radial-gradient(ellipse at 87% 44%, #78a9ce30, transparent 50%),
+    radial-gradient(ellipse at 42% 92%, #81b7aa20, transparent 52%);
+  opacity: .85; animation: canvas-drift 36s ease-in-out infinite alternate;
+}
+body::after { opacity: .025; background-size: 100px 100px; }
+#app .main, #app .main:has(.view.active:not(#view-dashboard)), #loginScreen { background: transparent; }
+@keyframes canvas-drift {
+  from { transform: translate(-1%, -.5%) scale(1); }
+  to { transform: translate(1.5%, 1%) scale(1.035); }
+}
+@media (prefers-reduced-motion: reduce) { body::before { animation: none; transform: none; } }
+@media print { body { background: white; } body::before, body::after { display: none; } }

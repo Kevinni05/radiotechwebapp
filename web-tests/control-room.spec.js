@@ -34,7 +34,7 @@ test('glass surfaces align cards and brand returns home without losing the sessi
   await expect(page.locator('.footer')).toContainText('RadioTech');
   expect(await page.evaluate(()=>getComputedStyle(document.body,'::before').animationName)).toBe('none');
   await page.emulateMedia({reducedMotion:'no-preference'});
-  expect(await page.evaluate(()=>getComputedStyle(document.body,'::before').animationName)).toBe('radiotech-aurora');
+  expect(await page.evaluate(()=>getComputedStyle(document.body,'::before').animationName)).toBe('canvas-drift');
   await page.setViewportSize({width:390,height:844});await page.locator('#mobileMenu').click();await page.locator('[data-view="inventory"]').click();
   await page.locator('#mobileMenu').click();await page.locator('#brandHome').focus();await page.keyboard.press('Enter');
   await expect(page.locator('#view-dashboard')).toHaveClass(/active/);await expect(page.locator('#mobileMenu')).toHaveAttribute('aria-expanded','false');
@@ -162,7 +162,7 @@ test('private local report attachments download with authentication and preserve
   await session(page,'ADMIN',{'/reports':[{id:'r-file',taskId:'t1',operatorId:'o1',status:'SUBMITTED',attachments:[`radiotech-file:${id}`]}],respond(path,method,request){
     if(path===`/files/${id}`){authorization=request.headers().authorization;return{name:'photo-test.txt',base64:Buffer.from('private file').toString('base64')};}
   }});
-  await page.locator('[data-view="reports"]').click();await page.locator('#reportsList details summary').click();
+  await page.locator('[data-view="reports"]').click();await page.locator('#reportsList [data-report-toggle]').click();await page.locator('#reportsList details summary').click();
   const downloaded=page.waitForEvent('download');await page.locator('[data-file-download]').click();const file=await downloaded;
   expect(file.suggestedFilename()).toBe('photo-test.txt');expect((await readFile(await file.path())).toString()).toBe('private file');expect(authorization).toMatch(/^Bearer /);
 });
@@ -315,7 +315,7 @@ test('report review filters and approval update the dedicated review center', as
   await expect(page.locator('#reportsList .task-row')).toHaveCount(2);
   await page.locator('#reportStatusFilter').selectOption('SUBMITTED');
   await expect(page.locator('#reportsList .task-row:visible')).toHaveCount(1);
-  await page.locator('#reportsList .task-row:visible summary').click();
+  await page.locator('#reportsList .task-row:visible [data-report-toggle]').click();await page.locator('#reportsList .task-row:visible summary').click();
   await expect(page.locator('#reportsList .task-row:visible')).toContainText('Allineamento ponte radio');
   await expect(page.locator('#reportsList .task-row:visible')).toContainText('ROS: 1.2');
   await expect(page.locator('#reportsList [data-report-file]')).toHaveCount(1);
@@ -342,7 +342,7 @@ test('legacy report review maps actual stock, requires unresolved choices and ca
     if(path==='/reports/legacy/approve'){approvals.push(request.postDataJSON());report.status='APPROVED';return report;}
   }});
   await page.locator('[data-view="reports"]').click();
-  await page.locator('#reportsList summary').click();
+  await page.locator('#reportsList [data-report-toggle]').click();await page.locator('#reportsList summary').click();
   const approve=page.locator('[data-report-approve="legacy"]');
   await approve.click();
   const dialog=page.locator('dialog.report-material-review');
@@ -375,7 +375,7 @@ test('interrupted legacy approval preserves consumed mappings and escapes materi
     if(path==='/reports/locked/review-context')return {materials,inventory:[{id:'real',name:'Connettore N',sku:'RF-001',quantity:36}],mappings:{'0':'real'},locked:true};
     if(path==='/reports/locked/approve'){approvals.push(request.postDataJSON());report.status='APPROVED';return report;}
   }});
-  await page.locator('[data-view="reports"]').click();await page.locator('#reportsList summary').click();
+  await page.locator('[data-view="reports"]').click();await page.locator('#reportsList [data-report-toggle]').click();await page.locator('#reportsList summary').click();
   await page.locator('[data-report-approve="locked"]').click();
   const dialog=page.locator('dialog.report-material-review');
   await expect(dialog.locator('select')).toBeDisabled();await expect(dialog.locator('select')).toHaveValue('real');
@@ -608,6 +608,7 @@ test('manager profile updates and badge retrieval use dedicated endpoints', asyn
   await expect(page.locator('#badgeToken')).toHaveText('badge-only-token');
   await expect(page.locator('#badgeModal')).toBeVisible();
   await page.locator('#closeBadgeModal').click();
+  await page.locator('.operator-actions-menu summary').first().click();
   await page.locator('[data-regenerate="o1"]').click();
   await page.locator('.ui-dialog').getByRole('button',{name:'Conferma',exact:true}).click();
   await expect(page.locator('#badgeModal')).toBeVisible();
@@ -752,7 +753,7 @@ test('mobile menu and dialogs support keyboard navigation and focus return', asy
   await expect(page.locator('#newAntennaBtn')).toBeFocused();
 });
 
-test('Aurora feedback respects reduced motion and the Pro editor fits every viewport', async ({page}) => {
+test('shared canvas moves gently, respects reduced motion and the Pro editor fits every viewport', async ({page}) => {
   await page.emulateMedia({reducedMotion:'no-preference'});
   await session(page,'ADMIN',{respond(path) {
     if(path==='/pro/catalog')return [{id:'clients',title:'Clienti e contatti',writable:true,fields:[{key:'name',label:'Ragione sociale',type:'text',required:true}],actions:['ARCHIVE']}];
@@ -761,7 +762,8 @@ test('Aurora feedback respects reduced motion and the Pro editor fits every view
   await page.locator('[data-view="pro"]').click();
   await page.locator('#proNew').click();
   await expect(page.locator('#proNew')).toHaveClass(/press-glow/);
-  expect(await page.evaluate(()=>getComputedStyle(document.body,'::before').animationName)).toBe('radiotech-aurora');
+  const initialCanvasTransform=await page.evaluate(()=>getComputedStyle(document.body,'::before').transform);
+  await expect.poll(()=>page.evaluate(()=>getComputedStyle(document.body,'::before').transform)).not.toBe(initialCanvasTransform);
   for(const width of [320,768,1440]) {
     await page.setViewportSize({width,height:900});
     expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
@@ -790,6 +792,7 @@ test('report attachments show image and PDF previews, enlargement and explicit d
   }});
   await page.locator('[data-view="reports"]').click();
   const list=page.locator('#reportsList');
+  await list.locator('[data-report-toggle]').click();
   await expect(list.locator('img').first()).toBeVisible();
   expect(await list.locator('img').first().evaluate(img=>img.complete && img.naturalWidth>0)).toBe(true);
   await list.locator('.report-file').nth(1).scrollIntoViewIfNeeded();
@@ -853,8 +856,8 @@ test('TelcoTools calculates CIDR, VLSM and RF at narrow widths and exports the s
 
 test('QR validity config and operator deletion call their protected APIs',async({page})=>{
  await session(page);const requests=[];await page.route('**/api/v1/operators/**',route=>{requests.push({path:new URL(route.request().url()).pathname,method:route.request().method(),data:route.request().postDataJSON()});return route.fulfill({json:{message:'Operazione completata'}});});
- await page.locator('.nav [data-view="operators"]').click();const button=page.locator('[data-validity]').first();await button.click();await page.locator('#validityMode').selectOption('UNLIMITED');await page.locator('#validityForm [type=submit]').click();await expect.poll(()=>requests.some(r=>r.path.endsWith('/qr-validity'))).toBeTruthy();expect(requests.find(r=>r.path.endsWith('/qr-validity')).data).toEqual({mode:'UNLIMITED',expiresAt:null});
- await page.locator('[data-delete-operator]').first().click();await page.locator('.ui-dialog').getByRole('button',{name:'Conferma',exact:true}).click();await expect.poll(()=>requests.some(r=>r.method==='DELETE')).toBeTruthy();
+ await page.locator('.nav [data-view="operators"]').click();await page.locator('.operator-actions-menu summary').first().click();const button=page.locator('[data-validity]').first();await button.click();await page.locator('#validityMode').selectOption('UNLIMITED');await page.locator('#validityForm [type=submit]').click();await expect.poll(()=>requests.some(r=>r.path.endsWith('/qr-validity'))).toBeTruthy();expect(requests.find(r=>r.path.endsWith('/qr-validity')).data).toEqual({mode:'UNLIMITED',expiresAt:null});
+ if(!await page.locator('.operator-actions-menu').first().evaluate(e=>e.open))await page.locator('.operator-actions-menu summary').first().click();await page.locator('[data-delete-operator]').first().click();await page.locator('.ui-dialog').getByRole('button',{name:'Conferma',exact:true}).click();await expect.poll(()=>requests.some(r=>r.method==='DELETE')).toBeTruthy();
 });
 
 

@@ -94,7 +94,7 @@ test('collapsed report actions and state remain available without overflow on mo
       await expect.poll(async()=>{
         const status=await page.locator('#reportStatusFilter').boundingBox();
         const operator=await page.locator('#reportOperatorFilter').boundingBox();
-        return Math.abs(status.y-operator.y)<1&&operator.x>status.x;
+        return operator.y>status.y&&Math.abs(status.x-operator.x)<1&&Math.abs(status.width-operator.width)<1;
       }).toBe(true);
     }
     expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);

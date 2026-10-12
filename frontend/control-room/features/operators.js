@@ -24,7 +24,11 @@ const pages=createPagedResource(ctx,{path:'/api/v1/dashboard/resources/operators
                 return Number.isFinite(timestamp) && Date.now() - timestamp < 5 * 60 * 1000;
             }
 
-            function renderOperatorTable(){preserveTableInteraction(ctx.$("operatorsTableBody"),renderOperatorTableRows);}
+            function renderOperatorTable(){
+                const table=ctx.$('operatorsTableBody');
+                const expanded=new Set([...table.querySelectorAll('[data-operator-menu][open]')].map(menu=>menu.dataset.operatorMenu));
+                preserveTableInteraction(table,()=>{renderOperatorTableRows();for(const menu of table.querySelectorAll('[data-operator-menu]'))menu.open=expanded.has(menu.dataset.operatorMenu);});
+            }
             function renderOperatorTableRows() {
                 const table = ctx.$("operatorsTableBody");
                 if (!table) return;
@@ -36,15 +40,21 @@ const pages=createPagedResource(ctx,{path:'/api/v1/dashboard/resources/operators
                     return (!search || name.includes(search)) && (!roleFilter || role === roleFilter);
                 });
                 const active = ctx.state.operators.filter(operator => (operator.status || "").toUpperCase() === "ATTIVO").length;
+                const overview=ctx.$('operatorOverview');
+                if(overview){
+                    const pending=ctx.state.operators.filter(operator=>(operator.status||'').toUpperCase()==='IN_ATTESA').length;
+                    const online=ctx.state.operators.filter(operator=>operatorOnline(operator.lastSeen)).length;
+                    overview.innerHTML=[['Account caricati',ctx.state.operators.length,'Nell’elenco corrente'],['Attivi',active,'Fra gli account caricati'],['Da approvare',pending,'Attendono abilitazione'],['Connessi',online,'Presenza negli ultimi 5 min.']].map(([label,value,description])=>`<article class="stat-card"><div class="stat-label">${label}</div><div class="stat-value">${ctx.state.operatorLoadError?'—':value}</div><div class="stat-foot">${description}</div></article>`).join('');
+                }
                 ctx.$("operatorsSummary").textContent = ctx.state.operatorLoadError
                     ? "Elenco non disponibile"
                     : `${ctx.state.operators.length} operatori · ${active} attivi`;
                 if (ctx.state.operatorLoadError) {
-                    table.innerHTML = `<tr><td colspan="7"><div class="empty">Impossibile caricare gli operatori: ${ctx.escapeHtml(ctx.state.operatorLoadError)}</div></td></tr>`;
+                    table.innerHTML = `<tr><td colspan="5"><div class="empty">Impossibile caricare gli operatori: ${ctx.escapeHtml(ctx.state.operatorLoadError)}</div></td></tr>`;
                     return;
                 }
                 if (!visibleOperators.length) {
-                    table.innerHTML = `<tr><td colspan="7"><div class="empty">${ctx.state.operators.length ? "Nessun operatore corrisponde ai filtri." : "Nessun operatore registrato."}</div></td></tr>`;
+                    table.innerHTML = `<tr><td colspan="5"><div class="empty">${ctx.state.operators.length ? "Nessun operatore corrisponde ai filtri." : "Nessun operatore registrato."}</div></td></tr>`;
                     return;
                 }
                 table.innerHTML = visibleOperators.map(operator => {
@@ -55,16 +65,14 @@ const pages=createPagedResource(ctx,{path:'/api/v1/dashboard/resources/operators
                     const linked = Boolean(operator.firebaseUid);
                     const pending = (operator.status || "").toUpperCase() === "IN_ATTESA";
                     return `<tr>
-                        <td><strong>${ctx.escapeHtml(name)}</strong><div class="subtle">${ctx.escapeHtml(operator.email || "Email non collegata")}</div></td>
-                        <td><div class="actions"><select data-operator-role="${ctx.escapeHtml(id)}" aria-label="Ruolo di ${ctx.escapeHtml(name)}" ${linked && !pending ? "" : "disabled"}>
+                        <td><div class="operator-identity"><span class="operator-monogram" aria-hidden="true">${ctx.escapeHtml(name.trim().split(/\s+/).slice(0,2).map(part=>part[0]).join('').toUpperCase())}</span><div><strong>${ctx.escapeHtml(name)}</strong><div class="subtle">${ctx.escapeHtml(operator.email || "Email non collegata")}</div><div class="operator-account-state">${linked?'Account collegato':'Account da collegare'}</div></div></div></td>
+                        <td><strong>${ctx.escapeHtml(operator.level || "TECNICO")}</strong><div class="subtle">${ctx.escapeHtml(operator.shift || "Turno non indicato")}</div></td>
+                        <td><div class="operator-role-control"><select data-operator-role="${ctx.escapeHtml(id)}" aria-label="Ruolo di ${ctx.escapeHtml(name)}" ${linked && !pending ? "" : "disabled"}>
                             <option value="OPERATOR" ${role === "OPERATOR" ? "selected" : ""}>Operatore</option>
                             <option value="VIEWER" ${role === "VIEWER" ? "selected" : ""}>Sola lettura</option>
                         </select><button class="mini-btn" data-save-role="${ctx.escapeHtml(id)}" ${linked && !pending ? "" : "disabled"}>Salva</button></div></td>
-                        <td>${ctx.escapeHtml(operator.level || "TECNICO")}</td>
-                        <td>${ctx.escapeHtml(operator.shift || "—")}</td>
-                        <td><span class="badge ${online ? "green" : pending ? "red" : "blue"}">${online ? "CONNESSO" : ctx.escapeHtml(ctx.formatStatus(operator.status || "OFFLINE"))}</span></td>
-                        <td>${operator.lastSeen ? ctx.escapeHtml(new Date(operator.lastSeen).toLocaleString("it-IT")) : "—"}</td>
-                        <td><div class="actions">${pending ? `<button class="mini-btn" data-approve="${ctx.escapeHtml(id)}">Approva</button>` : ""}<button class="mini-btn" data-badge="${ctx.escapeHtml(id)}">Badge</button><button class="mini-btn" data-regenerate="${ctx.escapeHtml(id)}">Rigenera QR</button><button class="mini-btn" data-validity="${ctx.escapeHtml(id)}">Validità QR</button><button class="mini-btn" data-reset-password="${ctx.escapeHtml(id)}">Reimposta password</button><button class="mini-btn danger" data-delete-operator="${ctx.escapeHtml(id)}">Elimina</button></div></td>
+                        <td><span class="badge ${pending ? "yellow" : "blue"}">${ctx.escapeHtml(ctx.formatStatus(operator.status || "OFFLINE"))}</span><div class="operator-presence ${online?'is-online':''}">${online?'Connesso ora':'Non connesso'}</div><div class="subtle">${operator.lastSeen && Number.isFinite(Date.parse(operator.lastSeen)) ? ctx.escapeHtml(new Date(operator.lastSeen).toLocaleString("it-IT")) : "Nessuna presenza registrata"}</div></td>
+                        <td><div class="actions operator-actions">${pending ? `<button class="mini-btn operator-action-wide" data-approve="${ctx.escapeHtml(id)}">Approva account</button>` : ""}<button class="mini-btn" data-operator-details="${ctx.escapeHtml(id)}">Scheda</button><button class="mini-btn" data-badge="${ctx.escapeHtml(id)}">Badge</button><details class="operator-actions-menu" data-operator-menu="${ctx.escapeHtml(id)}"><summary class="mini-btn">Altre azioni</summary><div class="operator-secondary-actions"><button class="mini-btn" data-regenerate="${ctx.escapeHtml(id)}">Rigenera QR</button><button class="mini-btn" data-validity="${ctx.escapeHtml(id)}">Validità QR</button><button class="mini-btn operator-action-wide" data-reset-password="${ctx.escapeHtml(id)}">Reimposta password</button><button class="mini-btn danger operator-action-wide" data-delete-operator="${ctx.escapeHtml(id)}">Elimina</button></div></details></div></td>
                     </tr>`;
                 }).join("");
                 ctx.applyPermissions(); ctx.refreshReportTitles();
@@ -72,6 +80,15 @@ const pages=createPagedResource(ctx,{path:'/api/v1/dashboard/resources/operators
                 table.querySelectorAll("[data-approve]").forEach(button => button.addEventListener("click", () => approveOperator(button.dataset.approve)));
                 table.querySelectorAll("[data-badge]").forEach(button => button.addEventListener("click", () => showBadge(button.dataset.badge)));
                 table.querySelectorAll("[data-regenerate]").forEach(button => button.addEventListener("click", () => regenerateQr(button.dataset.regenerate)));
+                table.querySelectorAll('[data-operator-details]').forEach(button=>button.addEventListener('click',()=>showOperatorDetails(button.dataset.operatorDetails)));
+            }
+
+            function showOperatorDetails(id){
+                const operator=ctx.state.operators.find(item=>item.id===id);if(!operator)return;
+                const dialog=document.createElement('dialog');dialog.className='operation-dialog operator-detail-dialog';dialog.setAttribute('aria-labelledby','operatorDetailTitle');
+                const fields=[['Email',operator.email],['Telefono',operator.phone],['Livello',operator.level],['Turno',operator.shift],['Ruolo',ctx.formatStatus(operator.role||'OPERATOR')],['Stato account',ctx.formatStatus(operator.status||'OFFLINE')],['Collegamento account',operator.firebaseUid?'Collegato':'Da collegare'],['Ultima presenza',operator.lastSeen&&Number.isFinite(Date.parse(operator.lastSeen))?new Date(operator.lastSeen).toLocaleString('it-IT'):null]];
+                dialog.innerHTML=`<form method="dialog"><div class="operator-detail-heading"><span class="section-kicker">Anagrafica della squadra</span><h2 id="operatorDetailTitle">${ctx.escapeHtml(operator.fullName||operator.email||'Operatore')}</h2></div><dl class="operator-detail-grid">${fields.map(([label,value])=>`<div><dt>${label}</dt><dd>${ctx.escapeHtml(value||'Non indicato')}</dd></div>`).join('')}</dl><div class="toolbar"><button class="btn" type="submit">Chiudi scheda</button></div></form>`;
+                dialog.addEventListener('close',()=>dialog.remove(),{once:true});document.body.append(dialog);dialog.showModal();
             }
 
             async function saveOperatorRole(id) {

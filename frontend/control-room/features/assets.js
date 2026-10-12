@@ -13,7 +13,7 @@ export function createFeature(ctx){
                 } catch (error) {
                     console.error(error);
                     ctx.$("antennasTableBody").innerHTML =
-                        `<tr><td colspan="8"><div class="empty">Impossibile caricare le antenne: ${ctx.escapeHtml(error.message)}</div></td></tr>`;
+                        `<tr><td colspan="6"><div class="empty">Impossibile caricare le antenne: ${ctx.escapeHtml(error.message)}</div></td></tr>`;
                     throw error;
                 }
             }
@@ -34,7 +34,7 @@ export function createFeature(ctx){
 
                 if (!list.length) {
                     ctx.$("antennasTableBody").innerHTML =
-                        `<tr><td colspan="8"><div class="empty">Nessuna antenna trovata.</div></td></tr>`;
+                        `<tr><td colspan="6"><div class="empty">Nessuna antenna trovata.</div></td></tr>`;
                     return;
                 }
 
@@ -48,10 +48,8 @@ export function createFeature(ctx){
                     </td>
                     <td class="asset-coordinates"><span title="Latitudine">${ctx.number(a.lat, 5)}</span> <span title="Longitudine">${ctx.number(a.lng, 5)}</span></td>
                     <td><span class="badge ${ctx.badgeClass(a.status)}">${ctx.escapeHtml(ctx.formatStatus(a.status))}</span></td>
-                    <td>${ctx.escapeHtml(specs.Frequenza ?? "—")}</td>
-                    <td>${ctx.escapeHtml(specs.Potenza ?? "—")}</td>
-                    <td>${ctx.escapeHtml(specs.ROS ?? "—")}</td>
-                    <td>${ctx.escapeHtml(specs.Temperatura ?? "—")}</td>
+                    <td><div class="asset-telemetry"><span>Freq.</span><strong>${antennaReading(specs.Frequenza,'MHz')}</strong><span>Potenza</span><strong>${antennaReading(specs.Potenza,'W')}</strong></div></td>
+                    <td><div class="asset-telemetry"><span>ROS</span><strong>${antennaReading(specs.ROS,'')}</strong><span>Temp.</span><strong>${antennaReading(specs.Temperatura,'°C')}</strong></div></td>
                     <td>
                         <div class="actions">
                             <button class="mini-btn" data-qr="${ctx.escapeHtml(a.id)}">QR Code</button>
@@ -132,6 +130,10 @@ export function createFeature(ctx){
                     ROS: s.ros ?? s.ROS,
                     Temperatura: s.temperatura ?? s.Temperatura ?? s.temperature
                 };
+            }
+            function antennaReading(value,unit){
+                if(value===null||value===undefined||value==='')return '—';
+                return `${ctx.escapeHtml(value)}${unit&&Number.isFinite(Number(value))?` <small class="asset-unit">${unit}</small>`:''}`;
             }
 
             async function saveAntenna(event) {

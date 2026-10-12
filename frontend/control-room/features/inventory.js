@@ -65,7 +65,7 @@ const pages=createPagedResource(ctx,{path:'/api/v1/dashboard/resources/inventory
                         <td>${ctx.escapeHtml([item.warehouse,item.aisle,item.rack,item.bin,item.location].filter(Boolean).join(" · ") || "—")}${item.supplier ? `<div class="subtle">${ctx.escapeHtml(item.supplier)}</div>` : ""}</td>
                         <td>${new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR" }).format(value)}<div class="subtle">${new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR" }).format(Number(item.unitCost || 0))} / ${ctx.escapeHtml(item.unit || "pz")}</div></td>
                         <td><span class="badge ${!active ? "red" : low ? "yellow" : "green"}">${!active ? "ARCHIVIATO" : stockLabel}</span></td>
-                        <td><div class="actions">${active ? `<button class="mini-btn" data-inventory-move="${ctx.escapeHtml(item.id)}">Movimenta</button><button class="mini-btn" data-inventory-edit="${ctx.escapeHtml(item.id)}">Modifica</button><button class="mini-btn" data-inventory-archive="${ctx.escapeHtml(item.id)}">Archivia</button>` : `<button class="mini-btn" data-inventory-restore="${ctx.escapeHtml(item.id)}">Ripristina</button>`}</div></td>
+                        <td><div class="actions">${active ? `<button class="mini-btn" data-inventory-edit="${ctx.escapeHtml(item.id)}">Modifica</button><button class="mini-btn" data-inventory-archive="${ctx.escapeHtml(item.id)}">Archivia</button><button class="mini-btn" data-inventory-move="${ctx.escapeHtml(item.id)}">Movimenta</button>` : `<button class="mini-btn" data-inventory-restore="${ctx.escapeHtml(item.id)}">Ripristina</button>`}</div></td>
                     </tr>`;
                 }).join("");
                 ctx.applyPermissions();

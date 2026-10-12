@@ -546,6 +546,7 @@ function exportInventoryCsv(...args){return feature_inventory.exportInventoryCsv
 
                 if (target) target.classList.add("active");
                 if (nav) nav.classList.add("active");
+                window.dispatchEvent(new CustomEvent('radiotech:view-changed', {detail:{view}}));
 
                 const titles = {
                     dashboard: ["Panoramica", "Monitoraggio infrastruttura radio e operazioni tecniche"],
