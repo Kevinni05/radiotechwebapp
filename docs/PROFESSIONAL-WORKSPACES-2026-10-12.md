@@ -17,7 +17,7 @@ Il foglio `professional-workspaces.css` limita le regole alle viste diverse da `
 
 ## Verifica
 
-Il test di conservazione carica la Panoramica senza il nuovo foglio, acquisisce screenshot e stili, quindi carica il foglio tramite URL consentito dal CSP. Confronta gli screenshot byte-per-byte tramite SHA256 e gli stili della Panoramica, navigazione, topbar, main e footer. Orologio e dati sono fixture deterministiche; si attende il completamento dei caricamenti prima del confronto.
+Il test di conservazione carica la Panoramica senza il nuovo foglio, acquisisce screenshot e stili, quindi carica il foglio tramite URL consentito dal CSP. Confronta gli screenshot tramite SHA256; se i byte differiscono, verifica tutti i pixel ammettendo al massimo 1/255 per componente colore, per il rumore di rasterizzazione dei bordi arrotondati. Dimensioni e stili devono coincidere esattamente. Controlla gli stili della Panoramica, navigazione, topbar, main e footer, comprese opacità e trasformazioni. Orologio e dati sono fixture deterministiche; si attende il completamento dei caricamenti prima del confronto. Le catture usano movimento ridotto e un viewport alto che contiene la vista completa; il messaggio temporaneo di sincronizzazione, esterno alla Panoramica, è nascosto in entrambe.
 
 I nuovi test visitano tutte le 18 sezioni a 390, 768 e 1440 pixel, verificando contenimento di pannelli e controlli. Altri test controllano allineamento dei filtri/tabelle, dei pannelli notifiche e del pulsante invio, report compressi e dettaglio a larghezza completa. I test esistenti coprono ruoli, filtri, conferme, PDF, azioni e mantenimento del focus.
 

@@ -1,8 +1,11 @@
 import {test,expect} from '@playwright/test';
 import {createHash} from 'node:crypto';
 import {session} from './fixtures/control-room-session.js';
+test.use({reducedMotion:'reduce'});
 
-test('professional workspace styling leaves the complete overview visually unchanged',async({page})=>{
+test('professional workspace styling leaves the complete overview visually unchanged',async({page},testInfo)=>{
+ await page.setViewportSize({width:1440,height:3000});
+ await page.emulateMedia({reducedMotion:'reduce'});
  await page.clock.setFixedTime(new Date('2026-10-12T08:00:00Z'));
  await page.route('**/assets/professional-workspaces.css',route=>route.fulfill({contentType:'text/css',body:''}));
  await session(page);
@@ -10,10 +13,12 @@ test('professional workspace styling leaves the complete overview visually uncha
  await expect(page.locator('#statTasks')).toHaveText('1');
  await expect(page.locator('#footerServiceStatus')).toHaveText('Backend disponibile');
  await page.waitForLoadState('networkidle');
- await page.locator('#toastContainer').evaluateAll(items=>items.forEach(e=>e.style.visibility='hidden'));
+ // Transient synchronization feedback is outside the overview and may appear
+ // between captures on slower runners. Keep it out of both images.
+ await page.locator('#toastStack').evaluate(e=>e.style.visibility='hidden');
  const selectors=['#view-dashboard','#app .main','#app .sidebar','#app .topbar','#app .footer'];
  const snapshot=()=>page.evaluate(selectors=>selectors.flatMap(selector=>[...document.querySelectorAll(selector)].flatMap(root=>selector==='#app .main'?[root]:[root,...root.querySelectorAll('*')]).map(element=>{
-  const css=getComputedStyle(element);return ['display','background','color','font','border','padding','margin','gap','width','height','borderRadius'].map(key=>css[key]);
+  const css=getComputedStyle(element);return ['display','background','color','font','border','padding','margin','gap','width','height','borderRadius','opacity','transform'].map(key=>css[key]);
  })),selectors);
  const imageBefore=await page.locator('#view-dashboard').screenshot({animations:'disabled'});
  const before=await snapshot();
@@ -22,7 +27,19 @@ test('professional workspace styling leaves the complete overview visually uncha
  const imageAfter=await page.locator('#view-dashboard').screenshot({animations:'disabled'});
  expect(await snapshot()).toEqual(before);
  const digest=bytes=>createHash('sha256').update(bytes).digest('hex');
- expect(digest(imageAfter)).toBe(digest(imageBefore));
+ if(digest(imageAfter)!==digest(imageBefore)){
+  // A stylesheet invalidation can repaint rounded edges one channel level
+  // differently. Compare decoded pixels with only 1/255 channel tolerance;
+  // dimensions and all computed styles still have to match exactly.
+  const difference=await page.evaluate(async urls=>{
+   const images=await Promise.all(urls.map(src=>new Promise((resolve,reject)=>{const image=new Image();image.onload=()=>resolve(image);image.onerror=reject;image.src=src;})));
+   if(images[0].width!==images[1].width||images[0].height!==images[1].height)return 255;
+   const pixels=images.map(image=>{const canvas=document.createElement('canvas');canvas.width=image.width;canvas.height=image.height;const ctx=canvas.getContext('2d');ctx.drawImage(image,0,0);return ctx.getImageData(0,0,canvas.width,canvas.height).data;});
+   let maximum=0;for(let i=0;i<pixels[0].length;i++)maximum=Math.max(maximum,Math.abs(pixels[0][i]-pixels[1][i]));return maximum;
+  },[imageBefore,imageAfter].map(bytes=>'data:image/png;base64,'+bytes.toString('base64')));
+  if(difference>1){await testInfo.attach('overview-before',{body:imageBefore,contentType:'image/png'});await testInfo.attach('overview-after',{body:imageAfter,contentType:'image/png'});}
+  expect(difference).toBeLessThanOrEqual(1);
+ }
 });
 
 for(const width of [390,768,1440])test(`all operational sections fit and align at ${width}px`,async({page})=>{
