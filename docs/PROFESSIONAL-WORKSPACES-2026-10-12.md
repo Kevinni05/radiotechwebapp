@@ -12,7 +12,7 @@ Il foglio `professional-workspaces.css` limita le regole alle viste diverse da `
 
 - Filtri infrastruttura, operatori e inventario con etichette visibili e area dedicata. Titoli, filtri e prima colonna delle tabelle condividono l'allineamento.
 - Tabelle con separatori discreti, numeri allineati, azioni organizzate e coordinate su due righe senza spezzare le cifre. Scorrimento confinato alla tabella sui display stretti.
-- Centro report: intestazione compatta con azioni sulla destra, dettaglio/documenti a larghezza completa, filtri separati e stato compresso coerente. Filtri e azioni autorizzate rimangono funzionanti.
+- Centro report: intestazione compatta con azioni sulla destra, dettaglio/documenti a larghezza completa, filtri separati e stato compresso coerente. Sotto 600 pixel tutti i filtri occupano la larghezza completa del pannello. Filtri e azioni autorizzate rimangono funzionanti.
 - Schede, form, profilo, monitoraggio, notifiche, strumenti e aree Enterprise con trattamento comune. Pulsanti e input uniformi, focus visibile e dimensioni touch adeguate.
 
 ## Verifica

@@ -150,6 +150,8 @@ body:has(#app .view.active:not(#view-dashboard)) :is(.modal,dialog.ui-dialog,dia
   #app #view-reports .report-main > .actions { justify-content: flex-start; max-width: none; }
 }
 @container workspace (max-width: 600px) {
+  /* Legacy mobile report rules position individual fields in two columns. */
+  #app #view-reports .management-filters > .field { grid-column: auto !important; grid-row: auto !important; }
   #app .view:not(#view-dashboard) :is(.workspace-filterbar,.workspace-filterbar--two,.workspace-filterbar--operators) { grid-template-columns: minmax(0,1fr); }
   #app .view:not(#view-dashboard) :is(.form-grid,.management-filters,.profile-grid,.branding-grid) { grid-template-columns: minmax(0,1fr); }
   #app .view:not(#view-dashboard) :is(.panel-head,.panel-body,.workspace-filterbar,.workspace-filter-panel) { padding: 18px; }

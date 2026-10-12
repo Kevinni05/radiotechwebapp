@@ -53,6 +53,13 @@ for(const width of [390,768,1440])test(`all operational sections fit and align a
   await expect(view.locator('.section-head h2').first()).toBeVisible();
   const overflow=await view.evaluate(root=>[...root.querySelectorAll('input,select,textarea,.panel,.workspace-filter-panel')].filter(e=>e.getBoundingClientRect().width&& !e.closest('.table-wrap')).filter(e=>{const r=e.getBoundingClientRect(),p=root.getBoundingClientRect();return r.left<p.left-1||r.right>p.right+1;}).map(e=>e.id||e.className));
   expect(overflow,id).toEqual([]);
+  if(id==='reports'&&width===390){
+   const widths=await view.locator('.management-filters').evaluate(root=>{
+    const available=root.getBoundingClientRect().width;
+    return [...root.querySelectorAll('.field')].map(field=>Math.abs(field.getBoundingClientRect().width-available));
+   });
+   expect(widths.every(delta=>delta<=1),'mobile report filters occupy the full panel width').toBe(true);
+  }
  }
 });
 
