@@ -85,7 +85,7 @@ window.RadioTechPersonalization = (() => {
   }
   const fields={name:'brandNameInput',subtitle:'brandSubtitleInput',supportEmail:'brandSupportInput',copyright:'brandCopyrightInput',welcomeTitle:'brandWelcomeInput',welcomeDescription:'brandDescriptionInput'};
   const colorLabels={accent:'Accento',background:'Sfondo',surface:'Pannelli',text:'Testo',muted:'Testo secondario',border:'Bordi',success:'Successo',warning:'Avviso',danger:'Errore'};
-  const lightColors={accent:'#b72f43',background:'#f8f9fb',surface:'#ffffff',text:'#17191f',muted:'#535969',border:'#d2d5dd',success:'#087b52',warning:'#8b5800',danger:'#bc2844'};
+  const lightColors={accent:'#b72f43',background:'#f5f6f8',surface:'#ffffff',text:'#20232b',muted:'#555e6f',border:'#dce0e7',success:'#087b52',warning:'#8b5800',danger:'#bc2844'};
   const paletteKey=key=>$('brandPaletteMode')?.value==='light'?'light'+key[0].toUpperCase()+key.slice(1):key;
   const colorDefaults={accent:'#ff8383',background:'#08090b',surface:'#121316',text:'#f4f4f5',muted:'#ababb5',border:'#2b2c32',success:'#79ddb4',warning:'#edc389',danger:'#ff959f'};
   function fillForm() {
