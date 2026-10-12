@@ -27,7 +27,7 @@ public final class BackupTool {
  private static void collection(CollectionReference collection,List<Map<String,Object>> output)throws Exception{
   // Project only names for binary chunks. Listing full binary documents can
   // exceed a gRPC response limit; each payload is then fetched individually.
-  boolean chunks=collection.getId().equals("chunks")&&collection.getParent()!=null&&collection.getParent().getParent().getId().equals("reportFiles");
+  boolean chunks=collection.getId().equals("chunks")&&collection.getParent()!=null&&Set.of("reportFiles","privateAppPackages").contains(collection.getParent().getParent().getId());
   Iterable<DocumentReference> refs=chunks?collection.select(new String[0]).get().get().getDocuments().stream().map(DocumentSnapshot::getReference).toList():collection.listDocuments();
   for(var ref:refs){var doc=ref.get().get();if(doc.exists())output.add(Map.of("path",ref.getPath(),"data",encode(doc.getData())));for(var child:ref.listCollections())collection(child,output);}
  }

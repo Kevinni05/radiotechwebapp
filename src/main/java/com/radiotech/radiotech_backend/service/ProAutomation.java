@@ -20,10 +20,11 @@ public class ProAutomation {
  private final Map<String,String> cursors=new HashMap<>();
  private volatile Instant quotaRetryAt=Instant.EPOCH;
  private boolean quotaPaused(){return Instant.now().isBefore(quotaRetryAt);}
+ @org.springframework.beans.factory.annotation.Value("${radiotech.background.enabled:true}") private boolean backgroundEnabled=true;
  private boolean pauseForQuota(Exception error){if(!com.radiotech.radiotech_backend.exception.CloudQuota.exhausted(error))return false;quotaRetryAt=Instant.now().plusSeconds(1800);log.warn("Quota cloud esaurita: automazioni riprovate fra 30 minuti.");return true;}
  public ProAutomation(ProService service,NotificationService notifications,ProWebhookService webhooks){this.service=service;this.notifications=notifications;this.webhooks=webhooks;}
  @Scheduled(fixedDelayString="${radiotech.pro.scan-delay-ms:300000}",initialDelay=60000)
- public void scan(){if(FirebaseApp.getApps().isEmpty()||quotaPaused())return;var db=FirestoreClient.getFirestore();
+ public void scan(){if(!backgroundEnabled||FirebaseApp.getApps().isEmpty()||quotaPaused())return;var db=FirestoreClient.getFirestore();
   for(String collection:List.of("pro_plans","pro_sla","notificationHistory","proWebhookOutbox"))try{
    Query source=db.collection(collection);if(collection.equals("notificationHistory"))source=source.whereIn("deliveryStatus",List.of("PENDING","SENDING","PARTIAL"));Query query=source.orderBy(FieldPath.documentId()).limit(50);String cursor=cursors.get(collection);if(cursor!=null)query=query.startAfter(cursor);
    var docs=query.get().get().getDocuments();if(docs.size()<50)cursors.remove(collection);else cursors.put(collection,docs.getLast().getId());

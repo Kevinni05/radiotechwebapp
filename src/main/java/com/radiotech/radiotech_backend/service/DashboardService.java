@@ -53,14 +53,15 @@ public class DashboardService {
 
         long interventionCount = tenantQuery("interventions", tenant).count().get().get().getCount();
 
-        QuerySnapshot tasksSnapshot = tenantQuery("tasks", tenant).select("status", "dueAt").get().get();
+        var taskSummary=TaskDashboardSummary.read(db(),tenant);
+        var taskDocuments=taskSummary==null?tenantQuery("tasks",tenant).select("status","dueAt").get().get().getDocuments():taskSummary.active();
 
         QuerySnapshot inventorySnapshot = tenantQuery("inventory", tenant).select("quantity", "minimumThreshold").get().get();
 
         int antennas = antennasSnapshot.size();
         int operators = operatorsSnapshot.size();
         int interventions = Math.toIntExact(interventionCount);
-        int tasks = tasksSnapshot.size();
+        int tasks = taskSummary==null?taskDocuments.size():taskSummary.total();
 
         int activeAntennas = 0;
         int maintenanceAntennas = 0;
@@ -108,14 +109,14 @@ public class DashboardService {
 
         int assignedTasks = 0;
         int inProgressTasks = 0;
-        int completedTasks = 0;
-        int cancelledTasks = 0;
+        int completedTasks = taskSummary==null?0:taskSummary.completed();
+        int cancelledTasks = taskSummary==null?0:taskSummary.cancelled();
         int overdueTasks = 0;
         int atRiskTasks = 0;
         int activeTasks = 0;
         Instant now = Instant.now();
 
-        for (DocumentSnapshot document : tasksSnapshot.getDocuments()) {
+        for (DocumentSnapshot document : taskDocuments) {
 
             var parsed = com.radiotech.radiotech_backend.model.TaskStatus.parse(document.getString("status"));
             if (parsed == null) continue;
@@ -189,6 +190,7 @@ public class DashboardService {
         stats.put("taskStats", taskStats);
         stats.put("asOf", now.toString());
         stats.put("cacheMaxAgeSeconds", 15);
+        stats.put("summarySource",taskSummary==null?"LEGACY_COMPATIBILITY":"AGGREGATIONS");
 
         return stats;
     }

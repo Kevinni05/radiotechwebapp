@@ -150,6 +150,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: docker build --tag radiotech:ci .
+      - name: Verify private download staging is writable by the runtime user
+        run: docker run --rm --entrypoint sh radiotech:ci -c 'test -w /app/.dist/private-files && test -w /tmp'
       - name: Validate enterprise Compose configuration
         shell: bash
         run: |

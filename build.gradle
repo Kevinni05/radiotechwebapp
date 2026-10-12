@@ -57,6 +57,7 @@ tasks.named('bootJar') {
 }
 
 tasks.register('backupTool', JavaExec) {
+    maxHeapSize = '1536m'
     classpath = sourceSets.main.runtimeClasspath
     mainClass = 'com.radiotech.radiotech_backend.ops.BackupTool'
     if (project.hasProperty('backupMode')) args project.property('backupMode'), project.property('backupArchive'), project.property('backupKey')
@@ -82,6 +83,7 @@ tasks.register('attachmentMigration', JavaExec) {
 }
 
 tasks.register('backupDrill', JavaExec) {
+    maxHeapSize = '1536m'
     classpath = sourceSets.main.runtimeClasspath
     mainClass = 'com.radiotech.radiotech_backend.ops.BackupDrillTool'
     if (project.hasProperty('backupArchive')) args project.property('backupArchive'), project.property('backupKey')
