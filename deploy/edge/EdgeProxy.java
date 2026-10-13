@@ -12,7 +12,7 @@ public final class EdgeProxy {
     private static final Set<String> HOP = Set.of("connection", "keep-alive", "proxy-authenticate", "proxy-authorization",
         "te", "trailer", "transfer-encoding", "upgrade", "host", "content-length", "expect");
     private static final HttpClient HTTP = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10))
-        .followRedirects(HttpClient.Redirect.NEVER).build();
+        .version(HttpClient.Version.HTTP_1_1).followRedirects(HttpClient.Redirect.NEVER).build();
 
     public static void main(String[] args) throws Exception {
         URI upstream = URI.create(System.getenv("RADIOTECH_UPSTREAM_URL"));
@@ -29,6 +29,7 @@ public final class EdgeProxy {
     }
 
     private static void proxy(HttpExchange exchange, String base) throws IOException {
+        String stage = "request";
         try {
             String path = exchange.getRequestURI().getRawPath();
             if (path == null || !path.startsWith("/")) throw new IOException("Invalid path");
@@ -54,15 +55,19 @@ public final class EdgeProxy {
             boolean body = !Set.of("GET", "HEAD").contains(exchange.getRequestMethod());
             request.method(exchange.getRequestMethod(), body ? HttpRequest.BodyPublishers.ofInputStream(() -> new Bounded(exchange.getRequestBody()))
                 : HttpRequest.BodyPublishers.noBody());
+            stage = "upstream";
             var response = HTTP.send(request.build(), HttpResponse.BodyHandlers.ofInputStream());
+            stage = "response-headers";
             response.headers().map().forEach((key, values) -> { if (!HOP.contains(key.toLowerCase(Locale.ROOT))) exchange.getResponseHeaders().put(key, values); });
             boolean empty = exchange.getRequestMethod().equals("HEAD") || response.statusCode() == 204 || response.statusCode() == 304;
             exchange.sendResponseHeaders(response.statusCode(), empty ? -1 : 0);
+            stage = "response-body";
             try (InputStream input = response.body(); OutputStream output = exchange.getResponseBody()) { if (!empty) input.transferTo(output); }
         } catch (InterruptedException error) {
             Thread.currentThread().interrupt(); fail(exchange);
         } catch (Exception error) {
-            System.err.println("RadioTech edge request failed: " + error.getClass().getSimpleName());
+            System.err.println("RadioTech edge request failed at " + stage + ": " + error.getClass().getSimpleName()
+                + (error.getCause() == null ? "" : " caused by " + error.getCause().getClass().getSimpleName()));
             fail(exchange);
         }
         finally { exchange.close(); }
