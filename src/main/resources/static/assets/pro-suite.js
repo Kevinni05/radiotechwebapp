@@ -10,8 +10,10 @@ window.RadioTechPro = function ({apiFetch,state,escapeHtml:esc,toast,switchView}
   container.insertBefore(section,container.querySelector(":scope > .footer"));
   const nav=document.createElement("button"); nav.dataset.view="pro"; nav.textContent=customer?"Le tue attività":"▦ Enterprise Pro"; const navContainer=document.querySelector(".nav");navContainer.insertBefore(nav,navContainer.querySelector('[data-view="system"]'));
   const $=id=>document.getElementById(id);
+  $("proNew").disabled=true;
   async function load() {
     const revision=++epoch, session=state.sessionEpoch;
+    $("proNew").disabled=true;
     $("proStatus").textContent="Caricamento…";
     try {
       if(!catalog.length) {
@@ -23,6 +25,7 @@ window.RadioTechPro = function ({apiFetch,state,escapeHtml:esc,toast,switchView}
       current=catalog.find(m=>m.id===$("proModule").value); if(!current)return;
       $("proTitle").textContent=current.title;
       $("proNew").hidden=current.writable===false;
+      $("proNew").disabled=current.writable===false;
       const data=await apiFetch(`/api/v1/pro/${current.id}`); if(revision!==epoch||session!==state.sessionEpoch)return;
       records=data.records; $("proStatus").textContent=`${records.length} registrazioni${data.partial?" · Risultati parziali: limite 1000":""}`; render();
     } catch(e) { if(revision===epoch&&session===state.sessionEpoch) $("proStatus").textContent=e.message; }
@@ -77,5 +80,5 @@ window.RadioTechPro = function ({apiFetch,state,escapeHtml:esc,toast,switchView}
   $("proExport").onclick=()=>{ if(!current)return; const keys=["id","status",...current.fields.map(f=>f.key),"summary"]; const cell=v=>'"'+display(v).replace(/^[=+@-]/,"'$&").replaceAll('"','""')+'"'; const blob=new Blob(["\ufeff"+[keys,...records.map(r=>keys.map(k=>r[k]))].map(row=>row.map(cell).join(";")).join("\r\n")],{type:"text/csv;charset=utf-8"}); const url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download=`radiotech-${current.id}.csv`;a.click();URL.revokeObjectURL(url); };
   nav.onclick=()=>{switchView("pro");load();}; $("proRefresh").onclick=load; $("proNew").onclick=()=>form(); $("proSearch").oninput=render;
   $("proModule").onchange=()=>{formEpoch++;$("proForm").hidden=true;editing=null;load();};
-  return {reset(){epoch++;formEpoch++;actionOperations.clear();catalog=[];records=[];current=null;editing=null;editingOperationId=null;$("proModule").replaceChildren();$("proSearch").value="";$("proStatus").textContent="";$("proTitle").textContent="Registrazioni";$("proRecords").replaceChildren();$("proForm").replaceChildren();$("proForm").hidden=true;}};
+  return {reset(){epoch++;formEpoch++;actionOperations.clear();catalog=[];records=[];current=null;editing=null;editingOperationId=null;$("proNew").disabled=true;$("proModule").replaceChildren();$("proSearch").value="";$("proStatus").textContent="";$("proTitle").textContent="Registrazioni";$("proRecords").replaceChildren();$("proForm").replaceChildren();$("proForm").hidden=true;}};
 };
