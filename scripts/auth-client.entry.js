@@ -1,9 +1,10 @@
 import {initializeApp} from 'firebase/app';
 import {getFirestore,collection,query,where,onSnapshot} from 'firebase/firestore';
 import {getAuth, signInWithPopup, GoogleAuthProvider, OAuthProvider, EmailAuthProvider, reauthenticateWithCredential, reauthenticateWithPopup, signInWithEmailAndPassword, getMultiFactorResolver, TotpMultiFactorGenerator, multiFactor, setPersistence, browserLocalPersistence, browserSessionPersistence, onAuthStateChanged, signOut} from 'firebase/auth';
+import {getDatabase,ref,onValue,goOffline,goOnline} from 'firebase/database';
 import QRCode from 'qrcode';
 import '../src/main/resources/static/assets/mfa-dialog.js';
-let auth=null, initialization=null, federationEnabled=false;
+let auth=null, initialization=null, federationEnabled=false, presenceDatabase=null;
 async function initialize(){
  if(initialization)return initialization;
  if(auth)return true;
@@ -12,7 +13,8 @@ async function initialize(){
   if(!r.ok)throw new Error('Configurazione accesso non disponibile.');
   const c=await r.json();if(!c.enabled)return false;
   federationEnabled=c.federatedLoginEnabled===true;
-  auth=getAuth(initializeApp({apiKey:c.apiKey,authDomain:c.authDomain,projectId:c.projectId}));
+  auth=getAuth(initializeApp({apiKey:c.apiKey,authDomain:c.authDomain,projectId:c.projectId,databaseURL:c.databaseURL||undefined}));
+  if(c.databaseURL)presenceDatabase=getDatabase(auth.app,c.databaseURL);
   try{
    await auth.authStateReady();
    let uid=auth.currentUser?.uid;
@@ -123,7 +125,21 @@ async function watchInventory(tenant,changed,failed){
  if(identity.claims.tenantId!==tenant)return null;
  return onSnapshot(query(collection(getFirestore(auth.app),'inventory'),where('tenantId','==',tenant)),()=>changed(),()=>failed());
 }
-window.RadioTechFederation={initialize,login,restoreSession,refreshSession,enrollTotp,watchInventory,logout:async()=>{if(auth)await signOut(auth);}};
+async function watchOperatorPresence(tenant,changed,failed){
+ if(!auth?.currentUser||!tenant||!presenceDatabase)return null;
+ const user=auth.currentUser, identity=await user.getIdTokenResult();
+ if(auth.currentUser!==user||identity.claims.tenantId!==tenant)return null;
+ goOnline(presenceDatabase);
+ const stops=[];let connected=false,records={},received=false;
+ stops.push(onValue(ref(presenceDatabase,'.info/connected'),snapshot=>{
+  connected=snapshot.val()===true;
+  if(!connected)failed(new Error('Connessione presenza interrotta.'));
+  else if(received)changed(records);
+ }));
+ stops.push(onValue(ref(presenceDatabase,`presence/${tenant}`),snapshot=>{records=snapshot.val()||{};received=true;if(connected)changed(records);},failed));
+ return()=>{stops.forEach(stop=>stop());goOffline(presenceDatabase);};
+}
+window.RadioTechFederation={initialize,login,restoreSession,refreshSession,enrollTotp,watchInventory,watchOperatorPresence,logout:async()=>{if(auth)await signOut(auth);}};
 document.addEventListener('DOMContentLoaded',async()=>{
  try{
   if(!await initialize()||!federationEnabled)return;const form=document.getElementById('loginForm');if(!form)return;

@@ -950,9 +950,96 @@
       ctx.populateTaskSelectors();
       ctx.refreshReportTitles();
     } });
+    let presenceStop = null, presenceScope = null, presenceRevision = 0, presenceRecords = {}, presenceReady = false;
+    function stopPresence() {
+      presenceRevision++;
+      presenceStop?.();
+      presenceStop = null;
+      presenceScope = null;
+      presenceRecords = {};
+      presenceReady = false;
+    }
+    async function syncPresence() {
+      const tenant = ctx.state.user?.tenantId;
+      const scope = JSON.stringify([tenant, ctx.state.user?.uid || ctx.state.user?.id]);
+      const visible = !document.hidden && ctx.$("view-operators")?.classList.contains("active");
+      if (!tenant || !visible) {
+        stopPresence();
+        return;
+      }
+      if (presenceScope === scope) return;
+      stopPresence();
+      presenceScope = scope;
+      const revision = presenceRevision;
+      try {
+        const stop = await window.RadioTechFederation?.watchOperatorPresence(tenant, (records) => {
+          if (revision !== presenceRevision) return;
+          presenceRecords = records;
+          presenceReady = true;
+          updatePresenceIndicators();
+        }, () => {
+          if (revision !== presenceRevision) return;
+          presenceReady = false;
+          presenceRecords = {};
+          updatePresenceIndicators();
+        });
+        if (revision !== presenceRevision) {
+          stop?.();
+          return;
+        }
+        presenceStop = stop || null;
+      } catch {
+        presenceReady = false;
+        renderOperatorTable();
+      }
+    }
+    window.addEventListener("radiotech:view-changed", () => {
+      syncPresence();
+      updatePresenceIndicators();
+    });
+    window.addEventListener("radiotech:identity-changed", () => {
+      stopPresence();
+      updatePresenceIndicators();
+    });
+    window.addEventListener("radiotech:auth-ended", () => {
+      stopPresence();
+      updatePresenceIndicators();
+    });
+    document.addEventListener("visibilitychange", () => {
+      syncPresence();
+      updatePresenceIndicators();
+    });
+    function livePresence(operator) {
+      const record = presenceRecords[operator.firebaseUid || operator.id];
+      return {
+        online: presenceReady && Object.values(record?.connections || {}).some((value) => value === true),
+        lastSeen: record?.lastSeen,
+        known: presenceReady
+      };
+    }
+    function updatePresenceIndicators() {
+      for (const row of ctx.$("operatorsTableBody")?.querySelectorAll("[data-operator-record]") || []) {
+        const operator = ctx.state.operators.find((item) => item.id === row.dataset.operatorRecord);
+        if (!operator) continue;
+        const presence = livePresence(operator), indicator = row.querySelector(".operator-presence");
+        if (indicator) {
+          indicator.classList.toggle("is-online", presence.online);
+          indicator.innerHTML = `<span aria-hidden="true"></span>${!presence.known ? "Presenza non disponibile" : presence.online ? "Online \xB7 app aperta" : "Offline"}`;
+        }
+        const last = row.querySelector(".operator-last-seen");
+        const timestamp = presence.lastSeen || operator.lastSeen;
+        if (last) last.textContent = timestamp && Number.isFinite(new Date(timestamp).getTime()) ? new Date(timestamp).toLocaleString("it-IT") : "Nessuna presenza registrata";
+      }
+      const metric = ctx.$("operatorOverview")?.querySelector("[data-presence-metric]");
+      if (metric) {
+        metric.querySelector(".stat-value").textContent = presenceReady ? ctx.state.operators.filter((operator) => livePresence(operator).online).length : "\u2014";
+        metric.querySelector(".stat-foot").textContent = presenceReady ? "App aperta in primo piano" : "Presenza non disponibile";
+      }
+    }
     async function loadOperators() {
       try {
         await pages();
+        await syncPresence();
         ctx.state.operatorLoadError = "";
         ctx.renderRecipients();
         renderOperatorTable();
@@ -988,8 +1075,8 @@
       const overview = ctx.$("operatorOverview");
       if (overview) {
         const pending = ctx.state.operators.filter((operator) => (operator.status || "").toUpperCase() === "IN_ATTESA").length;
-        const online = ctx.state.operators.filter((operator) => operatorOnline(operator.lastSeen)).length;
-        overview.innerHTML = [["Account caricati", ctx.state.operators.length, "Nell\u2019elenco corrente"], ["Attivi", active, "Fra gli account caricati"], ["Da approvare", pending, "Attendono abilitazione"], ["Connessi", online, "Presenza negli ultimi 5 min."]].map(([label, value, description]) => `<article class="stat-card"><div class="stat-label">${label}</div><div class="stat-value">${ctx.state.operatorLoadError ? "\u2014" : value}</div><div class="stat-foot">${description}</div></article>`).join("");
+        const online = ctx.state.operators.filter((operator) => livePresence(operator).online).length;
+        overview.innerHTML = [["Account caricati", ctx.state.operators.length, "Nell\u2019elenco corrente"], ["Attivi", active, "Fra gli account caricati"], ["Da approvare", pending, "Attendono abilitazione"], ["Online", presenceReady ? online : "\u2014", presenceReady ? "App aperta in primo piano" : "Presenza non disponibile"]].map(([label, value, description]) => `<article class="stat-card" ${label === "Online" ? "data-presence-metric" : ""}><div class="stat-label">${label}</div><div class="stat-value">${ctx.state.operatorLoadError ? "\u2014" : value}</div><div class="stat-foot">${description}</div></article>`).join("");
       }
       ctx.$("operatorsSummary").textContent = ctx.state.operatorLoadError ? "Elenco non disponibile" : `${visibleOperators.length} visibili \xB7 ${ctx.state.operators.length} caricati \xB7 ${active} attivi`;
       if (ctx.state.operatorLoadError) {
@@ -1003,7 +1090,9 @@
       table.innerHTML = visibleOperators.map((operator) => {
         const id = operator.id || "";
         const name = operator.fullName || operator.email || id;
-        const online = operatorOnline(operator.lastSeen);
+        const presence = livePresence(operator);
+        const online = presence.online;
+        const lastSeen = presence.lastSeen ? new Date(presence.lastSeen).toISOString() : operator.lastSeen;
         const role = (operator.role || "OPERATOR").toUpperCase();
         const linked = Boolean(operator.firebaseUid);
         const pending = (operator.status || "").toUpperCase() === "IN_ATTESA";
@@ -1024,7 +1113,7 @@
                             <label><input type="radio" name="operator-role-${safeId}" value="OPERATOR" data-operator-role="${safeId}" data-role-option="OPERATOR" data-role-locked="${roleLocked}" ${role === "OPERATOR" ? "checked" : ""} ${roleLocked ? "disabled" : ""}><span>Operatore</span></label>
                             <label><input type="radio" name="operator-role-${safeId}" value="VIEWER" data-operator-role="${safeId}" data-role-option="VIEWER" data-role-locked="${roleLocked}" ${role === "VIEWER" ? "checked" : ""} ${roleLocked ? "disabled" : ""}><span>Sola lettura</span></label>
                         </fieldset><button type="button" class="mini-btn" data-save-role="${safeId}" ${roleLocked ? "disabled" : ""}>Salva ruolo</button></div><div class="operator-role-hint">${roleLocked ? pending ? "Approvazione account necessaria" : "Collegamento account necessario" : role === "VIEWER" ? "Consultazione senza azioni operative" : "Accesso alle funzioni operative"}</div></td>
-                        <td role="cell" data-label="Stato e presenza"><span class="badge ${statusTone}">${ctx.escapeHtml(ctx.formatStatus(status))}</span><div class="operator-presence ${online ? "is-online" : ""}"><span aria-hidden="true"></span>${online ? "Connesso ora" : "Non connesso"}</div><div class="subtle operator-last-seen">${operator.lastSeen && Number.isFinite(Date.parse(operator.lastSeen)) ? ctx.escapeHtml(new Date(operator.lastSeen).toLocaleString("it-IT")) : "Nessuna presenza registrata"}</div></td>
+                        <td role="cell" data-label="Stato e presenza"><span class="badge ${statusTone}">${ctx.escapeHtml(ctx.formatStatus(status))}</span><div class="operator-presence ${online ? "is-online" : ""}"><span aria-hidden="true"></span>${!presence.known ? "Presenza non disponibile" : online ? "Online \xB7 app aperta" : "Offline"}</div><div class="subtle operator-last-seen">${lastSeen && Number.isFinite(Date.parse(lastSeen)) ? ctx.escapeHtml(new Date(lastSeen).toLocaleString("it-IT")) : "Nessuna presenza registrata"}</div></td>
                         <td role="cell" data-label="Badge di accesso"><strong class="operator-badge-state ${expired ? "is-expired" : ""}">${expired ? "QR scaduto" : "Badge QR"}</strong><div class="subtle">${ctx.escapeHtml(badgeDescription)}</div><div class="operator-role-hint">${operator.qrLastUsedAt && Number.isFinite(Date.parse(operator.qrLastUsedAt)) ? `Ultimo uso: ${ctx.escapeHtml(new Date(operator.qrLastUsedAt).toLocaleDateString("it-IT"))}` : "Nessun utilizzo registrato"}</div></td>
                     </tr><tr role="row" class="operator-record-actions"><td role="cell" colspan="5"><div class="operator-actions" role="group" aria-label="Azioni per ${safeName}">
                         <div class="operator-action-group"><span class="operator-action-label">Anagrafica</span><button type="button" class="mini-btn operator-action-main" data-operator-details="${safeId}">Scheda operatore</button>${pending ? `<button type="button" class="mini-btn primary" data-approve="${safeId}">Approva account</button>` : ""}</div>

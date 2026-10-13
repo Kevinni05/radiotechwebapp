@@ -18,6 +18,9 @@
     },
     "ui": {
       "enabled": false
+    },
+    "database": {
+      "port": 9000
     }
   },
   "functions": [
@@ -32,5 +35,8 @@
         "test"
       ]
     }
-  ]
+  ],
+  "database": {
+    "rules": "database.rules.json"
+  }
 }
