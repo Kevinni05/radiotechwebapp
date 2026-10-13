@@ -25,6 +25,7 @@ public final class EdgeProxy {
         server.createContext("/", exchange -> proxy(exchange, base));
         Runtime.getRuntime().addShutdownHook(new Thread(() -> server.stop(5)));
         server.start();
+        System.out.println("RadioTech edge listening on " + server.getAddress());
     }
 
     private static void proxy(HttpExchange exchange, String base) throws IOException {
@@ -60,7 +61,10 @@ public final class EdgeProxy {
             try (InputStream input = response.body(); OutputStream output = exchange.getResponseBody()) { if (!empty) input.transferTo(output); }
         } catch (InterruptedException error) {
             Thread.currentThread().interrupt(); fail(exchange);
-        } catch (Exception error) { fail(exchange); }
+        } catch (Exception error) {
+            System.err.println("RadioTech edge request failed: " + error.getClass().getSimpleName());
+            fail(exchange);
+        }
         finally { exchange.close(); }
     }
     private static void fail(HttpExchange exchange) throws IOException {
