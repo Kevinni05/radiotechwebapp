@@ -58,7 +58,10 @@ public final class EdgeProxy {
             stage = "upstream";
             var response = HTTP.send(request.build(), HttpResponse.BodyHandlers.ofInputStream());
             stage = "response-headers";
-            response.headers().map().forEach((key, values) -> { if (!HOP.contains(key.toLowerCase(Locale.ROOT))) exchange.getResponseHeaders().put(key, values); });
+            response.headers().map().forEach((key, values) -> {
+                if (!key.startsWith(":") && !HOP.contains(key.toLowerCase(Locale.ROOT)))
+                    exchange.getResponseHeaders().put(key, values);
+            });
             boolean empty = exchange.getRequestMethod().equals("HEAD") || response.statusCode() == 204 || response.statusCode() == 304;
             exchange.sendResponseHeaders(response.statusCode(), empty ? -1 : 0);
             stage = "response-body";
