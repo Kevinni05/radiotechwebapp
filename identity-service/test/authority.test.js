@@ -264,12 +264,16 @@ test('HMAC requests bind body/path/time and reject replay', async () => {
 test('production rejects common origins, emulator settings and a shared registry project', () => {
   const base = { IDENTITY_ORIGIN: 'https://identity.example.test', IDENTITY_APP_ORIGIN: 'https://app.example.test',
     IDENTITY_FIREBASE_PROJECT: 'radio-production', IDENTITY_REGISTRY_PROJECT: 'radio-isolated-identity',
+    IDENTITY_TOKEN_SIGNER: 'radio-identity-signer@radio-production.iam.gserviceaccount.com',
     IDENTITY_APP_SECRET: 's'.repeat(40), IDENTITY_OWNER_EMAIL: 'owner@example.test', IDENTITY_FIREBASE_API_KEY: 'public-key',
     IDENTITY_OWNER_GOOGLE_SUB: '101939638982626665189', IDENTITY_OWNER_GOOGLE_AUDIENCE: 'trusted-client.apps.googleusercontent.com',
     IDENTITY_SMTP_HOST: 'smtp.example.test', IDENTITY_SMTP_USER: 'sender', IDENTITY_SMTP_PASSWORD: 'password', IDENTITY_MAIL_FROM: 'sender@example.test' };
   assert.equal(configuration(base).development, false);
+  assert.equal(configuration(base).signerServiceAccount, base.IDENTITY_TOKEN_SIGNER);
   for (const patch of [{ IDENTITY_REGISTRY_PROJECT: 'radio-production' }, { FIREBASE_AUTH_EMULATOR_HOST: 'localhost:9099' },
-    { IDENTITY_APP_ORIGIN: base.IDENTITY_ORIGIN }, { IDENTITY_ORIGIN: 'http://identity.example.test' }, { IDENTITY_APP_SECRET: 'weak' }]) {
+    { IDENTITY_APP_ORIGIN: base.IDENTITY_ORIGIN }, { IDENTITY_ORIGIN: 'http://identity.example.test' }, { IDENTITY_APP_SECRET: 'weak' },
+    { IDENTITY_TOKEN_SIGNER: '' }, { IDENTITY_TOKEN_SIGNER: 'radio-identity-signer@radio-isolated-identity.iam.gserviceaccount.com' },
+    { IDENTITY_TOKEN_SIGNER: 'bad@radio-production.iam.gserviceaccount.com' }]) {
     assert.throws(() => configuration({ ...base, ...patch }));
   }
 });

@@ -64,6 +64,7 @@ export function configuration(env) {
   const appOrigin = new URL(env.IDENTITY_APP_ORIGIN || 'http://localhost:18080');
   const projectId = env.IDENTITY_FIREBASE_PROJECT || 'demo-radiotech';
   const registryProject = env.IDENTITY_REGISTRY_PROJECT || '';
+  const signerServiceAccount = env.IDENTITY_TOKEN_SIGNER || '';
   const mailProvider = env.IDENTITY_MAIL_PROVIDER || 'firebase';
   requireAccess(['firebase', 'smtp'].includes(mailProvider), 'Provider email non valido.', 503);
   requireAccess(origin.origin !== appOrigin.origin && !origin.username && !origin.password && origin.pathname === '/'
@@ -73,6 +74,9 @@ export function configuration(env) {
     requireAccess(projectId.startsWith('demo-') && env.FIREBASE_AUTH_EMULATOR_HOST && env.FIRESTORE_EMULATOR_HOST
       && origin.hostname === 'localhost' && appOrigin.hostname === 'localhost', 'Modalità demo ammessa solo con emulatori locali.', 503);
   } else {
+    requireAccess(signerServiceAccount.endsWith(`@${projectId}.iam.gserviceaccount.com`)
+      && /^[a-z][a-z0-9-]{4,28}[a-z0-9]@/.test(signerServiceAccount),
+      'La firma dei token richiede un account del progetto Firebase applicativo.', 503);
     requireAccess(origin.protocol === 'https:' && appOrigin.protocol === 'https:' && registryProject && registryProject !== projectId
       && !env.FIREBASE_AUTH_EMULATOR_HOST && !env.FIRESTORE_EMULATOR_HOST && !env.FIREBASE_STORAGE_EMULATOR_HOST,
       'Produzione richiede HTTPS, registro in un progetto separato e nessun emulatore.', 503);
@@ -82,7 +86,7 @@ export function configuration(env) {
       'Configurazione identità o recapito email incompleta.', 503);
   }
   requireAccess((env.IDENTITY_APP_SECRET || '').length >= 32, 'Segreto delle richieste applicative non valido.', 503);
-  return { development, origin: origin.origin, appOrigin: appOrigin.origin, projectId, registryProject,
+  return { development, origin: origin.origin, appOrigin: appOrigin.origin, projectId, registryProject, signerServiceAccount,
     ownerEmail: email(env.IDENTITY_OWNER_EMAIL || 'owner@example.test'), appSecret: env.IDENTITY_APP_SECRET,
     apiKey: env.IDENTITY_FIREBASE_API_KEY || 'demo-key', rpID: origin.hostname,
     ownerProof: development ? 'firebase-demo' : 'google-cloud', ownerGoogleSubject: env.IDENTITY_OWNER_GOOGLE_SUB,

@@ -95,7 +95,8 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
   const { getFirestore } = await import('firebase-admin/firestore');
   const { cloudOwner } = await import('./cloud-owner.js');
   const config = configuration(process.env);
-  const identityApp = initializeApp({ credential: applicationDefault(), projectId: config.projectId }, 'identity-auth');
+  const identityApp = initializeApp({ credential: applicationDefault(), projectId: config.projectId,
+    ...(config.development ? {} : { serviceAccountId: config.signerServiceAccount }) }, 'identity-auth');
   const registryApp = initializeApp({ credential: applicationDefault(), projectId: config.development ? config.projectId : config.registryProject }, 'identity-registry');
   const store = new FirestoreStore(getFirestore(registryApp));
   const mail = mailer(config);
