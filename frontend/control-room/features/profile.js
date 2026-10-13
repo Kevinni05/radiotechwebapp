@@ -9,6 +9,7 @@ export function createFeature(ctx){
                 }
                 document.querySelectorAll("[data-edit], [data-delete], [data-delete-operator], [data-reset-password], [data-validity], [data-save-role], [data-approve], [data-badge], [data-regenerate], [data-inventory-move], [data-inventory-edit], [data-inventory-archive], [data-inventory-restore]").forEach(element => { element.hidden = !allowed; });
                 document.querySelectorAll("[data-report-approve], [data-report-reject], [data-report-delete]").forEach(element => { element.hidden = !ctx.canManageReports(); });
+                document.querySelectorAll('[data-notification-retry]').forEach(element=>{element.hidden=!allowed;});
                 const accountAdministration=allowed&&(ctx.state.authRole||ctx.state.user?.role)!=='ENGINEER';
                 for(const id of ['newOperatorBtn','syncOperatorBtn'])if(ctx.$(id))ctx.$(id).hidden=!accountAdministration;
                 document.querySelectorAll('[data-delete-operator],[data-reset-password],[data-validity],[data-save-role],[data-approve],[data-regenerate]').forEach(element=>{element.hidden=!accountAdministration;});

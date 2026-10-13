@@ -12,6 +12,8 @@ import com.google.firebase.cloud.FirestoreClient;
 
 import java.time.Instant;
 import java.util.Map;
+import java.util.Set;
+import java.util.Objects;
 import com.radiotech.radiotech_backend.model.Operator;
 import com.radiotech.radiotech_backend.security.SecurityContextAccessor;
 import com.radiotech.radiotech_backend.security.TenantAccessPolicy;
@@ -173,8 +175,7 @@ public class NotificationService {
                         if (tenantId.equals(receipt.getString("tenantId"))) receipts.put(receipt.getString("notificationId"), receipt.getData());
                 }
                 for (var document : documents) {
-                        String target = document.getString("target");
-                        if (!"BROADCAST".equals(target) && !operator.getId().equals(target)) continue;
+                        if (!addressedTo(document,uid,operator.getId())) continue;
                         Map<String, Object> item = new java.util.LinkedHashMap<>(document.getData());
                         item.put("id", document.getId());
                         var receipt = receipts.get(document.getId());
@@ -199,12 +200,17 @@ public class NotificationService {
                 var own = db.collection("notificationReceipts").document(receiptId);
                 return db.runTransaction(tx -> {
                         var message = tx.get(ref).get(); var previous = tx.get(own).get();
-                        if (!message.exists() || !tenant.equals(message.getString("tenantId")) || (!"BROADCAST".equals(message.getString("target")) && !operator.getId().equals(message.getString("target")))) throw new SecurityException("Notifica non autorizzata.");
+                        if (!message.exists() || !tenant.equals(message.getString("tenantId")) || !addressedTo(message,uid,operator.getId())) throw new SecurityException("Notifica non autorizzata.");
                         var data = previous.exists() ? new java.util.LinkedHashMap<>(previous.getData()) : new java.util.LinkedHashMap<String,Object>();
                         data.put("tenantId",tenant); data.put("uid",uid); data.put("notificationId",notificationId);
                         data.putIfAbsent("readAt",Instant.now().toString()); if (acknowledge) data.putIfAbsent("acknowledgedAt",Instant.now().toString());
                         tx.set(own,data); return data;
                 }).get();
+        }
+
+        private static boolean addressedTo(com.google.cloud.firestore.DocumentSnapshot message,String uid,String operatorId) {
+                String target=message.getString("target"),recipient=message.getString("recipientUid");
+                return (recipient==null||recipient.equals(uid))&&("BROADCAST".equals(target)||operatorId.equals(target)||("UID:"+uid).equals(target));
         }
 
         static Map<String, Object> inboxEntry(String tenant, String target, String title, String body,
@@ -270,9 +276,10 @@ public class NotificationService {
                                                         java.util.Objects.toString(op.getFirebaseUid(), ""));
                                         }
                                 }
-                        } else if (target != null && !target.startsWith("UID:")) {
-                                var op = operatorService.getById(target);
-                                if (op != null && tenant.equals(op.getTenantId()) && op.getFcmTokens() != null) {
+                        } else if (target != null) {
+                                var op = target.startsWith("UID:") ? operatorService.getByFirebaseUid(target.substring(4)) : operatorService.getById(target);
+                                if (op != null && tenant.equals(op.getTenantId()) && op.getFcmTokens() != null
+                                    && (doc.getString("recipientUid")==null||doc.getString("recipientUid").equals(op.getFirebaseUid()))) {
                                         tokens.addAll(op.getFcmTokens());
                                         for (String token : op.getFcmTokens()) tokenOwners.put(token,
                                                 java.util.Objects.toString(op.getFirebaseUid(), ""));
@@ -333,6 +340,11 @@ public class NotificationService {
                         var results = receipts.get().get().getDocuments();
                         long delivered = results.stream().filter(r -> "ACCEPTED".equals(r.getString("status"))).count();
                         long failed = results.stream().filter(r -> !"ACCEPTED".equals(r.getString("status"))).count();
+                        var errorCodes=new java.util.LinkedHashMap<String,Long>();
+                        for(var result:results) {
+                            String code=result.getString("errorCode");
+                            if(code!=null&&!code.isBlank()) errorCodes.merge(code,1L,Long::sum);
+                        }
                         boolean retryable = results.stream().anyMatch(r -> "RETRY".equals(r.getString("status")));
                         db.runTransaction(tx -> {
                                 var current = tx.get(ref).get();
@@ -341,6 +353,7 @@ public class NotificationService {
                                 String status = results.isEmpty() ? "NO_TOKENS" : failed == 0 ? "SENT"
                                         : retryable && attempts < 8 ? "PARTIAL" : "DEAD_LETTER";
                                 tx.update(ref, Map.of("deliveryStatus", status, "delivered", delivered, "failedRecipients", failed,
+                                        "errorCodes",errorCodes,
                                         "deliveryAttemptAt", Instant.now().toString(), "nextAttemptAt", retryAt(attempts)));
                                 return true;
                         }).get();
@@ -363,6 +376,28 @@ public class NotificationService {
                 return Instant.now().plusSeconds(delay + java.util.concurrent.ThreadLocalRandom.current().nextLong(15)).toString();
         }
 
+        public Map<String,Object> retryRecorded(String id) throws Exception {
+                if(id==null||!id.matches("[A-Za-z0-9_-]{1,128}")) throw new IllegalArgumentException("Notifica non valida.");
+                String tenant=currentTenant(),actor=SecurityContextAccessor.currentUid();
+                var db=FirestoreClient.getFirestore();var ref=db.collection("notificationHistory").document(id);
+                boolean retry;
+                try { retry=db.runTransaction(tx->{
+                    var item=tx.get(ref).get();
+                    if(!item.exists()||!tenant.equals(item.getString("tenantId"))) throw new SecurityException("Notifica non autorizzata.");
+                    if(Set.of("CALENDAR_REMINDER","BADGE_UPDATED").contains(Objects.toString(item.getString("type"),""))&&!Objects.equals(actor,item.getString("ownerUid"))) throw new SecurityException("Notifica privata non autorizzata.");
+                    if("SENT".equals(item.getString("deliveryStatus"))) return false;
+                    if("SENDING".equals(item.getString("deliveryStatus"))&&item.getString("leaseUntil")!=null&&Instant.parse(item.getString("leaseUntil")).isAfter(Instant.now())) return false;
+                    tx.update(ref,Map.of("deliveryStatus","PENDING","deliveryAttempts",0L,"nextAttemptAt",Instant.now().toString(),"retryRequestedAt",Instant.now().toString()));
+                    tx.create(db.collection("auditLogs").document(),Map.of("tenantId",tenant,"actor",actor,"action","NOTIFICATION_RETRY","resource","notificationHistory","resourceId",id,"result","SUCCESS","timestamp",Instant.now().toString()));
+                    return true;
+                }).get(); } catch(java.util.concurrent.ExecutionException error) {
+                    for(Throwable cause=error;cause!=null;cause=cause.getCause()) if(cause instanceof SecurityException denied) throw denied;
+                    throw error;
+                }
+                if(retry) try { deliverRecorded(id); } catch(Exception ignored) { /* Recorded attempt remains retryable. */ }
+                var result=new java.util.LinkedHashMap<String,Object>(ref.get().get().getData());result.put("id",id);return result;
+        }
+
         private static String tokenId(String token) {
                 try { return java.util.HexFormat.of().formatHex(java.security.MessageDigest.getInstance("SHA-256")
                         .digest(token.getBytes(java.nio.charset.StandardCharsets.UTF_8))); }
@@ -370,8 +405,11 @@ public class NotificationService {
         }
 
         private static String messagingCode(SendResponse response) {
-                return response.getException() == null || response.getException().getMessagingErrorCode() == null
-                        ? "UNKNOWN" : response.getException().getMessagingErrorCode().name();
+                var error = response.getException();
+                if (error == null) return "UNKNOWN";
+                if (error.getMessagingErrorCode() != null) return error.getMessagingErrorCode().name();
+                // IAM/transport failures can carry a general Firebase code only.
+                return error.getErrorCode() == null ? "UNKNOWN" : error.getErrorCode().name();
         }
 
         private static MulticastMessage multicast(List<String> tokens, String title, String body, Map<String, String> data) {
@@ -381,9 +419,15 @@ public class NotificationService {
                         builder.setApnsConfig(com.google.firebase.messaging.ApnsConfig.builder().putHeader("apns-push-type", "background")
                                 .putHeader("apns-priority", "5").setAps(com.google.firebase.messaging.Aps.builder().setContentAvailable(true).build()).build());
                 } else {
-                        builder.setNotification(Notification.builder().setTitle(title).setBody(body).build())
+                        // Lock-screen payloads must remain safe if the account is replaced
+                        // while this provider request is already in flight. Full text stays
+                        // in the tenant-authorized inbox, not in the OS notification.
+                        builder.setNotification(Notification.builder().setTitle("RADIO TECH")
+                                        .setBody(data.containsKey("taskId") ? "Nuovo aggiornamento incarico. Apri l'app per i dettagli."
+                                                : "Nuova comunicazione operativa. Apri l'app per i dettagli.").build())
                                 .setAndroidConfig(AndroidConfig.builder().setPriority(AndroidConfig.Priority.HIGH)
-                                        .setNotification(AndroidNotification.builder().setChannelId("radiotech_alerts").setSound("default").build()).build());
+                                        .setNotification(AndroidNotification.builder().setChannelId("radiotech_alerts").setSound("default")
+                                                .setTag(data.get("notificationId")).build()).build());
                 }
                 return builder.build();
         }

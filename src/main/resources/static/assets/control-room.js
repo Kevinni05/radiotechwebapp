@@ -12,6 +12,9 @@
       document.querySelectorAll("[data-report-approve], [data-report-reject], [data-report-delete]").forEach((element) => {
         element.hidden = !ctx.canManageReports();
       });
+      document.querySelectorAll("[data-notification-retry]").forEach((element) => {
+        element.hidden = !allowed;
+      });
       const accountAdministration = allowed && (ctx.state.authRole || ctx.state.user?.role) !== "ENGINEER";
       for (const id of ["newOperatorBtn", "syncOperatorBtn"]) if (ctx.$(id)) ctx.$(id).hidden = !accountAdministration;
       document.querySelectorAll("[data-delete-operator],[data-reset-password],[data-validity],[data-save-role],[data-approve],[data-regenerate]").forEach((element) => {
@@ -942,6 +945,25 @@
     } };
   }
 
+  // frontend/control-room/presence-state.js
+  var PRESENCE_FRESHNESS_MS = 9e4;
+  function resolvePresence(record, { connected = true, now = Date.now(), freshnessMs = PRESENCE_FRESHNESS_MS } = {}) {
+    const unknown = { state: "unknown", online: false, known: false, label: "Stato non aggiornato", lastSeen: null };
+    if (!connected || !record || typeof record !== "object") return unknown;
+    const sessions = Object.values(record.connections || {});
+    const fresh = sessions.filter((session) => session && typeof session === "object" && ["foreground", "background"].includes(session.state) && Number.isFinite(session.updatedAt) && session.updatedAt <= now + 1e4 && now - session.updatedAt <= freshnessMs);
+    const timestamps = [record.lastSeen, ...sessions.map((session) => session?.updatedAt)].filter(Number.isFinite);
+    const lastSeen = timestamps.length ? Math.max(...timestamps) : null;
+    const state = fresh.some((session) => session.state === "foreground") ? "foreground" : fresh.length ? "background" : sessions.length ? "stale" : lastSeen ? "offline" : "unknown";
+    return {
+      state,
+      known: state !== "unknown",
+      online: state === "foreground",
+      lastSeen,
+      label: { foreground: "App aperta", background: "In background", offline: "Offline", stale: "Stato non aggiornato", unknown: "Stato non aggiornato" }[state]
+    };
+  }
+
   // frontend/control-room/features/operators.js
   function createFeature7(ctx) {
     const pages = createPagedResource(ctx, { path: "/api/v1/dashboard/resources/operators/page", legacy: "/api/v1/operators", stateKey: "operators", tableId: "operatorsTableBody", filters: () => ({ q: ctx.$("operatorSearch")?.value || "", role: ctx.$("operatorRoleFilter")?.value || "" }), onUpdated: () => {
@@ -951,7 +973,10 @@
       ctx.refreshReportTitles();
     } });
     let presenceStop = null, presenceScope = null, presenceRevision = 0, presenceRecords = {}, presenceReady = false;
+    let presenceTimer = null;
     function stopPresence() {
+      clearInterval(presenceTimer);
+      presenceTimer = null;
       presenceRevision++;
       presenceStop?.();
       presenceStop = null;
@@ -988,6 +1013,14 @@
           return;
         }
         presenceStop = stop || null;
+        if (stop) presenceTimer = setInterval(() => {
+          if (!document.hidden) updatePresenceIndicators();
+        }, 5e3);
+        else {
+          presenceScope = null;
+          presenceReady = false;
+          updatePresenceIndicators();
+        }
       } catch {
         presenceReady = false;
         renderOperatorTable();
@@ -1011,11 +1044,7 @@
     });
     function livePresence(operator) {
       const record = presenceRecords[operator.firebaseUid || operator.id];
-      return {
-        online: presenceReady && Object.values(record?.connections || {}).some((value) => value === true),
-        lastSeen: record?.lastSeen,
-        known: presenceReady
-      };
+      return resolvePresence(record, { connected: presenceReady, now: Date.now() + (window.RadioTechFederation?.presenceClockOffset?.() || 0) });
     }
     function updatePresenceIndicators() {
       for (const row of ctx.$("operatorsTableBody")?.querySelectorAll("[data-operator-record]") || []) {
@@ -1024,7 +1053,8 @@
         const presence = livePresence(operator), indicator = row.querySelector(".operator-presence");
         if (indicator) {
           indicator.classList.toggle("is-online", presence.online);
-          indicator.innerHTML = `<span aria-hidden="true"></span>${!presence.known ? "Presenza non disponibile" : presence.online ? "Online \xB7 app aperta" : "Offline"}`;
+          indicator.textContent = presence.label;
+          indicator.dataset.presenceState = presence.state;
         }
         const last = row.querySelector(".operator-last-seen");
         const timestamp = presence.lastSeen || operator.lastSeen;
@@ -1113,7 +1143,7 @@
                             <label><input type="radio" name="operator-role-${safeId}" value="OPERATOR" data-operator-role="${safeId}" data-role-option="OPERATOR" data-role-locked="${roleLocked}" ${role === "OPERATOR" ? "checked" : ""} ${roleLocked ? "disabled" : ""}><span>Operatore</span></label>
                             <label><input type="radio" name="operator-role-${safeId}" value="VIEWER" data-operator-role="${safeId}" data-role-option="VIEWER" data-role-locked="${roleLocked}" ${role === "VIEWER" ? "checked" : ""} ${roleLocked ? "disabled" : ""}><span>Sola lettura</span></label>
                         </fieldset><button type="button" class="mini-btn" data-save-role="${safeId}" ${roleLocked ? "disabled" : ""}>Salva ruolo</button></div><div class="operator-role-hint">${roleLocked ? pending ? "Approvazione account necessaria" : "Collegamento account necessario" : role === "VIEWER" ? "Consultazione senza azioni operative" : "Accesso alle funzioni operative"}</div></td>
-                        <td role="cell" data-label="Stato e presenza"><span class="badge ${statusTone}">${ctx.escapeHtml(ctx.formatStatus(status))}</span><div class="operator-presence ${online ? "is-online" : ""}"><span aria-hidden="true"></span>${!presence.known ? "Presenza non disponibile" : online ? "Online \xB7 app aperta" : "Offline"}</div><div class="subtle operator-last-seen">${lastSeen && Number.isFinite(Date.parse(lastSeen)) ? ctx.escapeHtml(new Date(lastSeen).toLocaleString("it-IT")) : "Nessuna presenza registrata"}</div></td>
+                        <td role="cell" data-label="Stato e presenza"><span class="badge ${statusTone}">${ctx.escapeHtml(ctx.formatStatus(status))}</span><div class="operator-presence ${online ? "is-online" : ""}" data-presence-state="${presence.state}">${ctx.escapeHtml(presence.label)}</div><div class="subtle operator-last-seen">${lastSeen && Number.isFinite(Date.parse(lastSeen)) ? ctx.escapeHtml(new Date(lastSeen).toLocaleString("it-IT")) : "Nessuna presenza registrata"}</div></td>
                         <td role="cell" data-label="Badge di accesso"><strong class="operator-badge-state ${expired ? "is-expired" : ""}">${expired ? "QR scaduto" : "Badge QR"}</strong><div class="subtle">${ctx.escapeHtml(badgeDescription)}</div><div class="operator-role-hint">${operator.qrLastUsedAt && Number.isFinite(Date.parse(operator.qrLastUsedAt)) ? `Ultimo uso: ${ctx.escapeHtml(new Date(operator.qrLastUsedAt).toLocaleDateString("it-IT"))}` : "Nessun utilizzo registrato"}</div></td>
                     </tr><tr role="row" class="operator-record-actions"><td role="cell" colspan="5"><div class="operator-actions" role="group" aria-label="Azioni per ${safeName}">
                         <div class="operator-action-group"><span class="operator-action-label">Anagrafica</span><button type="button" class="mini-btn operator-action-main" data-operator-details="${safeId}">Scheda operatore</button>${pending ? `<button type="button" class="mini-btn primary" data-approve="${safeId}">Approva account</button>` : ""}</div>
@@ -1291,8 +1321,49 @@
     } };
   }
 
+  // frontend/control-room/notification-operation.js
+  var prefix = "rt_notification_operation_";
+  async function notificationOperation(fingerprint, storage) {
+    const bytes = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(fingerprint));
+    const key = prefix + [...new Uint8Array(bytes)].map((value) => value.toString(16).padStart(2, "0")).join("");
+    let previous;
+    try {
+      previous = JSON.parse(storage.getItem(key) || "null");
+    } catch {
+    }
+    if (previous && typeof previous.id === "string" && /^[a-f0-9-]{36}$/.test(previous.id) && Number.isFinite(previous.createdAt) && previous.createdAt <= Date.now() && Date.now() - previous.createdAt < 864e5) return { ...previous, key };
+    const operation = { id: crypto.randomUUID(), createdAt: Date.now(), key };
+    try {
+      storage.setItem(key, JSON.stringify({ id: operation.id, createdAt: operation.createdAt }));
+    } catch {
+    }
+    return operation;
+  }
+  function completeNotificationOperation(operation, storage) {
+    try {
+      if (operation?.key) storage.removeItem(operation.key);
+    } catch {
+    }
+  }
+
   // frontend/control-room/features/notifications.js
   function createFeature8(ctx) {
+    let pendingOperation = null;
+    window.addEventListener("radiotech:auth-ended", () => {
+      pendingOperation = null;
+    });
+    window.addEventListener("radiotech:identity-changed", () => {
+      pendingOperation = null;
+    });
+    function deliveryDescription(notice) {
+      const labels = { PENDING: "Push in attesa", SENDING: "Tentativo di invio", PARTIAL: "Invio push parziale", SENT: "Accettata dal provider", NO_TOKENS: "Nessun dispositivo registrato", NO_RECIPIENTS: "Nessun destinatario autorizzato", DEAD_LETTER: "Invio push da riprovare" };
+      const state = notice.deliveryStatus;
+      const accepted = Number(notice.providerAccepted ?? notice.delivered ?? 0);
+      const failed = Number(notice.failedDevices ?? notice.failedRecipients ?? 0);
+      const errors = notice.errorCodes || {};
+      const reason = errors.PERMISSION_DENIED ? "Configurazione invio push non autorizzata" : errors.SENDER_ID_MISMATCH ? "Progetto Firebase non corrispondente" : errors.UNREGISTERED ? "Token dispositivo scaduto" : errors.UNAVAILABLE ? "Provider temporaneamente non disponibile" : Object.keys(errors).length ? "Errore provider da verificare" : "";
+      return `${labels[state] || "Esito push non disponibile"} \xB7 ${accepted} dispositivi accettati${failed ? ` \xB7 ${failed} falliti` : ""}${reason ? ` \xB7 ${reason}` : ""}. Ricezione sul telefono e lettura da verificare.`;
+    }
     function renderRecipients() {
       const recipients = ctx.eligibleOperators();
       if (!recipients.length) {
@@ -1336,6 +1407,7 @@
         const date = n.createdAt || n.timestamp || n.date;
         const isSignal = n.type === "WORKFORCE_SIGNAL";
         const metadata = isSignal ? `<span class="notification-meta">Segnalazione urgente${n.severity ? ` \xB7 ${ctx.escapeHtml(n.severity)}` : ""}${n.assetId ? ` \xB7 Asset ${ctx.escapeHtml(n.assetId)}` : ""}</span><button class="mini-btn notification-action" type="button" data-open-signals>Apri segnalazioni</button>` : "";
+        const retryable = n.id && ["PENDING", "PARTIAL", "NO_TOKENS", "DEAD_LETTER"].includes(n.deliveryStatus);
         return `
                 <div class="notification-item${isSignal ? " notification-critical" : ""}">
                     <div class="notification-icon">${isSignal ? "!" : "\u2726"}</div>
@@ -1343,6 +1415,9 @@
                         <strong>${ctx.escapeHtml(title)}</strong>
                         <p>${ctx.escapeHtml(message)}</p>
                         ${metadata}
+                        <p class="notification-delivery">${ctx.escapeHtml(deliveryDescription(n))}</p>
+                        ${n.operationId ? `<span class="subtle">Operazione ${ctx.escapeHtml(n.operationId)}</span>` : ""}
+                        ${retryable ? `<button type="button" class="mini-btn" data-notification-retry="${ctx.escapeHtml(n.id)}">Riprova push</button>` : ""}
                     </div>
                     <span class="subtle">${date ? ctx.escapeHtml(new Date(date).toLocaleDateString("it-IT")) : "\u2014"}</span>
                 </div>`;
@@ -1350,6 +1425,17 @@
       ctx.$("notificationHistory").querySelectorAll("[data-open-signals]").forEach((button) => {
         button.addEventListener("click", () => ctx.switchView("people"));
       });
+      ctx.$("notificationHistory").querySelectorAll("[data-notification-retry]").forEach((button) => button.addEventListener("click", async () => {
+        button.disabled = true;
+        try {
+          await ctx.apiFetch(`/api/v1/notifications/${encodeURIComponent(button.dataset.notificationRetry)}/retry`, { method: "POST" });
+          await loadNotifications();
+        } catch (error) {
+          ctx.toast("Retry non riuscito", error.message, "error");
+          button.disabled = false;
+        }
+      }));
+      ctx.applyPermissions();
     }
     function updateNotificationCount() {
       const unread = ctx.state.notifications.filter((n) => n.read === false || n.letto === false).length;
@@ -1386,17 +1472,24 @@
         priority,
         type: "TASK_NOTIFICATION"
       };
+      const fingerprint = JSON.stringify([ctx.state.user?.uid || ctx.state.user?.id, ctx.state.user?.tenantId, target, [...recipients].sort(), title, message, priority]);
+      if (!pendingOperation || pendingOperation.fingerprint !== fingerprint) pendingOperation = { fingerprint, ...await notificationOperation(fingerprint, sessionStorage) };
+      payload.operationId = pendingOperation.id;
       const button = ctx.$("sendNotificationBtn");
       button.disabled = true;
       button.textContent = "Invio...";
       try {
-        await ctx.apiFetch("/api/v1/notifications", {
+        const response = await ctx.apiFetch("/api/v1/notifications", {
           method: "POST",
           body: JSON.stringify(payload)
         });
+        const result = response?.data ?? response;
+        if (result?.persisted !== true && result?.success !== true) throw new Error("Salvataggio della comunicazione non confermato dal server. Riprova con la stessa operazione.");
         ctx.$("notificationTitle").value = "";
         ctx.$("notificationMessage").value = "";
-        ctx.toast("Comunicazione salvata", "Disponibile nello storico. L\u2019accettazione della push non conferma la lettura.");
+        completeNotificationOperation(pendingOperation, sessionStorage);
+        pendingOperation = null;
+        ctx.toast("Comunicazione salvata", deliveryDescription(result || {}), result?.deliveryStatus === "SENT" ? "success" : "warning");
         await loadNotifications();
       } catch (error) {
         ctx.toast("Invio fallito", error.message, "error");

@@ -1,26 +1,29 @@
 # Presenza operatori e sessione persistente
 
-La presenza è separata da autenticazione e notifiche. L'app conserva la sessione Firebase; non richiede un QR a ogni riapertura e non cancella il token FCM quando passa in background. Solo «Esci dall'account» disconnette l'account e rimuove l'associazione delle notifiche.
+Candidata del 13 ottobre 2026. [Registro del piano e gate](ENTERPRISE-PLAN-2026-10-13.md). Presenza, disponibilità operativa e autorizzazione sono segnali distinti.
 
-## Attivazione
+## Configurazione esistente
 
-1. Nel progetto Firebase `gestionale-radio`, creare Realtime Database in Europa (`europe-west1`) in modalità bloccata, oppure usare un'istanza già dedicata alla presenza.
-2. Pubblicare le regole di `database.rules.json` **solo su quella istanza**. Negano l'accesso pubblico; gli account scrivono esclusivamente la propria presenza nell'azienda dei custom claims. Manager e lettori autorizzati leggono la propria azienda.
-3. Impostare `FIREBASE_DATABASE_URL` sul servizio Render `radiotechwebapp` all'URL esatto mostrato dalla console, senza indovinarlo. L'endpoint `/api/v1/auth/public-config` espone questo URL pubblico alla web app e al mobile.
-4. Distribuire l'app mobile 1.5.4+11003 con la stessa firma Android della versione installata, senza disinstallare o cancellare i dati. La sola pubblicazione del codice non aggiorna l'APK sui telefoni.
+Istanza confermata ACTIVE: `https://gestionale-radio-default-rtdb.europe-west1.firebasedatabase.app`, regione europe-west1. Non occorre creare un database. Il 13 ottobre `FIREBASE_DATABASE_URL` è stato aggiunto al backend Cloud Run radiotech-web, al quale Render inoltra le richieste; `/api/v1/auth/public-config` espone l'URL corretto. Revisione pronta radiotech-web-00004-5sv.
 
-Finché URL, database e regole non sono configurati, la pagina mostra «Presenza non disponibile»; non interpreta l'ultimo accesso come prova che l'app sia aperta. Login, notifiche e funzioni operative continuano a funzionare.
+Pubblicare database.rules.json solo sul progetto/istanza esistenti. Le regole consentono scritture al proprietario UID/tenant e letture ai ruoli autorizzati dell'azienda; validano stato, timestamp server e campi ammessi. I booleani legacy restano compatibili, senza attestare un'app aperta di recente.
 
-## Comportamento
+## Protocollo e significato
 
-Percorso: `presence/{tenantId}/{firebaseUid}/connections/{sessionId}`. Ogni processo dell'app usa una propria connessione; l'operatore è online se esiste almeno una connessione attiva. Prima di scrivere online il client registra sul server `onDisconnect` per rimuovere esclusivamente la propria connessione e aggiornare `lastSeen` con l'orologio del server.
+Percorso: `presence/{tenantId}/{firebaseUid}/connections/{sessionId}`. Ogni processo usa una connessione indipendente. Registrare onDisconnect prima di pubblicare; cleanup rimuove solo la propria connessione e aggiorna lastSeen con tempo server.
 
-`resumed` attiva la connessione; `hidden`, `paused` e `detached` la chiudono. `inactive` da solo non indica background: fotocamera, scanner e finestre del sistema possono temporaneamente togliere il focus. Un arresto improvviso o una perdita di rete viene rilevato alla scadenza della connessione lato server, non necessariamente nell'istante della chiusura. Nessuna scrittura periodica su Firestore o replica mediante Cloud Functions.
+- Resumed: `{state: 'foreground', updatedAt: ServerValue.timestamp}`, badge App aperta.
+- Hidden/paused: background, badge In background. Inactive può essere camera/scanner/finestra di sistema.
+- Detached/logout/revoca: cleanup della propria connessione. Crash/rete persa sono rilevati dal server e dalla soglia di freschezza, senza offline istantaneo garantito.
+- Heartbeat 30 secondi su RTDB; freschezza 90 secondi con offset dell'orologio server e aggiornamento visivo ogni cinque secondi mentre Operatori è visibile.
+- Foreground recente prevale sul background di un altro dispositivo. Timestamp futuri/vecchi, booleani legacy e lettore scollegato mostrano Stato non aggiornato; connessioni vuote con lastSeen mostrano Offline.
 
-La web app ascolta Realtime Database solo quando la pagina Operatori è visibile. Cambio pagina, scheda nascosta o logout rimuovono gli ascolti. Lo stato sconosciuto o una connessione interrotta non vengono mostrati come online. Le variazioni aggiornano gli indicatori senza ricreare i selettori di ruolo in corso di modifica.
+Cambio pagina, tab nascosta e logout rimuovono listener e timer. Disponibile/occupato/fuori turno restano indicatori operativi separati. I selettori di ruolo in modifica non vengono ricreati dai soli aggiornamenti presenza.
 
-## Costi e distribuzione
+Il payload contiene solo stato e timestamp: nessun GPS, nome, email, task o contenuto delle notifiche. Nessun heartbeat su Firestore o Cloud Function. Misurare consumi RTDB nel pilota.
 
-Il traffico contiene solo connessioni e timestamp, senza nomi, email o notifiche. Le regole non aprono alcun dato operativo di Firestore. I consumi vanno verificati nella scheda Usage dell'istanza. Il workflow di produzione mobile resta il flusso firmato esistente; i segreti di firma non sono inclusi nei sorgenti.
+## Sessione ed evidenze
 
-In questo intervento sono stati generati i bundle web; non sono stati eseguiti test o compilati APK nell'ambiente locale, privo di Flutter e della chiave di firma. La presenza live richiede i passaggi di attivazione sopra.
+La sessione Firebase persiste. L'access gate verifica auth/me su avvio/resume/rete e ogni cinque minuti in foreground; sospensione/revoca impediscono di riattivare la presenza. Fallback locale cifrato massimo otto ore, senza aggirare l'autorizzazione delle API.
+
+Tre test di regole RTDB, tre del resolver e i test mobili di ordine onDisconnect/pubblicazione, background, revoca e cambio account sono riusciti. T08 resta da verificare su Samsung più emulatore, variante concordata perché è disponibile un solo telefono fisico. L'emulatore non certifica FCM/GPS/camera di un secondo telefono. La candidata deve essere distribuita: pubblicare codice o URL non aggiorna l'APK.

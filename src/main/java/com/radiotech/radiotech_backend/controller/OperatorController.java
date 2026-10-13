@@ -120,7 +120,13 @@ public class OperatorController {
                                                 .body(error("Operatore non associato all'utente Firebase."));
                         }
 
-                        operatorService.addFcmToken(operator.getId(), request.get("fcmToken"));
+                        var verified = httpRequest.getAttribute("firebaseToken");
+                        String deviceId = verified instanceof com.google.firebase.auth.FirebaseToken token
+                                && token.getClaims().get("radioDeviceId") instanceof String id ? id : null;
+                        if (deviceId == null) operatorService.addFcmToken(operator.getId(), request.get("fcmToken"));
+                        else com.radiotech.radiotech_backend.service.DevicePushAssociations.change(
+                                com.google.firebase.cloud.FirestoreClient.getFirestore(), operator.getId(), deviceId,
+                                request.get("fcmToken"), SecurityContextAccessor.currentTenantId(), firebaseUid, true);
                         return ResponseEntity.ok(success("FCM token aggiunto correttamente.", null));
                 } catch (SecurityException e) {
                         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error(e.getMessage()));

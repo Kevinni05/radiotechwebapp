@@ -59,6 +59,7 @@ role(app_project, authority, 'roles/serviceusage.serviceUsageConsumer')
 role(app_project, runtime, 'roles/firebaseauth.viewer')
 role(app_project, runtime, 'roles/datastore.user')
 role(app_project, runtime, 'roles/serviceusage.serviceUsageConsumer')
+role(app_project, runtime, 'roles/firebasecloudmessaging.admin')
 for project, principal in [(registry_project, builder), (app_project, web_builder)]:
     for permission in ['roles/artifactregistry.writer', 'roles/logging.logWriter', 'roles/storage.objectAdmin']:
         role(project, principal, permission)

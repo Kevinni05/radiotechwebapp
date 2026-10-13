@@ -1596,7 +1596,15 @@ public class OperatorService {
                         String token = fcmToken.trim();
                         if (add && !tokens.contains(token)) tokens.add(token);
                         if (!add) tokens.removeIf(token::equals);
-                        tx.update(reference, "fcmTokens", tokens, "updatedAt", Instant.now().toString());
+                        var changes = new java.util.LinkedHashMap<String,Object>();
+                        changes.put("fcmTokens", tokens);
+                        changes.put("updatedAt", Instant.now().toString());
+                        if (!add && snapshot.get("fcmDevices") instanceof java.util.Map<?,?> stored) {
+                            var bindings = new java.util.LinkedHashMap<String,String>();
+                            stored.forEach((key,value) -> { if(key instanceof String k && value instanceof String v && !token.equals(v)) bindings.put(k,v); });
+                            changes.put("fcmDevices", bindings);
+                        }
+                        tx.update(reference, changes);
                         return null;
                     }).get();
                 } catch (java.util.concurrent.ExecutionException failure) {
