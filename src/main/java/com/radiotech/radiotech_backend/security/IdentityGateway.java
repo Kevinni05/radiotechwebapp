@@ -102,6 +102,12 @@ public class IdentityGateway {
                 Role.NETWORK_MANAGER, Role.ENGINEER).contains(Role.fromClaims(claims));
     }
 
+    static boolean lowDeviceMfa(Map<String, Object> claims) {
+        return !high(claims) && Set.of(Role.OPERATOR, Role.VIEWER, Role.CUSTOMER).contains(Role.fromClaims(claims))
+                && Boolean.TRUE.equals(claims.get("radioMfaVerified"))
+                && claims.get("radioDeviceId") instanceof String id && id.matches("[a-f0-9]{64}");
+    }
+
     public static UserRecord create(UserRecord.CreateRequest fixtureRequest, String email, String password, String displayName) throws Exception {
         if (emulatorOrUnitFixture()) return FirebaseAuth.getInstance().createUser(fixtureRequest);
         Map<String, Object> input = new LinkedHashMap<>(); input.put("email", email);
@@ -130,6 +136,21 @@ public class IdentityGateway {
     public static String customToken(String uid, Map<String, Object> claims) throws Exception {
         if (emulatorOrUnitFixture()) return FirebaseAuth.getInstance().createCustomToken(uid, claims);
         return String.valueOf(call("operator/token", Map.of("uid", uid)).get("customToken"));
+    }
+
+    public static String deviceSessionToken(String uid, String tenantId, String installationId,
+            String idToken, Map<String, Object> deviceClaims) throws Exception {
+        if (emulatorOrUnitFixture()) return FirebaseAuth.getInstance().createCustomToken(uid, deviceClaims);
+        var result = call("device-session", Map.of("uid", uid, "tenantId", tenantId,
+                "installationId", installationId, "idToken", idToken));
+        return verifiedDeviceSessionToken(result, uid, tenantId, String.valueOf(deviceClaims.get("radioDeviceId")));
+    }
+
+    static String verifiedDeviceSessionToken(Map<String, Object> result, String uid, String tenantId, String deviceId) {
+        if (!uid.equals(result.get("uid")) || !tenantId.equals(result.get("tenantId"))
+                || !deviceId.equals(result.get("deviceId")) || !(result.get("customToken") instanceof String token)
+                || token.isBlank()) throw new SecurityException("Sessione di dispositivo non corrispondente.");
+        return token;
     }
     public static class IdentityUnavailableException extends RuntimeException {
         public IdentityUnavailableException(String message) { super(message); }

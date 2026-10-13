@@ -57,6 +57,7 @@ export function handler(authority, config) {
       if (path.startsWith('/internal/')) {
         await verifyInternal(req.headers, req.method, path, raw, config.appSecret, authority.store);
         if (path === '/internal/status') return json(200, await authority.status(input.idToken));
+        if (path === '/internal/device-session') return json(200, await authority.deviceSession(input));
         if (path === '/internal/invite') return json(200, await authority.invite(input));
         if (path === '/internal/invitations') return json(200, { items: await authority.list(input.idToken) });
         if (path === '/internal/cancel') return json(200, await authority.cancel(input.idToken, input.id));
