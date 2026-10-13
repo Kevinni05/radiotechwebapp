@@ -13,37 +13,5 @@ services:
     envVars:
       - key: PORT
         value: "10000"
-      - key: SPRING_PROFILES_ACTIVE
-        value: production
-      - key: FIREBASE_PROJECT_ID
-        value: gestionale-radio
-      - key: FIREBASE_STORAGE_BUCKET
-        value: gestionale-radio.firebasestorage.app
-      - key: RADIOTECH_ATTACHMENT_BACKEND
-        value: FIRESTORE
-      - key: FIREBASE_SERVICE_ACCOUNT_PATH
-        value: /etc/secrets/firebase-service-account.json
-      - key: RADIOTECH_FIREBASE_WEB_API_KEY
-        sync: false
-      - key: RADIOTECH_CAPO_EMAIL
-        sync: false
-      - key: RADIOTECH_PUBLIC_BASE_URL
-        sync: false
-      - key: RADIOTECH_CORS_ORIGINS
-        sync: false
-      - key: RADIOTECH_REPORT_VERIFICATION_SECRET
-        generateValue: true
-      - key: RADIOTECH_TENANT_INVITE_SECRET
-        generateValue: true
-      - key: RADIOTECH_FIRESTORE_SEED
-        value: "false"
-      - key: RADIOTECH_TENANT_MIGRATION_ENABLED
-        value: "false"
-      - key: RADIOTECH_AI_ENABLED
-        value: "false"
-      - key: RADIOTECH_SSO_ENABLED
-        value: "false"
-      - key: RADIOTECH_OTLP_ENABLED
-        value: "false"
-      - key: RADIOTECH_RATE_LIMIT_PER_MINUTE
-        value: "10"
+      - key: RADIOTECH_UPSTREAM_URL
+        value: https://radiotech-web-1051055442339.europe-west1.run.app
