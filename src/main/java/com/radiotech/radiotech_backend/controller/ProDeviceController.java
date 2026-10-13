@@ -10,6 +10,7 @@ import java.util.*;
 public class ProDeviceController {
  public record Registration(String installationId,String platform){}
  @PostMapping("/api/v1/session/devices") public Map<String,Object> register(@RequestBody Registration request,@RequestAttribute("firebaseToken") com.google.firebase.auth.FirebaseToken token)throws Exception{
+  if(IdentityGateway.isolated()&&IdentityGateway.high(token.getClaims()))throw new SecurityException("Gli account Capo richiedono un accesso protetto con MFA e non possono usare token di dispositivo.");
   String tenant=TenantAccessPolicy.requireTenantAccess(SecurityContextAccessor.currentTenantId(),null),uid=SecurityContextAccessor.currentUid();if(uid==null)throw new SecurityException("Identità richiesta.");
   long authenticatedAt=token.getClaims().get("auth_time") instanceof Number n?n.longValue():0;
   if(authenticatedAt<Instant.now().minusSeconds(300).getEpochSecond()||authenticatedAt>Instant.now().plusSeconds(60).getEpochSecond())throw new SecurityException("Accedi nuovamente per registrare il dispositivo.");
@@ -20,7 +21,7 @@ public class ProDeviceController {
   }).get();
   boolean mfa=token.getClaims().get("firebase") instanceof Map<?,?> firebase&&firebase.get("sign_in_second_factor")!=null;
   var deviceClaims=new LinkedHashMap<String,Object>(Map.of("radioDeviceId",id,"radioMfaVerified",mfa));if(token.getClaims().get("operatorId") instanceof String operatorId)deviceClaims.put("operatorId",operatorId);
-  return Map.of("customToken",FirebaseAuth.getInstance().createCustomToken(uid,deviceClaims),"deviceId",id);
+  return Map.of("customToken",IdentityGateway.customToken(uid,deviceClaims),"deviceId",id);
  }
  @PostMapping("/api/v1/pro/devices/{id}/actions") public Map<String,Object> revoke(@PathVariable String id,@RequestBody ProService.Action request)throws Exception{
   new ProService().requireModulePermission("devices","REVOKE");

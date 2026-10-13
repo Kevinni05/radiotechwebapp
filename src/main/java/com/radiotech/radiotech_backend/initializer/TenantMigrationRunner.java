@@ -49,6 +49,9 @@ public class TenantMigrationRunner implements CommandLineRunner {
         if (!enabled) {
             return;
         }
+        if (com.radiotech.radiotech_backend.security.IdentityGateway.isolated()) {
+            throw new IllegalStateException("Identity migration must run in the external administrative environment.");
+        }
         if (tenantId == null || !TENANT_ID_PATTERN.matcher(tenantId.trim()).matches()) {
             throw new IllegalStateException("RADIOTECH_LEGACY_TENANT_ID non configurato o non valido.");
         }

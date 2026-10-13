@@ -5,6 +5,7 @@ import com.google.cloud.firestore.DocumentSnapshot;
 import com.google.cloud.firestore.Firestore;
 
 import com.google.firebase.auth.FirebaseAuth;
+import com.radiotech.radiotech_backend.security.IdentityGateway;
 import com.google.firebase.auth.FirebaseToken;
 import com.google.firebase.auth.UserRecord;
 
@@ -113,8 +114,14 @@ public class CapoService {
                 requireDocumentTenant(existing);
 
                 String currentTenant = SecurityContextAccessor.currentTenantId();
+                Object assignedTenant = firebaseUser.getCustomClaims().get("tenantId");
+                String identityTenant = assignedTenant instanceof String value ? value : "";
+                if (currentTenant != null && !currentTenant.isBlank() && !identityTenant.isBlank()
+                                && !TenantAccessPolicy.canAccessTenant(currentTenant, identityTenant)) {
+                        throw new SecurityException("Identità CAPO appartenente a un'altra azienda.");
+                }
                 String profileTenant = currentTenant == null || currentTenant.isBlank()
-                                ? configuredBootstrapTenantId
+                                ? (identityTenant.isBlank() ? configuredBootstrapTenantId : identityTenant)
                                 : TenantAccessPolicy.requireTenantAccess(currentTenant, null);
 
                 String now = Instant.now().toString();
@@ -324,11 +331,7 @@ public class CapoService {
                 claims.put("admin", true);
                 claims.put("tenantId", configuredBootstrapTenantId.trim());
 
-                FirebaseAuth
-                                .getInstance()
-                                .setCustomUserClaims(
-                                                normalizedUid,
-                                                claims);
+                IdentityGateway.claims(normalizedUid, claims);
         }
 
         /*
@@ -342,32 +345,6 @@ public class CapoService {
 
                 if (token == null) {
                         return false;
-                }
-
-                // La promozione automatica via email vale solo se l'email e' verificata:
-                // altrimenti chiunque potrebbe registrare l'indirizzo del CAPO e diventarlo.
-                if (configuredBootstrapTenantId != null && !configuredBootstrapTenantId.isBlank()
-                                && token.isEmailVerified() && token.getEmail() != null && configuredCapoEmail != null &&
-                                configuredCapoEmail.equalsIgnoreCase(token.getEmail().trim())) {
-                        try {
-                                UserRecord user = FirebaseAuth.getInstance().getUser(token.getUid());
-                                Map<String, Object> capoClaims = new HashMap<>();
-                                if (user.getCustomClaims() != null) {
-                                        capoClaims.putAll(user.getCustomClaims());
-                                }
-                                Object existingTenant = capoClaims.get("tenantId");
-                                if (existingTenant instanceof String value && !value.isBlank()
-                                                && !configuredBootstrapTenantId.trim().equals(value.trim())) {
-                                        return false;
-                                }
-                                capoClaims.put("role", ROLE_CAPO);
-                                capoClaims.put("admin", true);
-                                capoClaims.put("tenantId", configuredBootstrapTenantId.trim());
-                                FirebaseAuth.getInstance().setCustomUserClaims(token.getUid(), capoClaims);
-                        } catch (Exception error) {
-                                return false;
-                        }
-                        return true;
                 }
 
                 Map<String, Object> claims = token.getClaims();

@@ -1,0 +1,10 @@
+.git
+node_modules
+test
+test-results
+playwright-report
+.env*
+*.log
+*.pem
+*service-account*.json
+*serviceAccount*.json

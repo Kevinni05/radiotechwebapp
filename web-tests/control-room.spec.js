@@ -32,9 +32,9 @@ test('glass surfaces align cards and brand returns home without losing the sessi
   const panels=await page.locator('#view-dashboard .grid-2 > .panel').evaluateAll(nodes=>nodes.map(n=>{const r=n.getBoundingClientRect();return {width:r.width,height:r.height};}));
   expect(Math.abs(panels[0].width-panels[1].width)).toBeLessThan(2);expect(panels.every(panel=>panel.height>0)).toBe(true);
   await expect(page.locator('.footer')).toContainText('RadioTech');
-  expect(await page.evaluate(()=>getComputedStyle(document.body,'::before').animationName)).toBe('none');
+  await expect(page.locator('.ambient-field canvas')).toBeAttached();
   await page.emulateMedia({reducedMotion:'no-preference'});
-  expect(await page.evaluate(()=>getComputedStyle(document.body,'::before').animationName)).toBe('canvas-drift');
+  await expect(page.locator('.ambient-field')).toBeVisible();
   await page.setViewportSize({width:390,height:844});await page.locator('#mobileMenu').click();await page.locator('[data-view="inventory"]').click();
   await page.locator('#mobileMenu').click();await page.locator('#brandHome').focus();await page.keyboard.press('Enter');
   await expect(page.locator('#view-dashboard')).toHaveClass(/active/);await expect(page.locator('#mobileMenu')).toHaveAttribute('aria-expanded','false');
@@ -761,8 +761,8 @@ test('shared canvas moves gently, respects reduced motion and the Pro editor fit
   await page.locator('[data-view="pro"]').click();
   await page.locator('#proNew').click();
   await expect(page.locator('#proNew')).toHaveClass(/press-glow/);
-  const initialCanvasTransform=await page.evaluate(()=>getComputedStyle(document.body,'::before').transform);
-  await expect.poll(()=>page.evaluate(()=>getComputedStyle(document.body,'::before').transform)).not.toBe(initialCanvasTransform);
+  const initialFrame=await page.locator('.ambient-field canvas').evaluate(canvas=>canvas.toDataURL());
+  await expect.poll(()=>page.locator('.ambient-field canvas').evaluate(canvas=>canvas.toDataURL())).not.toBe(initialFrame);
   for(const width of [320,768,1440]) {
     await page.setViewportSize({width,height:900});
     expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
@@ -774,7 +774,10 @@ test('shared canvas moves gently, respects reduced motion and the Pro editor fit
   await expect(page.locator('#sidebar')).toHaveCSS('visibility','hidden');
   await page.screenshot({path:test.info().outputPath('aurora-web-phone.png'),fullPage:true});
   await page.emulateMedia({reducedMotion:'reduce'});
-  expect(await page.evaluate(()=>getComputedStyle(document.body,'::before').animationName)).toBe('none');
+  await page.waitForTimeout(100);
+  const still=await page.locator('.ambient-field canvas').evaluate(canvas=>canvas.toDataURL());
+  await page.waitForTimeout(100);
+  expect(await page.locator('.ambient-field canvas').evaluate(canvas=>canvas.toDataURL())).toBe(still);
 });
 
 

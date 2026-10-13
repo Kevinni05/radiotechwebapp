@@ -17,7 +17,12 @@ test('light field animates behind interactive UI without errors or overflow', as
   const before = await pixels(page);
   await expect.poll(() => pixels(page)).not.toBe(before);
   await page.mouse.move(1200, 600);
+  let clicks = 0;
+  await page.exposeFunction('recordAction', () => { clicks++; });
+  await page.locator('#action').evaluate(button => button.addEventListener('click', () => window.recordAction()));
   await page.locator('#action').click();
+  await expect.poll(() => clicks).toBe(1);
+  await page.locator('#action').focus();
   await expect(page.locator('#action')).toBeFocused();
   expect(await page.locator('.ambient-field').getAttribute('aria-hidden')).toBe('true');
   expect(await page.locator('.ambient-field').evaluate(el => getComputedStyle(el).zIndex)).toBe('-1');

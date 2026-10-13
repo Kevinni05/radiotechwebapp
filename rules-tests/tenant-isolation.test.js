@@ -91,7 +91,7 @@ after(async () => {
 
 test('Tenant A can read its task but cannot read or query Tenant B', async () => {
     const database = environment.authenticatedContext('user-a', {
-        role: 'ADMIN',
+        role: 'VIEWER',
         tenantId: 'tenant-a',
     }).firestore();
 
@@ -107,13 +107,13 @@ test('Tenant A can read its task but cannot read or query Tenant B', async () =>
     )));
 });
 
-test('ENGINEER has network management reads confined to its tenant and no direct business writes', async () => {
+test('ENGINEER privileged reads require the protected API and direct business writes are denied', async () => {
     const database = environment.authenticatedContext('engineer-a', {
         role: 'ENGINEER', tenantId: 'tenant-a',
     }).firestore();
     for (const collectionName of ['tasks', 'antennas', 'inventory', 'auditLogs', 'maintenanceReports']) {
         const id = collectionName === 'tasks' ? 'task' : collectionName;
-        await assertSucceeds(getDoc(doc(database, `${collectionName}/${id}-a`)));
+        await assertFails(getDoc(doc(database, `${collectionName}/${id}-a`)));
         await assertFails(getDoc(doc(database, `${collectionName}/${id}-b`)));
         await assertFails(updateDoc(doc(database, `${collectionName}/${id}-a`), { title: 'blocked' }));
     }
@@ -151,7 +151,7 @@ test('Storage report paths are bound to the signed tenant claim', async () => {
     await assertFails(uploadBytes(foreignFile, file, { contentType: 'image/png' }));
 });
 
-test('Tenant A cannot read another tenant across protected collections', async () => {
+test('Privileged clients require the protected API even for their own tenant', async () => {
     const database = environment.authenticatedContext('user-a', {
         role: 'ADMIN',
         tenantId: 'tenant-a',
@@ -168,8 +168,18 @@ test('Tenant A cannot read another tenant across protected collections', async (
     ];
 
     for (const collectionName of tenantCollections) {
-        await assertSucceeds(getDoc(doc(database, `${collectionName}/${collectionName}-a`)));
+        await assertFails(getDoc(doc(database, `${collectionName}/${collectionName}-a`)));
         await assertFails(getDoc(doc(database, `${collectionName}/${collectionName}-b`)));
+    }
+});
+
+test('A privileged claim cannot bypass suspension through Firestore or Storage', async () => {
+    for (const role of ['CAPO', 'CHIEF_EXECUTIVE', 'ADMIN', 'SUPER_ADMIN', 'NETWORK_MANAGER', 'ENGINEER']) {
+        const context = environment.authenticatedContext('chief-a', { role, tenantId: 'tenant-a', email_verified: true });
+        await assertFails(getDoc(doc(context.firestore(), 'tasks/task-a')));
+        await assertFails(setDoc(doc(context.firestore(), 'capo/chief-a'), { tenantId: 'tenant-a' }));
+        const file = ref(context.storage(), 'tenants/tenant-a/maintenance-reports/chief-a/privileged.png');
+        await assertFails(uploadBytes(file, new Uint8Array([1]), { contentType: 'image/png' }));
     }
 });
 

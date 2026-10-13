@@ -13,6 +13,29 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  identity-authority:
+    name: Independent identity authority
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: identity-service/package-lock.json
+      - run: npm ci
+        working-directory: identity-service
+      - run: npm audit --audit-level=high
+        working-directory: identity-service
+      - run: npm test
+        working-directory: identity-service
+      - run: npm run build
+        working-directory: identity-service
+      - run: npx playwright install --with-deps chromium
+        working-directory: identity-service
+      - run: npm run test:web
+        working-directory: identity-service
+
   backend:
     name: Backend tests
     runs-on: ubuntu-latest
@@ -78,7 +101,7 @@ jobs:
 
   artifact:
     name: Reproducible backend artifact
-    needs: [backend, firebase-rules, web]
+    needs: [backend, firebase-rules, web, identity-authority]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -146,7 +169,7 @@ jobs:
   container:
     name: Production container build
     runs-on: ubuntu-latest
-    needs: [backend, firebase-rules, web]
+    needs: [backend, firebase-rules, web, identity-authority]
     steps:
       - uses: actions/checkout@v4
       - run: docker build --tag radiotech:ci .

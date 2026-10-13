@@ -21,6 +21,7 @@ import com.google.firebase.cloud.FirestoreClient;
 import com.google.firebase.auth.AuthErrorCode;
 
 import com.google.firebase.auth.FirebaseAuth;
+import com.radiotech.radiotech_backend.security.IdentityGateway;
 
 import com.google.firebase.auth.FirebaseAuthException;
 
@@ -88,7 +89,7 @@ public class OperatorService {
                 var db = FirestoreClient.getFirestore(); String eventId="badge_"+id+"_"+UUID.randomUUID();
                 db.collection("notificationHistory").document(eventId).set(Map.of(
                     "tenantId",operator.getTenantId(),"target",id,"ownerUid",operator.getFirebaseUid(),"type","BADGE_UPDATED",
-                    "title","Badge aggiornato","message","Il tuo codice di accesso è stato aggiornato.",
+                    "title","Badge aggiornato","message","Il tuo codice di accesso Ã¨ stato aggiornato.",
                     "createdAt",Instant.now().toString(),"deliveryStatus","PENDING","delivered",0)).get();
                 badgeNotifications.deliverRecorded(eventId);
             } catch (Exception error) { org.slf4j.LoggerFactory.getLogger(OperatorService.class).warn("Aggiornamento badge salvato; notifica da riprovare per {}",id); }
@@ -391,7 +392,7 @@ public class OperatorService {
 
                                                         || !tenantId.equals(existingOperator.getTenantId()))) {
 
-                                throw new SecurityException("Account già associato a un tenant diverso o non mappato.");
+                                throw new SecurityException("Account giÃ  associato a un tenant diverso o non mappato.");
 
                         }
 
@@ -401,7 +402,7 @@ public class OperatorService {
 
                                         .setDisplayName(cleanName);
 
-                        firebaseUser = FirebaseAuth.getInstance().updateUser(updateReq);
+                        firebaseUser = IdentityGateway.update(updateReq, existingUser.getUid(), password, cleanName);
 
                 } else {
 
@@ -415,7 +416,7 @@ public class OperatorService {
 
                                         .setEmailVerified(true);
 
-                        firebaseUser = FirebaseAuth.getInstance().createUser(createReq);
+                        firebaseUser = IdentityGateway.create(createReq, resolvedEmail, password, cleanName);
 
                 }
 
@@ -433,7 +434,7 @@ public class OperatorService {
 
                                         || !tenantId.equals(existingOperator.getTenantId())) {
 
-                                throw new SecurityException("Account già associato a un tenant diverso.");
+                                throw new SecurityException("Account giÃ  associato a un tenant diverso.");
 
                         }
 
@@ -647,7 +648,7 @@ public class OperatorService {
 
                                 if (!isBlank(linked) && !firebaseUid.equals(linked)) {
 
-                                        throw new SecurityException("Account operatore già collegato.");
+                                        throw new SecurityException("Account operatore giÃ  collegato.");
 
                                 }
 
@@ -759,7 +760,7 @@ public class OperatorService {
 
                                 if (!"ATTIVO".equalsIgnoreCase(operator.getStatus())) {
 
-                                        throw new IllegalArgumentException("L'account operatore non è attivo.");
+                                        throw new IllegalArgumentException("L'account operatore non Ã¨ attivo.");
 
                                 }
 
@@ -767,7 +768,7 @@ public class OperatorService {
 
                                         throw new IllegalArgumentException(
 
-                                                        "QR già utilizzato. Richiedi un nuovo badge.");
+                                                        "QR giÃ  utilizzato. Richiedi un nuovo badge.");
 
                                 }
 
@@ -865,7 +866,7 @@ public class OperatorService {
 
                     String expiry = current.getString("qrFixedExpiresAt");
 
-                    if (badgeExpired(expiry, mode)) throw new IllegalArgumentException("La scadenza fissa è trascorsa. Configura una nuova validità.");
+                    if (badgeExpired(expiry, mode)) throw new IllegalArgumentException("La scadenza fissa Ã¨ trascorsa. Configura una nuova validitÃ .");
 
                     return expiry;
 
@@ -881,7 +882,7 @@ public class OperatorService {
 
                 if (mode == null || !java.util.Set.of("DEFAULT", "FIXED", "UNLIMITED").contains(mode))
 
-                    throw new IllegalArgumentException("Validità badge non riconosciuta.");
+                    throw new IllegalArgumentException("ValiditÃ  badge non riconosciuta.");
 
                 if ("FIXED".equals(mode) && badgeExpired(expiry, mode))
 
@@ -1102,7 +1103,7 @@ public class OperatorService {
 
                                 || isPrivilegedRole(currentClaims.get("role")))) {
 
-                        throw new SecurityException("Non è possibile modificare il ruolo di un account amministrativo.");
+                        throw new SecurityException("Non Ã¨ possibile modificare il ruolo di un account amministrativo.");
 
                 }
 
@@ -1172,7 +1173,7 @@ public class OperatorService {
 
                 claims.put("operatorId", operator.getId());
 
-                FirebaseAuth.getInstance().setCustomUserClaims(user.getUid(), claims);
+                IdentityGateway.claims(user.getUid(), claims);
 
         }
 
@@ -1190,7 +1191,7 @@ public class OperatorService {
 
                                 && !tenantId.equals(value.trim())) {
 
-                        throw new SecurityException("Account Firebase già assegnato a un tenant diverso.");
+                        throw new SecurityException("Account Firebase giÃ  assegnato a un tenant diverso.");
 
                 }
 
@@ -1344,8 +1345,8 @@ public class OperatorService {
                             com.radiotech.radiotech_backend.model.TaskStatus.APPROVED,
                             com.radiotech.radiotech_backend.model.TaskStatus.REPORT_SUBMITTED).contains(status));
                     if (assigned && !finished) throw new IllegalArgumentException(
-                            "Annulla l’incarico «" + java.util.Objects.toString(task.get("title"), task.getId())
-                            + "» (" + task.getId() + ") nella sezione Incarichi prima di eliminare l’operatore.");
+                            "Annulla lâ€™incarico Â«" + java.util.Objects.toString(task.get("title"), task.getId())
+                            + "Â» (" + task.getId() + ") nella sezione Incarichi prima di eliminare lâ€™operatore.");
                 }
                 com.google.cloud.firestore.DocumentReference deleteIntent = null;
                 if (!isBlank(uid)) {
@@ -1355,13 +1356,13 @@ public class OperatorService {
                     try {
                         UserRecord user = FirebaseAuth.getInstance().getUser(uid);
                         Object claimedRole = user.getCustomClaims().get("role");
-                        if (claimedRole != null && !java.util.Set.of("OPERATOR", "VIEWER").contains(claimedRole.toString().toUpperCase(java.util.Locale.ROOT))) throw new IllegalArgumentException("L’identità possiede un ruolo aziendale privilegiato e non può essere eliminata da questa sezione.");
+                        if (claimedRole != null && !java.util.Set.of("OPERATOR", "VIEWER").contains(claimedRole.toString().toUpperCase(java.util.Locale.ROOT))) throw new IllegalArgumentException("Lâ€™identitÃ  possiede un ruolo aziendale privilegiato e non puÃ² essere eliminata da questa sezione.");
                         Object claimedTenant = user.getCustomClaims().get("tenantId");
-                        if (claimedTenant != null && !existing.getString("tenantId").equals(claimedTenant.toString())) throw new SecurityException("Account associato a un’altra azienda.");
+                        if (claimedTenant != null && !existing.getString("tenantId").equals(claimedTenant.toString())) throw new SecurityException("Account associato a unâ€™altra azienda.");
                         deleteIntent = new AuditService().beginIdentityAction("OPERATOR_DELETE", existing.getString("tenantId"), SecurityContextAccessor.currentUid(), uid, user.getCustomClaims(), Map.of());
                         deleteIntent.update("operatorId", id).get();
-                        FirebaseAuth.getInstance().revokeRefreshTokens(uid);
-                        FirebaseAuth.getInstance().deleteUser(uid);
+                        IdentityGateway.revoke(uid);
+                        IdentityGateway.delete(uid);
                     } catch (FirebaseAuthException error) {
                         if (error.getAuthErrorCode() != com.google.firebase.auth.AuthErrorCode.USER_NOT_FOUND) throw error;
                     }
@@ -1373,7 +1374,7 @@ public class OperatorService {
                     var latest = tx.get(document).get();
                     if (!latest.exists()) return null;
                     requireDocumentTenant(latest, tenant);
-                    if (!java.util.Objects.equals(uid, latest.getString("firebaseUid"))) throw new SecurityException("Identità modificata durante la cancellazione.");
+                    if (!java.util.Objects.equals(uid, latest.getString("firebaseUid"))) throw new SecurityException("IdentitÃ  modificata durante la cancellazione.");
                     tx.delete(document);
                     if (intentExists) tx.update(audit, "result", "SUCCESS", "completedAt", Instant.now().toString(), "reconciliationRequired", false);
                     else tx.create(audit, AuditService.transactionEntry("OPERATOR_DELETE", tenant, actor, COLLECTION, id, "SUCCESS", Instant.now().toString(), Map.of("existed",true), Map.of("deleted",true)));
@@ -1387,7 +1388,7 @@ public class OperatorService {
 
          *
 
-         * L'UID deve essere già verificato da AuthService.
+         * L'UID deve essere giÃ  verificato da AuthService.
 
          */
 
@@ -1439,7 +1440,7 @@ public class OperatorService {
 
                  * Controlliamo che lo stesso Firebase UID
 
-                 * non sia già collegato ad un altro operatore.
+                 * non sia giÃ  collegato ad un altro operatore.
 
                  */
 
@@ -1459,7 +1460,7 @@ public class OperatorService {
 
                                 throw new IllegalArgumentException(
 
-                                                "Il Firebase UID è già associato ad un altro operatore.");
+                                                "Il Firebase UID Ã¨ giÃ  associato ad un altro operatore.");
 
                         }
 
@@ -1551,7 +1552,7 @@ public class OperatorService {
 
                         }
 
-                        FirebaseAuth.getInstance().setCustomUserClaims(firebaseUid, claims);
+                        IdentityGateway.claims(firebaseUid, claims);
 
                 }
 
@@ -1853,7 +1854,7 @@ public class OperatorService {
 
          * Non inventa Firebase UID.
 
-         * Normalizza soltanto i documenti già presenti.
+         * Normalizza soltanto i documenti giÃ  presenti.
 
          */
 

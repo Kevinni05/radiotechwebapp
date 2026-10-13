@@ -3,6 +3,7 @@ package com.radiotech.radiotech_backend.service;
 import com.google.cloud.firestore.*;
 import com.google.firebase.FirebaseApp;
 import com.google.firebase.auth.FirebaseAuth;
+import com.radiotech.radiotech_backend.security.IdentityGateway;
 import com.google.firebase.cloud.FirestoreClient;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -94,7 +95,8 @@ public class IdentityAuditRecovery {
                 else {
                     // A lost completion may leave tokens unrevoked after the claims write.
                     // Revoke is safe to repeat; assigning old claims would not be.
-                    auth.revokeRefreshTokens(user.getUid());
+                    if (IdentityGateway.isolated()) IdentityGateway.revoke(user.getUid());
+                    else auth.revokeRefreshTokens(user.getUid());
                     confirmed = true;
                     reason = "CURRENT_CLAIMS_CONFIRMED_AND_SESSIONS_REVOKED";
                 }

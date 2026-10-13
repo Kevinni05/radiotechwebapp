@@ -24,8 +24,14 @@ public class ProductionConfiguration {
                 && env.getProperty("FIREBASE_AUTH_EMULATOR_HOST", "").isBlank()
                 && env.getProperty("FIREBASE_STORAGE_EMULATOR_HOST", "").isBlank(), "Emulators are forbidden");
         require(!env.getProperty("app.firebase.project-id", "").isBlank(), "Firebase project is required");
-        require(!env.getProperty("app.firebase.storage-bucket", "").isBlank(), "Storage bucket is required");
+        if ("FIREBASE_STORAGE".equalsIgnoreCase(env.getProperty("radiotech.attachments.backend", "FIRESTORE")))
+            require(!env.getProperty("app.firebase.storage-bucket", "").isBlank(), "Storage bucket is required for Firebase Storage attachments");
         require(!env.getProperty("radiotech.firebase.web-api-key", "").isBlank(), "Firebase web API key is required");
+        require(env.getProperty("radiotech.identity.required", Boolean.class, true), "Identity isolation is required");
+        require(httpsOrigin(env.getProperty("radiotech.identity.origin", "")), "Independent HTTPS identity origin is required");
+        require(env.getProperty("radiotech.identity.app-secret", "").length() >= 32, "Identity request secret is required");
+        require(!env.getProperty("radiotech.identity.origin", "").equals(env.getProperty("radiotech.reports.public-base-url", "")),
+                "Identity and application origins must differ");
         String reportKey = env.getProperty("radiotech.reports.verification-secret", "");
         String invitationKey = env.getProperty("radiotech.tenant.invite-secret", "");
         require(reportKey.getBytes(StandardCharsets.UTF_8).length >= 32

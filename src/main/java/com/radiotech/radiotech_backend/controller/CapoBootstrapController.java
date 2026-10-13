@@ -43,6 +43,11 @@ public class CapoBootstrapController {
         public ResponseEntity<?> bootstrapCapo(
                         @RequestBody Map<String, String> request) {
 
+                if (com.radiotech.radiotech_backend.security.IdentityGateway.isolated()) {
+                        return ResponseEntity.status(HttpStatus.GONE)
+                                        .body(error("L'attivazione del Capo richiede il servizio accessi protetti e l'approvazione esterna."));
+                }
+
                 try {
 
                         if (request == null) {

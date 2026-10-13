@@ -89,6 +89,7 @@
                     </div>
 
                     <button class="login-button" id="loginButton" type="submit">Accedi al Centro operativo</button>
+                    <button class="btn" id="protectedChiefLogin" type="button">Accesso protetto del Capo</button>
                     <div class="login-status" id="loginStatus" role="status" aria-live="polite"></div>
                     <div class="login-help"><span data-icon="shield"></span>Sessione personale · Dati del tuo spazio aziendale</div>
                 </form>
@@ -419,6 +420,31 @@
         </div>
     </div>
 
+    <div class="modal-backdrop" id="passwordModal">
+        <div class="modal" role="dialog" aria-modal="true" aria-labelledby="passwordModalTitle">
+            <div class="modal-head">
+                <h3 id="passwordModalTitle">Cambia password</h3>
+                <button class="icon-btn" type="button" data-close-modal="passwordModal" aria-label="Chiudi cambio password">×</button>
+            </div>
+            <form id="passwordForm">
+                <div class="modal-body">
+                    <p>Imposta una nuova password per il tuo account. Non serve ricevere email. Dopo il salvataggio dovrai accedere nuovamente.</p>
+                    <div class="form-grid">
+                        <div class="field full"><label for="currentPassword">Password attuale</label><input id="currentPassword" type="password" autocomplete="current-password" required></div>
+                        <div class="field full"><label for="newPassword">Nuova password</label><input id="newPassword" type="password" autocomplete="new-password" minlength="8" required aria-describedby="passwordRequirements"></div>
+                        <div class="field full"><label for="confirmPassword">Conferma nuova password</label><input id="confirmPassword" type="password" autocomplete="new-password" minlength="8" required></div>
+                    </div>
+                    <p class="subtle" id="passwordRequirements">Almeno 8 caratteri, con maiuscola, minuscola, numero e simbolo.</p>
+                    <p id="passwordStatus" role="status" aria-live="polite"></p>
+                </div>
+                <div class="modal-foot">
+                    <button type="button" class="btn" data-close-modal="passwordModal">Annulla</button>
+                    <button type="submit" class="btn primary" id="savePasswordBtn">Salva password</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <div class="toast-stack" id="toastStack"></div>
 
     <!-- Leaflet: JS -->
@@ -428,6 +454,7 @@
     <script src="/assets/company-hub.js" defer></script>
     <script src="/assets/pro-suite.js" defer></script>
     <script src="/assets/pro-security.js" defer></script>
+    <script src="/assets/chief-access.js" defer></script>
     <script src="/assets/auth-client.js" defer></script>
     <script src="/assets/report-attachments.js"></script>
     <script src="/assets/signature-workspace.js"></script>

@@ -10,6 +10,8 @@ class ProductionConfigurationTest {
                 .withProperty("app.firebase.project-id", "gestionale-radio")
                 .withProperty("app.firebase.storage-bucket", "gestionale-radio.firebasestorage.app")
                 .withProperty("radiotech.firebase.web-api-key", "public-web-api-key")
+                .withProperty("radiotech.identity.origin", "https://access.radio.example.org")
+                .withProperty("radiotech.identity.app-secret", "s".repeat(40))
                 .withProperty("radiotech.reports.verification-secret", "r".repeat(40))
                 .withProperty("radiotech.tenant.invite-secret", "i".repeat(40))
                 .withProperty("radiotech.reports.public-base-url", "https://radio.example.org")
@@ -17,6 +19,11 @@ class ProductionConfigurationTest {
     }
     @Test void acceptsCompleteProductionConfiguration() {
         assertDoesNotThrow(() -> ProductionConfiguration.validate(valid()));
+    }
+    @Test void firestoreAttachmentsDoNotRequireAnUnusedStorageBucket() {
+        assertDoesNotThrow(() -> ProductionConfiguration.validate(valid().withProperty("app.firebase.storage-bucket", "")));
+        assertThrows(IllegalStateException.class, () -> ProductionConfiguration.validate(valid()
+                .withProperty("app.firebase.storage-bucket", "").withProperty("radiotech.attachments.backend", "FIREBASE_STORAGE")));
     }
     @Test void refusesDevelopmentFlagsAndEndpoints() {
         for (String flag : new String[] {"app.firestore.seed", "radiotech.tenant.migration.enabled"}) {
