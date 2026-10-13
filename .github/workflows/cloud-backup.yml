@@ -10,6 +10,7 @@ on:
       - 'scripts/prepare-backup-credentials.cjs'
 permissions:
   contents: read
+  id-token: write
 concurrency:
   group: cloud-backup
   cancel-in-progress: false
@@ -32,11 +33,16 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Prepare private backup credentials
+      - name: Authenticate with a temporary read-only Auth identity
+        uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: ${{ vars.RADIOTECH_WORKLOAD_PROVIDER }}
+          service_account: ${{ vars.RADIOTECH_BACKUP_IDENTITY }}
+          project_id: ${{ vars.FIREBASE_PROJECT_ID }}
+      - name: Prepare existing backup encryption key
         env:
-          BACKUP_ACCOUNT_JSON: ${{ secrets.FIREBASE_BACKUP_SERVICE_ACCOUNT }}
           BACKUP_KEY_BASE64: ${{ secrets.FIREBASE_BACKUP_KEY_BASE64 }}
-        run: node scripts/prepare-backup-credentials.cjs
+        run: node scripts/prepare-federated-backup.cjs
       - name: Export and authenticate encrypted archive
         run: |
           bash gradlew backupTool --console=plain -PbackupMode=export -PbackupArchive="$RADIOTECH_BACKUP_ARCHIVE" -PbackupKey="$RADIOTECH_BACKUP_KEY_FILE"

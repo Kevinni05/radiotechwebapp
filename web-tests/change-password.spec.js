@@ -58,7 +58,8 @@ test('wrong current password keeps session usable and displays the error', async
   await page.getByRole('button', { name: 'Salva password', exact: true }).click();
   await expect(page.locator('#passwordStatus')).toHaveText('Password attuale non corretta.');
   await expect(page.locator('#app')).toHaveClass(/ready/);
-  expect(await page.evaluate(() => sessionStorage.getItem('radiotech_control_token'))).toBe('test-token');
+  // The current application keeps managed sessions out of browser storage.
+  expect(await page.evaluate(() => sessionStorage.getItem('radiotech_control_token'))).toBeNull();
   await expect(page.locator('#currentPassword')).toHaveValue('');
   await expect(page.locator('#savePasswordBtn')).toBeEnabled();
 });

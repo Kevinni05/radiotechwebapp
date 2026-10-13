@@ -104,6 +104,7 @@ async function showOwner() {
   $('ownerUid').textContent = `Proprietario: ${config.ownerEmail}`;
   const data = await post('/api/owner/list', { idToken: await token() });
   $('ownerLogin').hidden = true;
+  $('refreshOwner').hidden = false;
   $('setupForm').hidden = data.credentials >= 2;
   if (data.credentials >= 2) $('setupCode').value = '';
   $('ownerRequests').replaceChildren();
@@ -196,6 +197,7 @@ $('ownerLogin').onclick = event => busy(event.target, async () => {
   const provider = new GoogleAuthProvider(); provider.setCustomParameters({ prompt: 'select_account' });
   await handleLogin(() => signInWithPopup(auth, provider));
 });
+$('refreshOwner').onclick = event => busy(event.target, showOwner);
 $('setupForm').onsubmit = event => { event.preventDefault(); busy(event.submitter, async () => {
   const options = await post('/api/owner/register/options', { idToken: await token(), setupCode: $('setupCode').value });
   const response = await startRegistration({ optionsJSON: options.options });
