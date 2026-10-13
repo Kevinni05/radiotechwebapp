@@ -5,19 +5,20 @@
   "versionName": "1.5.5",
   "versionCode": 11004,
   "channel": "PRIVATE_SITE",
-  "mobileCommit": "c12b50cff1d24a9772c867dc922195ab9c63b114",
+  "mobileCommit": "47c7103a05dada60e4038ec4f343da4ea329dfe7",
+  "webCandidateCommit": "84af23a947ac870ca17d32b8332db6c223ff9d9f",
   "configurationRevision": "radiotech-web-00004-5sv",
   "signingSha256": "73005990b6bad93b1bb3383121f6dcc2293b3e5e3a60e1ae7eaf09a7d97c4fa4",
   "apk": {
     "filename": "RadioTech-1.5.5-11004.apk",
-    "sha256": "8c3f5b99733b9f48c1a0156c2ba6c09388147e86938012f70985e3684f599ef3",
+    "sha256": "1a616674ec460569a04d117ed34b6faf1f22b82c244816a73947afbb465cbcbb",
     "bytes": 82063700
   },
   "aab": {
     "filename": "RadioTech-1.5.5-11004.aab",
-    "sha256": "ed6e4478cb1affe7e7cdf87f179abd1556205b6bc82073e5e9103d9bac2fa1fb",
-    "bytes": 74535645
+    "sha256": "68fc496365ca1bf331de6b3caf35a2e33b0d7081722db437cde24e03da171ace",
+    "bytes": 74533831
   },
-  "createdAt": "2026-10-13T14:49:13.7547367Z",
+  "createdAt": "2026-10-13T15:41:34.1455090Z",
   "publicationGate": "T15/T16, signed upgrade, current identity recovery custody and pilot acceptance pending"
 }

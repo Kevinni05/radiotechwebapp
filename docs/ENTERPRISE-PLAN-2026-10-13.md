@@ -93,6 +93,10 @@ PR di revisione: [web/API PR45](https://github.com/Kevinni05/radiotechwebapp/pul
 
 ## Chiusura della preparazione tecnica
 
+Ultima revisione mobile `47c7103a05dada60e4038ec4f343da4ea329dfe7`: le cache della schermata principale vengono eliminate al cambio UID/tenant/ruolo. La nuova prova verifica la scomparsa dei dati di A dal root dopo il passaggio a B con lo stesso UID. Analisi pulita e **181 test** riusciti; APK/AAB ricompilati con identità/certificato originali, digest definitivi nel [manifest 11004](RELEASE-CANDIDATE-11004.json). [CI ultima revisione](https://github.com/Kevinni05/gestionale_radio/actions/runs/38423238699). La CI verde del commit precedente rimane un'evidenza distinta.
+
+La [CI web/API del commit 84af23a](https://github.com/Kevinni05/radiotechwebapp/actions/runs/38421571123) include la route mobile effettiva e il backup del registro; test locali e restore sono riusciti. Il successivo aggiornamento riguarda solo documenti e digest della candidata.
+
 Mobile commit `c12b50cff1d24a9772c867dc922195ab9c63b114`: [CI finale](https://github.com/Kevinni05/gestionale_radio/actions/runs/38415090536) verde, incluse compilazione, prove native e recovery/emulatore. APK/AAB **1.5.5+11004** firmati, identità/certificato originali verificati con apksigner/aapt e jarsigner/keytool. Artefatti e simboli privati; [manifest con digest](RELEASE-CANDIDATE-11004.json). Non pubblicati né installati sopra l’app commerciale.
 
 Backend: 191 test unitari eseguiti senza fallimenti, 114 emulator case saltati in quel run; separatamente 113 test Firestore/Auth riusciti. Il caso dispositivi ora passa dalla route HTTP effettiva `/api/v1/operator/me/fcm-token`, oltre a provare transazioni/revoca, mantenendo compatibilità dei client legacy. Autorità: 28 test riusciti e restore reale→emulatore di 90 documenti/un segreto con confronto completo.
