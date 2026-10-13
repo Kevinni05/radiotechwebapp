@@ -66,6 +66,10 @@ Fonte: piano Enterprise Pro 2.1 del 13 ottobre 2026 consegnato da Kevin. Le rich
 
 ## Evidenze di questa iterazione
 
+Audit della Panoramica: in una risposta parziale i conteggi mancanti diventavano zero, producendo anche “100%” insieme a “0 / 1 attive”. La candidata distingue valori sconosciuti (`—`/badge neutro), percentuali non valide e zero esplicito, senza ricostruire conteggi da liste parziali. Nuove prove coprono questi tre stati. Il confronto visuale conserva dimensioni/stili identici; un artefatto CI mostrava 14 pixel variati su 2.448.320, uno solo di 2/255 su un bordo. Il controllo conserva 1/255 generale e permette 2/255 solo a un pixel per milione. Il confronto mirato è passato due volte per ciascuno di Chromium, Firefox e WebKit.
+
+Verifica finale delle pagine modificate: **36 casi** Panoramica, KPI e workspace responsive riusciti su Chromium/Firefox/WebKit. I conteggi assenti di antenne, operatori, interventi, stock e stati task sono mostrati come non disponibili; zeri espliciti restano zeri. Nessuna lista parziale viene usata per ricostruire le metriche globali.
+
 Aggiornamento del retry dopo rinnovo token: gli esiti sono calcolati sulle registrazioni selezionate per il tentativo corrente. I token precedenti restano nelle ricevute backend e nei contatori `previousTokenAccepted`/`previousTokenFailures`, senza mantenere un falso DEAD_LETTER dopo la consegna al nuovo token. Provate le transizioni token scaduto → nessun token → token rinnovato, con stessa notifica e conservazione delle ricevute: sette test integrati di consegna/storico/dispatch riusciti. Sono prove emulatore/provider simulato, non ricezione fisica FCM.
 
 - Mobile: `flutter analyze --no-pub` senza segnalazioni; **180 test** Flutter riusciti dopo correzioni di sessione, scope, bozze e GPS.
