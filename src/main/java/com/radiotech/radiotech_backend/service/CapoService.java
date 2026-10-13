@@ -114,8 +114,14 @@ public class CapoService {
                 requireDocumentTenant(existing);
 
                 String currentTenant = SecurityContextAccessor.currentTenantId();
+                Object assignedTenant = firebaseUser.getCustomClaims().get("tenantId");
+                String identityTenant = assignedTenant instanceof String value ? value : "";
+                if (currentTenant != null && !currentTenant.isBlank() && !identityTenant.isBlank()
+                                && !TenantAccessPolicy.canAccessTenant(currentTenant, identityTenant)) {
+                        throw new SecurityException("Identità CAPO appartenente a un'altra azienda.");
+                }
                 String profileTenant = currentTenant == null || currentTenant.isBlank()
-                                ? configuredBootstrapTenantId
+                                ? (identityTenant.isBlank() ? configuredBootstrapTenantId : identityTenant)
                                 : TenantAccessPolicy.requireTenantAccess(currentTenant, null);
 
                 String now = Instant.now().toString();
