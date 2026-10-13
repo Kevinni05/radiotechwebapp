@@ -56,3 +56,7 @@ Controllare anche le autorizzazioni ereditate da cartella/organizzazione e le id
 La modalità `IDENTITY_DEMO=true` richiede progetto `demo-*`, entrambi gli emulatori locali e origini `localhost` distinte. Non abilitarla in produzione. I segreti degli inviti vengono conservati soltanto come hash; i link email usano un frammento rimosso dalla pagina appena letto. Le approvazioni sono vincolate a UID/email/tenant/ruolo e consumate una sola volta.
 
 La MFA, la gestione email e il servizio separato richiedono configurazione cloud e verifiche di fatturazione. Il codice non attiva automaticamente la fatturazione, non registra autenticatori al posto della persona e non dichiara verificata una casella senza la conferma del destinatario.
+
+## Backup e recupero del registro
+
+Il backup applicativo non comprende il progetto del registro. Usare lo strumento amministrativo cifrato, chiave separata dalla pipeline web e restore solo nell’emulatore isolato: [procedura ed evidenza del 13 ottobre](../docs/IDENTITY-RECOVERY-2026-10-13.md). Non delegare accesso al registro alla CI web; conservare una copia offsite amministrativa e il recupero MFA separatamente.

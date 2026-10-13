@@ -16,7 +16,7 @@ Pacchetto preparato su richiesta di Kevin, con riferimenti da compilare. Stato: 
 | Budget mensile e destinatario alert | ____________________ |
 | Periodo pilota / partecipanti | ____________________ |
 | Versione mobile e codice | 1.5.5 / 11004, candidata da verificare |
-| Commit web/API/mobile e digest APK/AAB | Da manifest degli artefatti esatti |
+| Commit web/API/mobile e digest APK/AAB | [Manifest verificato 11004](RELEASE-CANDIDATE-11004.json) |
 | Revisione backend e ultimo restore | Da verificare alla consegna |
 
 Non inserire password, token o chiavi nel verbale. Testare il recupero degli accessi con il referente e senza l'account personale dello sviluppatore.
@@ -63,3 +63,5 @@ P0 aperti: __________. P1 esclusi con impatto e motivazione approvati: _________
 Decisione: ☐ Go ☐ No-Go. Responsabile: __________; data: __________; evidenza: __________.
 
 Pubblicare solo dopo chiusura dei P0 e decisione documentata. Conservare artefatti esatti e rollback. L'APK viene consegnato nell'area HTTPS autenticata esistente; le comunicazioni ai clienti sono eseguite dal referente, non automaticamente da questo pacchetto.
+
+APK/AAB firmati e simboli sono pronti nella consegna privata; candidata non pubblicata. Il recupero dell’autorità richiede anche il [registro separato](IDENTITY-RECOVERY-2026-10-13.md): scegliere offsite/custodi e verificare MFA prima del Go.

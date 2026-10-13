@@ -161,7 +161,8 @@ public class OperatorMobileController {
     @PostMapping("/me/fcm-token")
     public ResponseEntity<?> addMyFcmToken(
             @RequestAttribute("firebaseUid") String uid,
-            @RequestBody(required = false) Map<String, String> request) {
+            @RequestBody(required = false) Map<String, String> request,
+            @RequestAttribute(value = "firebaseToken", required = false) com.google.firebase.auth.FirebaseToken identity) {
         try {
             String token = value(request, "fcmToken");
             if (token == null) {
@@ -174,8 +175,14 @@ public class OperatorMobileController {
                         .body(message("Operatore non sincronizzato."));
             }
 
-            operatorService.addFcmToken(operator.getId(), token);
+            String deviceId = identity != null && identity.getClaims().get("radioDeviceId") instanceof String id ? id : null;
+            if (deviceId == null) operatorService.addFcmToken(operator.getId(), token);
+            else com.radiotech.radiotech_backend.service.DevicePushAssociations.change(
+                    com.google.firebase.cloud.FirestoreClient.getFirestore(), operator.getId(), deviceId, token,
+                    com.radiotech.radiotech_backend.security.SecurityContextAccessor.currentTenantId(), uid, true);
             return ResponseEntity.ok(message("Token FCM registrato."));
+        } catch (SecurityException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(message("Operazione non autorizzata."));
         } catch (TaskService.IdempotencyConflictException e) {
             return ResponseEntity.status(HttpStatus.CONFLICT).body(message("Conflitto di idempotenza."));
         } catch (IllegalArgumentException e) {
@@ -183,6 +190,11 @@ public class OperatorMobileController {
         } catch (Exception e) {
             return server();
         }
+    }
+
+    // Compatibility for internal callers; HTTP uses the verified-token overload.
+    public ResponseEntity<?> addMyFcmToken(String uid, Map<String,String> request) {
+        return addMyFcmToken(uid, request, null);
     }
 
     @DeleteMapping("/me/fcm-token")

@@ -26,7 +26,7 @@ Fonte: piano Enterprise Pro 2.1 del 13 ottobre 2026 consegnato da Kevin. Le rich
 | DATA-01 | Da validare | Chiavi durevoli e replay dominio; notifica dashboard atomica e ID conservato su retry/reload | T02 con timeout dopo commit in ambiente candidato |
 | DATA-02 | Da validare | Transazione approvazione/stock, concorrenza e recovery verificati con Firestore emulato | T04 nel percorso web/mobile distribuito |
 | DATA-03 | Da validare | Audit atomico e recovery intenti Auth; audit retry e revoca dispositivo | Retention/owner e controllo audit dell'identità attuale |
-| DATA-04 | Da validare | Backup cifrato e restore isolato già provati; backup GitHub 13 ottobre riuscito | T12, recupero chiave senza sviluppatore, RPO/RTO cliente |
+| DATA-04 | Da validare | Backup applicativo cifrato e restore isolato; nuova autorità: export/restore di 90 documenti e un segreto con chiave amministrativa separata, confronto riuscito (IDENTITY-RECOVERY-2026-10-13) | T12 completo, copia offsite amministrativa del registro, custodia separata, recupero MFA e RPO/RTO cliente |
 | DATA-05 | Da validare | Snapshot/versioni/unità/checksum PDF; prove immutabilità e rinomina | Modello report e PDF accettati dal cliente |
 | AUTH-01 | Da validare | Ripristino Firebase e access gate; test riavvio logico/offline/UID | Avvio e upgrade della nuova build firmata sul Samsung |
 | AUTH-02 | Da validare | Rotazione token UID+tenant, cleanup seriale, scope guard; mapping FCM per dispositivo e revoca atomica | T06/T10; installazioni legacy senza mapping devono riassociare il token al login/sync |
@@ -90,3 +90,11 @@ Il pilota richiede due settimane di uso reale o un campione equivalente **concor
 Baseline privata: `.radiotech/cloud/notification-config-20261013.json`. Se il problema è relativo solo alla nuova URL, rimuovere `FIREBASE_DATABASE_URL` con `gcloud run services update radiotech-web --region=europe-west1 --project=gestionale-radio --remove-env-vars=FIREBASE_DATABASE_URL`; registrare la nuova revisione pronta. Rimuovere il ruolo FCM solo se il file prova che era assente prima e se si vuole sospendere anche gli invii già autorizzati in coda. Non revocare gli altri ruoli del runtime. Il rollback codice deve mantenere compatibilità con mobile 11002; un rollback mobile richiede una build correttiva con codice superiore a 11004, stessa firma e nessuna disinstallazione con dati pendenti.
 
 PR di revisione: [web/API PR45](https://github.com/Kevinni05/radiotechwebapp/pull/45), [mobile PR30](https://github.com/Kevinni05/gestionale_radio/pull/30). Entrambe draft; nessun Go/No-Go commerciale implicito. La prova FCM fisica non è partita perché il Samsung era scollegato; fixture e credenziali QA sono state rimosse. Lo script può preparare una nuova prova dopo il collegamento.
+
+## Chiusura della preparazione tecnica
+
+Mobile commit `c12b50cff1d24a9772c867dc922195ab9c63b114`: [CI finale](https://github.com/Kevinni05/gestionale_radio/actions/runs/38415090536) verde, incluse compilazione, prove native e recovery/emulatore. APK/AAB **1.5.5+11004** firmati, identità/certificato originali verificati con apksigner/aapt e jarsigner/keytool. Artefatti e simboli privati; [manifest con digest](RELEASE-CANDIDATE-11004.json). Non pubblicati né installati sopra l’app commerciale.
+
+Backend: 191 test unitari eseguiti senza fallimenti, 114 emulator case saltati in quel run; separatamente 113 test Firestore/Auth riusciti. Il caso dispositivi ora passa dalla route HTTP effettiva `/api/v1/operator/me/fcm-token`, oltre a provare transazioni/revoca, mantenendo compatibilità dei client legacy. Autorità: 28 test riusciti e restore reale→emulatore di 90 documenti/un segreto con confronto completo.
+
+Le sei prove browser mirate finali (notifiche, Pro in caricamento, animazioni/layout) sono riuscite. Rimangono da collegare gli esiti della CI web alla revisione finale dopo il consolidamento del percorso HTTP e del recupero del registro. Manuale di recupero amministrativo: [IDENTITY-RECOVERY](IDENTITY-RECOVERY-2026-10-13.md).
