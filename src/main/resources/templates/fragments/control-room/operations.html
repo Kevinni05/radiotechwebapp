@@ -8,7 +8,7 @@
                     <div class="panel operator-directory">
                         <div class="panel-head">
                             <div>
-                                <h3 data-copy-key="copy-23">Gestione operatori</h3><span>Crea account, consulta la squadra e assegna ruoli applicativi</span>
+                                <h3 data-copy-key="copy-23">Gestione operatori</h3><span>Directory della squadra · Anagrafica, autorizzazioni e credenziali di accesso</span>
                             </div>
                             <div class="toolbar"><button class="mini-btn"
                                     id="operatorsRefreshBtn">Aggiorna</button><button class="mini-btn" id="operatorsClearFilters" type="button">Azzera filtri</button><button class="btn primary"
@@ -25,13 +25,13 @@
                         </div>
                         <div class="table-wrap" tabindex="0" role="region" aria-label="Elenco operatori">
                             <table class="operator-table" role="table" aria-label="Squadra e gestione accessi">
-                                <thead class="sr-only" role="rowgroup">
+                                <thead role="rowgroup">
                                     <tr>
-                                        <th>Operatore</th>
-                                        <th>Profilo</th>
-                                        <th>Accesso</th>
-                                        <th>Presenza</th>
-                                        <th>Azioni</th>
+                                        <th scope="col">Operatore</th>
+                                        <th scope="col">Profilo professionale</th>
+                                        <th scope="col">Ruolo applicativo</th>
+                                        <th scope="col">Stato e presenza</th>
+                                        <th scope="col">Badge di accesso</th>
                                     </tr>
                                 </thead>
                                 <tbody id="operatorsTableBody" role="rowgroup">
