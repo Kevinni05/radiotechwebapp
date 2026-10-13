@@ -66,6 +66,8 @@ Fonte: piano Enterprise Pro 2.1 del 13 ottobre 2026 consegnato da Kevin. Le rich
 
 ## Evidenze di questa iterazione
 
+Aggiornamento del retry dopo rinnovo token: gli esiti sono calcolati sulle registrazioni selezionate per il tentativo corrente. I token precedenti restano nelle ricevute backend e nei contatori `previousTokenAccepted`/`previousTokenFailures`, senza mantenere un falso DEAD_LETTER dopo la consegna al nuovo token. Provate le transizioni token scaduto → nessun token → token rinnovato, con stessa notifica e conservazione delle ricevute: sette test integrati di consegna/storico/dispatch riusciti. Sono prove emulatore/provider simulato, non ricezione fisica FCM.
+
 - Mobile: `flutter analyze --no-pub` senza segnalazioni; **180 test** Flutter riusciti dopo correzioni di sessione, scope, bozze e GPS.
 - Samsung SM-S731U, Android 16: test nativo QA dell'archivio cifrato riuscito, incluso `notification_device_owner` e cache della validazione sessione. L'app commerciale non è stata cancellata o sostituita.
 - Backend: test unitari/build e suite **113 test di integrazione in 39 suite**, zero errori/fallimenti, con Firestore/Auth emulati. Includono dispatch generale idempotente e rotazione/revoca token che conserva l'altro telefono.

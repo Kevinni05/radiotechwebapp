@@ -145,6 +145,22 @@ class NotificationDeliveryEmulatorTest {
             notifications.deliverRecorded(expired.getId());
             assertEquals("DEAD_LETTER", expired.get().get().getString("deliveryStatus"));
             assertEquals(List.of("fresh-token"), stored.get().get().get("fcmTokens"));
+            // A retired token's failure remains auditable, but cannot poison
+            // the outcome after the installation registers its replacement.
+            operator.setFcmTokens(List.of());
+            notifications.retryRecorded(expired.getId());
+            assertEquals("NO_TOKENS", expired.get().get().getString("deliveryStatus"));
+            assertEquals(0L, expired.get().get().getLong("failedRecipients"));
+            assertEquals(1L, expired.get().get().getLong("previousTokenFailures"));
+            operator.setFcmTokens(List.of("fresh-token"));
+            var recoveredBatch = batch(success());
+            when(messaging.sendEachForMulticast(any())).thenReturn(recoveredBatch);
+            notifications.retryRecorded(expired.getId());
+            assertEquals("SENT", expired.get().get().getString("deliveryStatus"));
+            assertEquals(1L, expired.get().get().getLong("delivered"));
+            assertEquals(0L, expired.get().get().getLong("failedRecipients"));
+            assertEquals(1L, expired.get().get().getLong("previousTokenFailures"));
+            assertEquals(2, expired.collection("pushDeliveries").get().get().size());
         }
     }
 }

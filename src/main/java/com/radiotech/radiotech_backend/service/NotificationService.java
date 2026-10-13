@@ -337,7 +337,17 @@ public class NotificationService {
                                 removeInvalidTokens(batch, response);
                           }
                         }
-                        var results = receipts.get().get().getDocuments();
+                        var allResults = receipts.get().get().getDocuments();
+                        // Delivery status describes this attempt's registrations. Keep
+                        // retired-token receipts for audit without treating a recovered
+                        // installation as a permanent failure on every later retry.
+                        var currentTokenIds = tokens.stream().map(NotificationService::tokenId)
+                                .collect(java.util.stream.Collectors.toSet());
+                        var results = allResults.stream().filter(r -> currentTokenIds.contains(r.getId())).toList();
+                        long previousTokenAccepted = allResults.stream().filter(r -> !currentTokenIds.contains(r.getId())
+                                && "ACCEPTED".equals(r.getString("status"))).count();
+                        long previousTokenFailures = allResults.stream().filter(r -> !currentTokenIds.contains(r.getId())
+                                && !"ACCEPTED".equals(r.getString("status"))).count();
                         long delivered = results.stream().filter(r -> "ACCEPTED".equals(r.getString("status"))).count();
                         long failed = results.stream().filter(r -> !"ACCEPTED".equals(r.getString("status"))).count();
                         var errorCodes=new java.util.LinkedHashMap<String,Long>();
@@ -353,6 +363,7 @@ public class NotificationService {
                                 String status = results.isEmpty() ? "NO_TOKENS" : failed == 0 ? "SENT"
                                         : retryable && attempts < 8 ? "PARTIAL" : "DEAD_LETTER";
                                 tx.update(ref, Map.of("deliveryStatus", status, "delivered", delivered, "failedRecipients", failed,
+                                        "previousTokenAccepted", previousTokenAccepted, "previousTokenFailures", previousTokenFailures,
                                         "errorCodes",errorCodes,
                                         "deliveryAttemptAt", Instant.now().toString(), "nextAttemptAt", retryAt(attempts)));
                                 return true;
