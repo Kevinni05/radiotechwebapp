@@ -1,4 +1,4 @@
-import { AccessError, requireAccess, randomToken, hash, uid, email } from './security.js';
+import { AccessError, requireAccess, randomToken, hash, uid, email, INVITED_ROLES } from './security.js';
 import { generateRegistrationOptions, verifyRegistrationResponse, generateAuthenticationOptions, verifyAuthenticationResponse } from '@simplewebauthn/server';
 
 export const webauthn = { generateRegistrationOptions, verifyRegistrationResponse, generateAuthenticationOptions, verifyAuthenticationResponse };
@@ -107,14 +107,16 @@ export function installOwnerMethods(Authority) {
       await this.auth.revokeRefreshTokens(snapshot.uid);
       await this.auth.setCustomUserClaims(snapshot.uid, { tenantId: snapshot.tenantId, mfaRequired: true });
       if (snapshot.action === 'RECOVER') {
-        await this.auth.updateUser(snapshot.uid, { multiFactor: { enrolledFactors: [] } });
+        await this.auth.updateUser(snapshot.uid, { email: snapshot.email, emailVerified: false,
+          multiFactor: { enrolledFactors: [] } });
         return this.issueInvite({ email: snapshot.email, name: 'Recupero account Capo', tenantId: snapshot.tenantId,
-          requestedBy: token.uid, kind: 'RECOVERY', targetUid: snapshot.uid });
+          requestedBy: token.uid, kind: 'RECOVERY', targetUid: snapshot.uid, role: snapshot.role });
       }
       return { suspended: true };
     });
   };
   Authority.prototype.grant = async function (snapshot, approver) {
+    requireAccess(INVITED_ROLES.has(snapshot.role), 'Ruolo non autorizzato.');
     const user = await this.auth.getUser(snapshot.uid);
     requireAccess(!user.disabled && user.emailVerified && email(user.email) === snapshot.email
       && Array.isArray(snapshot.totpFactorIds) && snapshot.totpFactorIds.length > 0
@@ -130,10 +132,10 @@ export function installOwnerMethods(Authority) {
         && member.invitationId === snapshot.id && member.status === 'SUSPENDED', 'Account già protetto: usa il percorso di recupero.');
       tx.set(`invitations/${snapshot.id}`, { ...invite, status: 'ACTIVATING', approvedBy: approver, approvedAt: this.now() });
       tx.set(`members/${snapshot.uid}`, { uid: snapshot.uid, email: snapshot.email, tenantId: snapshot.tenantId,
-        role: 'CHIEF_EXECUTIVE', status: 'ACTIVATING', invitationId: snapshot.id, approvedBy: approver, totpFactorIds: snapshot.totpFactorIds });
+        role: snapshot.role, status: 'ACTIVATING', invitationId: snapshot.id, approvedBy: approver, totpFactorIds: snapshot.totpFactorIds });
     });
     try {
-      await this.auth.setCustomUserClaims(snapshot.uid, { role: 'CHIEF_EXECUTIVE', tenantId: snapshot.tenantId, mfaRequired: true });
+      await this.auth.setCustomUserClaims(snapshot.uid, { role: snapshot.role, tenantId: snapshot.tenantId, mfaRequired: true });
       await this.auth.revokeRefreshTokens(snapshot.uid);
       await this.store.transaction(async tx => {
         const invite = await tx.get(`invitations/${snapshot.id}`);

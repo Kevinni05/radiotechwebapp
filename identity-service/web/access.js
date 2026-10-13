@@ -190,7 +190,7 @@ $('resetPassword').onclick = event => busy(event.target, async () => {
 });
 $('ownerLogin').onclick = event => busy(event.target, async () => {
   if (config.ownerProof === 'google-cloud') {
-    status('Avvia “open-chief-approvals.ps1” sul PC del proprietario: l’accesso Google viene verificato separatamente e ogni approvazione richiede la passkey.');
+    status('Sul PC del proprietario apri il collegamento “RadioTech - Approva accessi” sul desktop. Ogni approvazione richiede la tua passkey.');
     return;
   }
   ownerView = true;

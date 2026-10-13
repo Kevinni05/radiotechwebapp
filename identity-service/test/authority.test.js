@@ -77,6 +77,26 @@ test('only owner Google login plus a bound WebAuthn challenge grants chief', asy
   await assert.rejects(f.authority.completeAction({ idToken: 'owner-token', challengeId: options.challengeId, response: { id: 'key-1' } }));
 });
 
+test('other privileged operational roles require bound owner approval and cannot invite chiefs', async () => {
+  for (const role of ['ENGINEER', 'NETWORK_MANAGER']) {
+    const f = await fixture();
+    const invite = await f.authority.invite({ idToken: 'chief-token', name: 'Responsabile', email: 'new@example.test', role });
+    const invitation = f.messages[0].text.match(/#invite=([^\s]+)/)[1];
+    await f.authority.accept({ invitation, idToken: 'new-token' });
+    assert.equal(f.calls.length, 0);
+    const options = await f.authority.approvalOptions({ idToken: 'owner-token', action: 'APPROVE', target: invite.id });
+    assert.equal(options.details.role, role);
+    await f.authority.completeAction({ idToken: 'owner-token', challengeId: options.challengeId, response: { id: 'key-1' } });
+    assert.equal(f.users.get('new').customClaims.role, role);
+    assert.equal((await f.store.get('members/new')).role, role);
+    Object.assign(f.tokens.get('new-token'), { role, tenantId: 'tenant-a' });
+    await assert.rejects(f.authority.invite({ idToken: 'new-token', name: 'Altro capo', email: 'other@example.test' }));
+  }
+  const f = await fixture();
+  await assert.rejects(f.authority.invite({ idToken: 'chief-token', name: 'Altro capo', email: 'new@example.test', role: 'SUPER_ADMIN' }));
+  assert.equal(f.messages.length, 0);
+});
+
 test('changed recipient or tenant invalidates an existing approval challenge', async () => {
   const f = await fixture(); const invite = await ready(f);
   const options = await f.authority.approvalOptions({ idToken: 'owner-token', action: 'APPROVE', target: invite.id });

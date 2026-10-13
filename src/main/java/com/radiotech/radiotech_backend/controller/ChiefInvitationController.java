@@ -30,7 +30,8 @@ public class ChiefInvitationController {
             requireChief();
             String address = request.get("email"), name = request.get("name");
             if (address == null || name == null) throw new IllegalArgumentException("Inserisci nome ed email.");
-            return IdentityGateway.call("invite", Map.of("idToken", bearer(authorization), "email", address, "name", name));
+            return IdentityGateway.call("invite", Map.of("idToken", bearer(authorization), "email", address, "name", name,
+                    "role", request.getOrDefault("role", "CHIEF_EXECUTIVE")));
         });
     }
     @DeleteMapping("/{id}")

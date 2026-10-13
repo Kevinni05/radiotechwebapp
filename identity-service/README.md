@@ -4,6 +4,8 @@ Servizio indipendente che concede il ruolo Capo solo dopo conferma email, MFA TO
 
 Il capo esistente manterrà l'UID `RmaJaJZDYEYIPnrWGfulktNO9vV2` e userà `capo.radiotechwebapp@gmail.com`. L'account operatore già associato a `kcagnazzo@gmail.com` non viene unito, eliminato o promosso automaticamente.
 
+Gli inviti hanno come ruolo predefinito Capo, con tutti i permessi del capo attuale. Gli inviti a Ingegnere e Responsabile di rete seguono lo stesso percorso protetto: il proprietario vede e approva il ruolo esatto. Nessuno dei due ruoli può richiedere nuovi accessi privilegiati.
+
 Non distribuire questo servizio con le credenziali, il progetto del registro o la pipeline della web app. Il backend principale non deve possedere poteri di scrittura Firebase Authentication, firma di token, modifica IAM o accesso al registro.
 
 ## Configurazione
@@ -36,6 +38,8 @@ Il backend principale richiede `RADIOTECH_IDENTITY_ORIGIN`, `RADIOTECH_IDENTITY_
 8. Distribuire il backend con credenziali limitate e rimuovere/revocare le vecchie chiavi amministrative da Render, CI e postazioni non autorizzate. La prova IAM descritta sotto precede il rilascio.
 
 Il recupero di MFA è disponibile solo nel portale del proprietario con passkey: sospende l’account, revoca le sessioni, rimuove il fattore e manda un invito nominativo vincolato allo stesso UID. L’utente deve riconfigurare MFA e ricevere una nuova approvazione. Un reset password non disattiva MFA.
+
+Il recupero ripristina l'indirizzo approvato nel registro e richiede di verificarlo nuovamente; un cambio email tramite il client Firebase non modifica il destinatario del recupero. Un conflitto fra indirizzo e UID lascia l'account sospeso e richiede gestione amministrativa esterna.
 
 Una concessione parziale resta sospesa. L’approvazione può essere ripetuta con una nuova verifica WebAuthn per un invito `GRANT_FAILED`. Un arresto durante una modifica dell’identità conserva il blocco `userLocks/UID`; un amministratore esterno deve controllare stato Auth, registro e audit prima di sbloccarlo. Il backend non può rimuovere questi blocchi.
 

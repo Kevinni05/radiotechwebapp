@@ -1,4 +1,4 @@
-import { AccessError, requireAccess, randomToken, hash, email, uid, freshMfa, isHigh, operatorClaims } from './security.js';
+import { AccessError, requireAccess, randomToken, hash, email, uid, freshMfa, isHigh, operatorClaims, INVITED_ROLES } from './security.js';
 
 export class IdentityAuthority {
   constructor({ auth, store, mail, config, webauthn, ownerProofVerifier, now = () => Date.now() }) {
@@ -48,12 +48,14 @@ export class IdentityAuthority {
     const member = await this.membership(token);
     return { uid: token.uid, role: member.role, tenantId: member.tenantId, status: member.status, mfaRequired: true };
   }
-  async invite({ idToken, email: address, name }) {
+  async invite({ idToken, email: address, name, role = 'CHIEF_EXECUTIVE' }) {
     const token = await this.verify(idToken);
     const member = await this.membership(token, { fresh: true });
-    return this.issueInvite({ email: address, name, tenantId: member.tenantId, requestedBy: token.uid, kind: 'NEW' });
+    requireAccess(member.role === 'CHIEF_EXECUTIVE', 'Solo il capo può richiedere nuovi accessi privilegiati.');
+    return this.issueInvite({ email: address, name, role, tenantId: member.tenantId, requestedBy: token.uid, kind: 'NEW' });
   }
-  async issueInvite({ email: address, name, tenantId, requestedBy, kind, targetUid = null }) {
+  async issueInvite({ email: address, name, tenantId, requestedBy, kind, targetUid = null, role = 'CHIEF_EXECUTIVE' }) {
+    requireAccess(INVITED_ROLES.has(role), 'Ruolo non disponibile per un invito protetto.', 400);
     address = email(address);
     requireAccess(typeof name === 'string' && name.trim().length >= 2 && name.length <= 100, 'Inserisci il nome del destinatario.', 400);
     const id = randomToken();
@@ -69,7 +71,7 @@ export class IdentityAuthority {
       tx.set(limiterKey, { at: now });
       tx.set(countKey, { count: (budget?.count ?? 0) + 1 });
       tx.set(`invitations/${id}`, { email: address, name: name.trim(), tenantId, requestedBy, kind, targetUid,
-        secretHash: hash(secret), status: 'PENDING', createdAt: now, expiresAt: now + 86_400_000, role: 'CHIEF_EXECUTIVE' });
+        secretHash: hash(secret), status: 'PENDING', createdAt: now, expiresAt: now + 86_400_000, role });
       if (targetUid) tx.set(`protected/${targetUid}`, { invitationId: id, since: now });
       tx.set(`audit/${randomToken()}`, { action: 'INVITE_REQUESTED', actor: requestedBy, invitationId: id, at: now, tenantId, email: address });
     });
@@ -94,7 +96,7 @@ export class IdentityAuthority {
       }
       await this.mail.send({ to: address, subject: 'RadioTech: invito a un account Capo',
         invitationUrl: `${this.config.origin}/#invite=${id}.${secret}`,
-        text: `È stato richiesto un account personale Capo per ${name.trim()}.\nVerifica l’indirizzo, configura il secondo fattore e attendi l’approvazione del proprietario.\nIl link scade tra 24 ore:\n${this.config.origin}/#invite=${id}.${secret}\nSe non attendevi questo invito, ignoralo.` });
+        text: `È stato richiesto un account personale protetto per ${name.trim()}, con ruolo ${role}.\nVerifica l’indirizzo, configura il secondo fattore e attendi l’approvazione del proprietario.\nIl link scade tra 24 ore:\n${this.config.origin}/#invite=${id}.${secret}\nSe non attendevi questo invito, ignoralo.` });
     } catch {
       await this.store.transaction(async tx => { const invite = await tx.get(`invitations/${id}`); tx.set(`invitations/${id}`, { ...invite, status: 'DELIVERY_FAILED' }); });
       throw new AccessError(503, 'Invito non recapitato. Nessun account è stato attivato.');

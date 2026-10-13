@@ -1058,6 +1058,15 @@
       const operator = ctx.state.operators.find((item) => item.id === id);
       if (!operator) return;
       const role = select.value;
+      if (role === "ENGINEER" && (await window.RadioTechChiefAccess.config()).identityRequired) {
+        ctx.switchView("profile");
+        ctx.$("chiefInviteName").value = operator.fullName || operator.name || "";
+        ctx.$("chiefInviteEmail").value = operator.email || "";
+        ctx.$("chiefInviteRole").value = "ENGINEER";
+        ctx.$("chiefInviteEmail").focus();
+        ctx.toast("Accesso protetto richiesto", "Invia l\u2019invito: email, MFA e approvazione con passkey precedono l\u2019assegnazione del ruolo.");
+        return;
+      }
       if (role === "VIEWER" && (operator.role || "OPERATOR").toUpperCase() !== "VIEWER" && !await ctx.confirm("Il ruolo Sola lettura disabilita l'accesso alle funzioni operative dell'app mobile. Continuare?")) return;
       try {
         await ctx.apiFetch(`/api/v1/operators/${encodeURIComponent(id)}/role`, {

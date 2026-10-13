@@ -9,6 +9,7 @@ export function requireAccess(condition, message = 'Operazione non autorizzata.'
 export const randomToken = () => randomBytes(32).toString('base64url');
 export const hash = value => createHash('sha256').update(value).digest('hex');
 export const HIGH_ROLES = new Set(['CAPO', 'CHIEF_EXECUTIVE', 'ADMIN', 'SUPER_ADMIN', 'NETWORK_MANAGER', 'ENGINEER']);
+export const INVITED_ROLES = new Set(['CHIEF_EXECUTIVE', 'NETWORK_MANAGER', 'ENGINEER']);
 export const isHigh = claims => HIGH_ROLES.has(claims?.role) || claims?.admin === true;
 export function email(value) {
   requireAccess(typeof value === 'string' && value.length <= 254 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value), 'Indirizzo email non valido.', 400);
