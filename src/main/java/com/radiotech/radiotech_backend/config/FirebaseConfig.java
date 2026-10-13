@@ -49,6 +49,11 @@ public class FirebaseConfig {
             credentials = GoogleCredentials.getApplicationDefault();
         }
 
+        if (!projectId.startsWith("demo-") && (credentials instanceof com.google.auth.oauth2.ServiceAccountCredentials
+                || credentials instanceof com.google.auth.oauth2.UserCredentials)) {
+            throw new IllegalStateException("The web runtime requires a keyless, least privilege service identity; private service account keys and human credentials are forbidden.");
+        }
+
         FirebaseOptions.Builder optionsBuilder = FirebaseOptions.builder()
                 .setCredentials(credentials)
                 .setProjectId(projectId)

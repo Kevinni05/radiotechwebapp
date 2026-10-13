@@ -120,6 +120,7 @@ get updateMap(){return updateMap;}};
             let proSuite = null;
             let proSecurity = null;
             let signatureWorkspace = null;
+            let chiefAccess = null;
 
             const $ = id => document.getElementById(id);
 
@@ -209,6 +210,7 @@ get updateMap(){return updateMap;}};
                 state.refreshToken = refreshToken;
                 state.user = user || null;
                 state.authRole = user?.role || null;
+                chiefAccess?.syncRole();
                 signatureWorkspace?.syncIdentity();
                 purgeLegacyTokens();
                 try { localStorage.setItem(CONFIG.STORAGE_REMEMBER, String(remember)); } catch (_) {}
@@ -222,6 +224,8 @@ get updateMap(){return updateMap;}};
             function clearSession() {
                 window.RadioTechDialogs?.cancelAll();
                 signatureWorkspace?.reset();
+                chiefAccess?.reset();
+                closeModal("passwordModal");
                 window.dispatchEvent(new Event('radiotech:identity-changed'));
                 document.querySelectorAll(".report-delete-dialog, .report-material-review").forEach(dialog => dialog.close());
                 featureContext.reportAttachments?.clear();
@@ -657,6 +661,45 @@ function loadAudit(...args){return feature_system.loadAudit(...args);}
                 if (state.map) updateMap();
             }
 
+            async function savePassword(event) {
+                event.preventDefault();
+                const currentPassword = $("currentPassword").value;
+                const newPassword = $("newPassword").value;
+                const status = $("passwordStatus");
+                if (newPassword !== $("confirmPassword").value) {
+                    status.textContent = "La nuova password e la conferma non coincidono.";
+                    return;
+                }
+                if (newPassword.length < 8 || !/[A-Z]/.test(newPassword) || !/[a-z]/.test(newPassword)
+                    || !/\d/.test(newPassword) || !/[^A-Za-z0-9]/.test(newPassword)) {
+                    status.textContent = "La nuova password deve contenere almeno 8 caratteri, maiuscola, minuscola, numero e simbolo.";
+                    return;
+                }
+                if (newPassword === currentPassword) {
+                    status.textContent = "La nuova password deve essere diversa da quella attuale.";
+                    return;
+                }
+                const button = $("savePasswordBtn");
+                if (button.disabled) return;
+                button.disabled = true;
+                status.textContent = "Verifica e aggiornamento in corso...";
+                try {
+                    await apiFetch("/api/v1/auth/change-password", {
+                        method: "POST", body: JSON.stringify({ currentPassword, newPassword })
+                    });
+                    closeModal("passwordModal");
+                    signOut();
+                    if (window.RadioTechFederation) await window.RadioTechFederation.logout().catch(() => {});
+                    showLogin("Password aggiornata. Accedi con la nuova password.");
+                    toast("Password aggiornata", "Usa la nuova password per accedere.");
+                } catch (error) {
+                    status.textContent = error.message;
+                } finally {
+                    $("passwordForm").reset();
+                    button.disabled = false;
+                }
+            }
+
             /* ---------- MODALS ---------- */
 
             function openModal(id) {
@@ -665,6 +708,7 @@ function loadAudit(...args){return feature_system.loadAudit(...args);}
             }
 
             function closeModal(id) {
+                if (id === "passwordModal") { $("passwordForm").reset(); $("passwordStatus").textContent = ""; }
                 $(id).classList.remove("open");
                 if (!document.querySelector(".modal-backdrop.open")) {
                     document.body.classList.remove("modal-open");
@@ -674,6 +718,30 @@ function loadAudit(...args){return feature_system.loadAudit(...args);}
             /* ---------- EVENTS ---------- */
 
             $("loginForm").addEventListener("submit", login);
+            $("changePasswordBtn").addEventListener("click", () => {
+                window.RadioTechChiefAccess.open("password", () => {
+                    $("passwordForm").reset(); $("passwordStatus").textContent = "";
+                    openModal("passwordModal"); $("currentPassword").focus();
+                }).catch(e => toast("Cambio password", e.message, "error"));
+            });
+            $("passwordForm").addEventListener("submit", savePassword);
+
+            $("protectedChiefLogin").addEventListener("click", async () => {
+                const button = $("protectedChiefLogin");
+                button.disabled = true;
+                $("loginStatus").textContent = "Completa l'accesso nella finestra protetta.";
+                try {
+                    const idToken = await window.RadioTechChiefAccess.open('login');
+                    const response = await fetch(CONFIG.AUTH_LOGIN, { method: 'POST',
+                        headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ idToken }) });
+                    const data = await response.json();
+                    if (!response.ok) throw new Error(data.message || 'Accesso non autorizzato.');
+                    saveSession(idToken, { ...data.user, role: data.role }, false, null);
+                    $("loginPassword").value = '';
+                    await startApplication();
+                } catch (e) { $("loginStatus").textContent = e.message; }
+                finally { button.disabled = false; }
+            });
 
             $("togglePassword").addEventListener("click", () => {
                 const input = $("loginPassword");
@@ -854,6 +922,7 @@ function loadAudit(...args){return feature_system.loadAudit(...args);}
             }
 
             window.addEventListener("DOMContentLoaded", () => {
+                chiefAccess = window.RadioTechChiefAccess.install({apiFetch, toast, currentRole: () => state.authRole});
                 enterprise = window.RadioTechEnterprise({ apiFetch, state, escapeHtml, toast, switchView });
                 companyHub = window.RadioTechCompanyHub({ apiFetch, state, escapeHtml, toast, switchView });
                 proSuite = window.RadioTechPro({ apiFetch, state, escapeHtml, toast, switchView });

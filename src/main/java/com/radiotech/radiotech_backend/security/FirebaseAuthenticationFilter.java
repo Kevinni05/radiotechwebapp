@@ -130,10 +130,18 @@ public class FirebaseAuthenticationFilter
                 }
 
                 Role authenticatedRole = Role.fromClaims(decoded.getClaims());
+                try {
+                        IdentityGateway.validate(decoded, idToken);
+                } catch (IdentityGateway.IdentityUnavailableException e) {
+                        response.setStatus(503); response.setContentType("application/json"); response.setCharacterEncoding("UTF-8");
+                        response.getWriter().write("{\"message\":\"Verifica degli accessi protetti temporaneamente non disponibile.\"}"); return;
+                } catch (Exception e) {
+                        sendForbidden(response, "Account privilegiato non autorizzato o MFA richiesta."); return;
+                }
                 if (Boolean.TRUE.equals(decoded.getClaims().get("mfaRequired"))) {
                         Object firebase = decoded.getClaims().get("firebase");
                         if ((!(firebase instanceof java.util.Map<?,?> claims) || claims.get("sign_in_second_factor") == null)
-                                && !(Boolean.TRUE.equals(decoded.getClaims().get("radioMfaVerified")) && decoded.getClaims().get("radioDeviceId") instanceof String)) {
+                                && !(!IdentityGateway.isolated() && Boolean.TRUE.equals(decoded.getClaims().get("radioMfaVerified")) && decoded.getClaims().get("radioDeviceId") instanceof String)) {
                                 sendForbidden(response, "Autenticazione a due fattori richiesta.");
                                 return;
                         }

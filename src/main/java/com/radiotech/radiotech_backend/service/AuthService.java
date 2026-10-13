@@ -1,6 +1,7 @@
 package com.radiotech.radiotech_backend.service;
 
 import com.google.firebase.auth.FirebaseAuth;
+import com.radiotech.radiotech_backend.security.IdentityGateway;
 import com.google.firebase.auth.FirebaseToken;
 import com.google.firebase.auth.UserRecord;
 import com.radiotech.radiotech_backend.model.CapoProfile;
@@ -48,9 +49,11 @@ public class AuthService {
                                         "Firebase ID token obbligatorio.");
                 }
 
-                return FirebaseAuth
+                FirebaseToken verified = FirebaseAuth
                                 .getInstance()
                                 .verifyIdToken(idToken.trim(), true);
+                IdentityGateway.validate(verified, idToken.trim());
+                return verified;
         }
 
         /**
@@ -198,6 +201,67 @@ public class AuthService {
                                         .body(Map.class);
                 } catch (Exception e) {
                         return null;
+                }
+        }
+
+        public void changePassword(String uid, String email, String currentPassword, String newPassword) {
+                if (IdentityGateway.isolated()) throw new IllegalArgumentException("Usa il servizio accessi protetti per cambiare la password con MFA.");
+                if (uid == null || uid.isBlank() || email == null || email.isBlank()) {
+                        throw new SecurityException("Account non autorizzato.");
+                }
+                if (currentPassword == null || currentPassword.isBlank()) {
+                        throw new IllegalArgumentException("Inserisci la password attuale.");
+                }
+                if (newPassword == null || newPassword.length() < 8
+                                || !newPassword.matches(".*[A-Z].*")
+                                || !newPassword.matches(".*[a-z].*")
+                                || !newPassword.matches(".*\\d.*")
+                                || !newPassword.matches(".*[^A-Za-z0-9].*")) {
+                        throw new IllegalArgumentException(
+                                        "La nuova password deve contenere almeno 8 caratteri, maiuscola, minuscola, numero e simbolo.");
+                }
+                if (newPassword.equals(currentPassword)) {
+                        throw new IllegalArgumentException("La nuova password deve essere diversa da quella attuale.");
+                }
+                if (firebaseWebApiKey == null || firebaseWebApiKey.isBlank()) {
+                        throw new IllegalStateException("Cambio password non configurato.");
+                }
+
+                Map<?, ?> identity;
+                try {
+                        identity = restClient.post()
+                                        .uri("https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=" + firebaseWebApiKey)
+                                        .contentType(MediaType.APPLICATION_JSON)
+                                        .body(Map.of("email", email, "password", currentPassword, "returnSecureToken", true))
+                                        .retrieve().body(Map.class);
+                } catch (RestClientResponseException e) {
+                        if (e.getStatusCode().value() == 429 || e.getStatusCode().is5xxServerError()) {
+                                throw new IllegalStateException("Servizio di autenticazione temporaneamente non disponibile.");
+                        }
+                        throw new IllegalArgumentException("Password attuale non corretta o accesso con password non disponibile.");
+                }
+                if (identity != null && identity.containsKey("mfaPendingCredential")) {
+                        throw new IllegalArgumentException("Questo account richiede il secondo fattore per cambiare la password.");
+                }
+                if (identity == null || !(identity.get("idToken") instanceof String freshToken) || freshToken.isBlank()) {
+                        throw new IllegalStateException("Impossibile verificare la password attuale. Riprova.");
+                }
+                if (!uid.equals(identity.get("localId"))) {
+                        throw new SecurityException("La password deve appartenere all'account con cui hai effettuato l'accesso.");
+                }
+
+                // Use the freshly authenticated user's token, never an administrative password reset.
+                try {
+                        restClient.post()
+                                        .uri("https://identitytoolkit.googleapis.com/v1/accounts:update?key=" + firebaseWebApiKey)
+                                        .contentType(MediaType.APPLICATION_JSON)
+                                        .body(Map.of("idToken", freshToken, "password", newPassword, "returnSecureToken", true))
+                                        .retrieve().toBodilessEntity();
+                } catch (RestClientResponseException e) {
+                        if (e.getStatusCode().value() == 429 || e.getStatusCode().is5xxServerError()) {
+                                throw new IllegalStateException("Servizio di autenticazione temporaneamente non disponibile.");
+                        }
+                        throw new IllegalArgumentException("Cambio password rifiutato. Verifica i requisiti della nuova password e riprova.");
                 }
         }
 
@@ -536,9 +600,7 @@ public class AuthService {
                                         displayName.trim());
                 }
 
-                return FirebaseAuth
-                                .getInstance()
-                                .createUser(request);
+                return IdentityGateway.create(request, email.trim(), password, displayName);
         }
 
         /**
@@ -588,10 +650,7 @@ public class AuthService {
                                         "Firebase UID obbligatorio.");
                 }
 
-                FirebaseAuth
-                                .getInstance()
-                                .deleteUser(
-                                                firebaseUid.trim());
+                IdentityGateway.delete(firebaseUid.trim());
         }
 
         /**
@@ -662,7 +721,7 @@ public class AuthService {
                                                 .setEmail(email)
                                                 .setDisplayName(operator.getFullName())
                                                 .setEmailVerified(true);
-                                UserRecord created = FirebaseAuth.getInstance().createUser(createReq);
+                                UserRecord created = IdentityGateway.create(createReq, email, null, operator.getFullName());
                                 firebaseUid = created.getUid();
                         }
                 }
@@ -705,9 +764,9 @@ public class AuthService {
                 claims.put("role", qrRole);
                 claims.put("operatorId", operator.getId());
                 claims.put("tenantId", operator.getTenantId());
-                FirebaseAuth.getInstance().setCustomUserClaims(firebaseUid, claims);
+                IdentityGateway.claims(firebaseUid, claims);
 
-                String customToken = FirebaseAuth.getInstance().createCustomToken(firebaseUid, claims);
+                String customToken = IdentityGateway.customToken(firebaseUid, claims);
 
                 // Do not deliver a token if the badge was revoked or consumed while
                 // Firebase was preparing it. Preparation failures do not consume it.

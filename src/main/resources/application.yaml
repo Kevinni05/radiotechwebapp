@@ -38,6 +38,10 @@ app:
     database-url: ${FIREBASE_DATABASE_URL:}
 
 radiotech:
+  identity:
+    required: ${RADIOTECH_IDENTITY_REQUIRED:true}
+    origin: ${RADIOTECH_IDENTITY_ORIGIN:}
+    app-secret: ${RADIOTECH_IDENTITY_APP_SECRET:}
   brand:
     name: ${RADIOTECH_BRAND_NAME:RadioTech}
     subtitle: ${RADIOTECH_BRAND_SUBTITLE:Gestione operativa}

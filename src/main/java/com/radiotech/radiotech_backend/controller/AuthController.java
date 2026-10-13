@@ -167,6 +167,27 @@ public class AuthController {
                 }
         }
 
+        @PostMapping("/change-password")
+        public ResponseEntity<?> changePassword(
+                        @RequestAttribute("firebaseUid") String firebaseUid,
+                        @RequestAttribute("firebaseToken") FirebaseToken token,
+                        @RequestBody Map<String, String> request) {
+                try {
+                        authService.changePassword(firebaseUid, token.getEmail(),
+                                        request.get("currentPassword"), request.get("newPassword"));
+                        return ResponseEntity.ok(Map.of("success", true,
+                                        "message", "Password aggiornata. Accedi nuovamente con la nuova password."));
+                } catch (IllegalArgumentException e) {
+                        return ResponseEntity.badRequest().body(error(e.getMessage()));
+                } catch (SecurityException e) {
+                        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error("Operazione non autorizzata."));
+                } catch (Exception e) {
+                        // Do not log provider responses or exceptions that might contain credentials.
+                        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                                        .body(error("Cambio password non disponibile. Riprova tra qualche istante."));
+                }
+        }
+
         @PostMapping("/refresh")
         public ResponseEntity<?> refresh(@RequestBody Map<String, String> request) {
                 try {

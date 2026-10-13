@@ -1,0 +1,21 @@
+.git
+.firebase
+*.log
+firebase-debug.*
+.gradle
+build
+node_modules
+.dist
+test-results
+playwright-report
+.env*
+secrets
+*.pem
+*.p12
+*.jks
+*service-account*.json
+*serviceAccount*.json
+identity-service/node_modules
+identity-service/test-results
+identity-service/playwright-report
+Files MD

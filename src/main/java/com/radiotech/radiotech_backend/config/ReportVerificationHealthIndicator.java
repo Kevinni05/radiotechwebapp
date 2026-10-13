@@ -29,7 +29,8 @@ public class ReportVerificationHealthIndicator implements HealthIndicator {
         if (secret == null || secret.getBytes(java.nio.charset.StandardCharsets.UTF_8).length < 32) {
             return Health.down().withDetail("dependency", "report-verification-key").build();
         }
-        if ((localFiles==null||!localFiles.enabled()) && (storageBucket == null || !storageBucket.matches("[A-Za-z0-9][A-Za-z0-9.-]{1,220}[A-Za-z0-9]"))) {
+        if ((localFiles == null || "FIREBASE_STORAGE".equals(localFiles.storageBackend()))
+                && (storageBucket == null || !storageBucket.matches("[A-Za-z0-9][A-Za-z0-9.-]{1,220}[A-Za-z0-9]"))) {
             return Health.down().withDetail("dependency", "firebase-storage-bucket").build();
         }
         try {

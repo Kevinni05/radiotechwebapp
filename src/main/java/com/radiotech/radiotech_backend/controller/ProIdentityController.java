@@ -27,7 +27,7 @@ public class ProIdentityController {
   public Map<String, Object> status() {
     tenant();
     return Map.of("revocationChecked", true, "providers", List.of("google.com", "microsoft.com"), "providerActivation",
-        "Abilitare il provider nella console Firebase e configurare l'identità aziendale.", "mfaActivation",
+        "Abilitare il provider nella console Firebase e configurare l'identitÃ  aziendale.", "mfaActivation",
         "MFA gestita richiede configurazione Firebase Identity Platform; non viene attivata con costi durante il test gratuito.",
         "portalPath", "/portal");
   }
@@ -67,8 +67,8 @@ public class ProIdentityController {
     else
       after.remove("customerId");
     var event = audit.beginIdentityAction("IDENTITY_BIND", tenant, SecurityContextAccessor.currentUid(), uid, before, after);
-    auth.setCustomUserClaims(uid, after);
-    auth.revokeRefreshTokens(uid);
+    IdentityGateway.claims(uid, after);
+    IdentityGateway.revoke(uid);
     audit.completeIdentityAction(event);
     return Map.of("uid", uid, "role", role.name(), "reauthenticationRequired", true);
   }
@@ -82,7 +82,7 @@ public class ProIdentityController {
       throw new SecurityException("Account non autorizzato.");
     var event = audit.beginIdentityAction("SESSION_REVOKE", tenant, SecurityContextAccessor.currentUid(), uid,
         user.getCustomClaims(), user.getCustomClaims());
-    auth.revokeRefreshTokens(uid);
+    IdentityGateway.revoke(uid);
     audit.completeIdentityAction(event);
     return Map.of("revoked", true);
   }

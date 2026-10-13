@@ -16,6 +16,8 @@ COPY src src
 COPY --from=frontend /frontend/src/main/resources/static/assets/auth-client.js src/main/resources/static/assets/auth-client.js
 COPY --from=frontend /frontend/src/main/resources/static/assets/control-room.js src/main/resources/static/assets/control-room.js
 COPY --from=frontend /frontend/src/main/resources/static/assets/operations-upgrade.js src/main/resources/static/assets/operations-upgrade.js
+COPY deploy/edge/EdgeProxy.java deploy/edge/EdgeProxy.java
+RUN javac deploy/edge/EdgeProxy.java -d edge-proxy
 RUN ./gradlew bootJar --no-daemon --console=plain
 
 FROM eclipse-temurin:21-jre-jammy
@@ -29,7 +31,9 @@ COPY --from=build --chown=radiotech:radiotech /workspace/build/libs/radiotech.ja
 RUN mkdir -p /app/.dist/private-files \
     && chown 10001:10001 /app/.dist/private-files \
     && chmod 700 /app/.dist/private-files
+COPY --from=build --chown=radiotech:radiotech /workspace/edge-proxy edge-proxy
+COPY --chown=radiotech:radiotech deploy/start-container.sh start-container.sh
 USER 10001:10001
 ENV SPRING_PROFILES_ACTIVE=production
 EXPOSE 8080
-ENTRYPOINT ["java", "-XX:MaxRAMPercentage=70", "-XX:+ExitOnOutOfMemoryError", "-jar", "/app/app.jar"]
+ENTRYPOINT ["sh", "/app/start-container.sh"]

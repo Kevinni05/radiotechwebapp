@@ -11,9 +11,9 @@ service cloud.firestore {
       return hasTenant() && data.tenantId == request.auth.token.tenantId;
     }
     function role() { return signedIn() && request.auth.token.role != null ? request.auth.token.role : ''; }
-    function manager() {
-      return signedIn() && role() in ['SUPER_ADMIN', 'ADMIN', 'CHIEF_EXECUTIVE', 'CAPO', 'NETWORK_MANAGER', 'ENGINEER'];
-    }
+    // Privileged sessions must pass the API's independent membership and MFA checks.
+    // This database cannot consult the authorization registry in the separate project.
+    function manager() { return false; }
     function viewer() { return signedIn() && role() == 'VIEWER'; }
     function operator() { return signedIn() && role() in ['OPERATOR', 'OPERATORE']; }
 
@@ -59,11 +59,7 @@ service cloud.firestore {
       allow write: if false;
     }
     match /capo/{id} {
-      allow read: if manager() && tenantMatches(resource.data) && id == request.auth.uid;
-      allow create: if manager() && tenantMatches(request.resource.data) && id == request.auth.uid;
-      allow update: if manager() && tenantMatches(resource.data) && tenantMatches(request.resource.data)
-        && id == request.auth.uid;
-      allow delete: if manager() && tenantMatches(resource.data) && id == request.auth.uid;
+      allow read, write: if false;
     }
     match /users/{id} {
       allow read: if (manager() || viewer()) && tenantMatches(resource.data);

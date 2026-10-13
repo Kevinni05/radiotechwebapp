@@ -13,3 +13,7 @@
 !scripts/**
 !frontend/
 !frontend/**
+!deploy/
+!deploy/edge/
+!deploy/edge/EdgeProxy.java
+!deploy/start-container.sh
