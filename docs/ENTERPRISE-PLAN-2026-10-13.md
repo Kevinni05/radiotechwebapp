@@ -77,7 +77,7 @@ Aggiornamento del retry dopo rinnovo token: gli esiti sono calcolati sulle regis
 - CI mobile 38412165580: analisi/test Flutter, compilazione e test nativi riusciti; caricamento report fallito per quota artefatti GitHub esaurita. Upload diagnostici QA resi opzionali con retention un giorno e riepilogo XML/digest sempre nei log/summary; non sostituiscono la consegna della release firmata. Attendere CI della revisione finale. La precedente ipotesi di errore percorso non era confermata dal log.
 - Test nativo locale Windows: sei casi riusciti; il caso già esistente di sostituzione atomica allegati fallisce perché `File.renameTo` non sostituisce il file su Windows. Il test Android fisico dell'archivio è riuscito. Non è stata indebolita la protezione degli allegati per far passare il simulatore Windows.
 
-Log, credenziali QA, APK/AAB/simboli e baseline configurazione sono custoditi privatamente. Non includere log Firebase completi: possono contenere variabili dell'ambiente.
+Log, credenziali QA, APK/AAB/simboli, JAR backend e baseline configurazione sono custoditi privatamente. Il JAR della revisione `1c99f7a` è incluso nel pacchetto 11004 e nel manifest con SHA256/byte; il commit della configurazione distribuita rimane distinto dalla candidata. Non includere log Firebase completi: possono contenere variabili dell'ambiente.
 
 ## Matrice concordata e gate esterni
 
