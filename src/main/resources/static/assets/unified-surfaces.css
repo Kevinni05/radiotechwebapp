@@ -1,0 +1,79 @@
+/* Shared surface palette: operational pages use the same glass fill as Panoramica. */
+:root {
+  --overview-box-fill: var(--glass-fill);
+  --overview-box-border: var(--glass-border);
+  --overview-box-shadow: inset 0 1px #ffffff12, 0 12px 36px #0002;
+  --overview-box-inset: #ffffff03;
+  --overview-box-hover: #ffffff06;
+}
+html[data-appearance=light] {
+  --overview-box-fill: var(--panel-solid);
+  --overview-box-border: var(--border);
+  --overview-box-shadow: var(--shadow-soft);
+  --overview-box-inset: var(--panel-2);
+  --overview-box-hover: var(--light-hover);
+}
+html[data-theme] #app .view:not(#view-dashboard) {
+  --workspace-surface: var(--panel-solid);
+  --workspace-raised: var(--panel-2);
+  --workspace-line: var(--overview-box-border);
+  --workspace-muted: var(--muted);
+}
+html[data-theme] #app .view:not(#view-dashboard) :is(
+  .panel, .stat, .stat-card, .inventory-card, .pro-record, .management-metric,
+  .management-item, .logistics-overview article, .workspace-filter-panel,
+  .branding-preview, .task-row, .report-row, .notification-item, .health-card,
+  .ai-message, .workspace-link, .recipient
+) {
+  background: var(--overview-box-fill);
+  border-color: var(--overview-box-border);
+  color: var(--text);
+  box-shadow: var(--overview-box-shadow);
+}
+/* Only outer panels need blur; nested records reuse the palette without another GPU layer. */
+html[data-theme] #app .view:not(#view-dashboard) .panel {
+  backdrop-filter: blur(18px) saturate(125%);
+  -webkit-backdrop-filter: blur(18px) saturate(125%);
+}
+html[data-theme] #app .view:not(#view-dashboard) :is(
+  .panel-head, .pro-toolbar, .workspace-filterbar, .profile-hero,
+  .access-check, .access-status, .access-details, .telco-result, .calendar-day
+) {
+  background: var(--overview-box-inset);
+  border-color: var(--overview-box-border);
+}
+html[data-theme] #app .view:not(#view-dashboard) :is(.panel-body,.table-wrap,table,tbody tr,td,.profile-field) {
+  background: transparent;
+}
+html[data-theme] #app .view:not(#view-dashboard) th {
+  background: var(--overview-box-inset);
+  border-color: var(--overview-box-border);
+  color: var(--muted);
+}
+html[data-theme] #app .view:not(#view-dashboard) td { border-color: var(--overview-box-border); }
+html[data-theme] #app .view:not(#view-dashboard) :is(
+  .stat, .stat-card, .inventory-card, .pro-record, .workspace-link, .management-item
+):hover {
+  background: var(--overview-box-fill);
+  border-color: var(--border-strong);
+}
+html[data-theme] #app .view:not(#view-dashboard) tbody tr:hover td { background: var(--overview-box-hover); }
+html[data-theme] #app #view-operators :is(.operator-record,.operator-record-actions) { background: transparent; }
+html[data-theme] #app #view-operators .operator-record:has(+ .operator-record-actions:hover) > td,
+html[data-theme] #app #view-operators .operator-record:hover + .operator-record-actions > td {
+  background: var(--overview-box-hover);
+}
+/* Keep explicit inventory warnings distinct from neutral card borders. */
+html[data-theme] #app .view:not(#view-dashboard) .inventory-card.low { border-color: var(--yellow); }
+@supports not (backdrop-filter: blur(1px)) {
+  html[data-theme] #app .view:not(#view-dashboard) :is(.panel,.stat-card,.inventory-card,.pro-record) { background: var(--panel-solid); }
+}
+@media (max-width: 700px) {
+  html[data-theme] #app .view:not(#view-dashboard) .panel { backdrop-filter: blur(10px) saturate(125%); -webkit-backdrop-filter: blur(10px) saturate(125%); }
+}
+@media print {
+  html[data-theme] #app .view:not(#view-dashboard) :is(.panel,.stat,.stat-card,.inventory-card,.pro-record,.task-row,.management-item) {
+    background: white; color: #111; border-color: #ccc; box-shadow: none;
+    backdrop-filter: none; -webkit-backdrop-filter: none;
+  }
+}
