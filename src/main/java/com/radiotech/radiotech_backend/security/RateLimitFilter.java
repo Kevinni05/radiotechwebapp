@@ -67,7 +67,8 @@ public class RateLimitFilter extends OncePerRequestFilter {
         protected boolean shouldNotFilter(HttpServletRequest request) {
                 String path = request.getRequestURI();
                 boolean reportVerification = path.startsWith("/api/reports/verify/")
-                                || path.startsWith("/api/v1/reports/verify/");
+                                || path.startsWith("/api/v1/reports/verify/")
+                                || path.equals("/api/v1/dossier-shares/read");
                 return !(LIMITED_PATHS.contains(path) || reportVerification)
                                 || "OPTIONS".equalsIgnoreCase(request.getMethod());
         }
