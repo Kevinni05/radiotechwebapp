@@ -55,6 +55,19 @@ class AttendanceLedgerEmulatorTest {
             assertEquals(2,db.collection("workforceAttendanceAudit").whereEqualTo("tenantId",tenant).get().get().size());
         }
     }
+    @Test void conflictedQueueTransferIsIdempotentAndManagerReconciliationIsAudited() throws Exception {
+        String tenant="recovery-"+UUID.randomUUID();identity("op-a","OPERATOR",tenant);
+        try(var db=database();var firebase=mockStatic(FirestoreClient.class)) {
+            firebase.when(FirestoreClient::getFirestore).thenReturn(db);var service=new ClockRecoveryService();Instant end=Instant.now().minusSeconds(60),start=end.minusSeconds(3600);
+            var request=new ClockRecoveryService.Request(List.of(new WorkforceRequests.Shift("START","READY",0L,UUID.randomUUID().toString(),start.toString()),new WorkforceRequests.Shift("END","READY",1L,UUID.randomUUID().toString(),end.toString())));
+            var archived=service.archive(request);assertEquals(archived.get("id"),service.archive(request).get("id"));String id=archived.get("id").toString();
+            assertEquals(1,db.collection("workforceClockRecoveries").whereEqualTo("tenantId",tenant).get().get().size());assertThrows(SecurityException.class,service::pending);
+            identity("manager","ADMIN",tenant);var interval=new ClockRecoveryService.Interval(start.toString(),end.toString(),0,"Orari verificati",0);
+            var recorded=service.interval(id,interval);assertEquals("APPROVED",db.collection("workforceAttendance").document(recorded.get("id").toString()).get().get().getString("reviewStatus"));
+            assertThrows(org.springframework.web.server.ResponseStatusException.class,()->service.interval(id,interval));service.close(id,new ClockRecoveryService.Close("Tutti gli eventi verificati",1));
+            assertEquals("RESOLVED",db.collection("workforceClockRecoveries").document(id).get().get().getString("status"));assertEquals(2,db.collection("workforceAttendanceAudit").whereEqualTo("tenantId",tenant).get().get().size());
+        }
+    }
     @Test void publicationChecksVersionsAndKeepsImmutableSnapshotWhenDraftChanges() throws Exception {
         String tenant="roster-"+UUID.randomUUID();identity("manager","ADMIN",tenant);
         try(var db=database();var firebase=mockStatic(FirestoreClient.class)) {

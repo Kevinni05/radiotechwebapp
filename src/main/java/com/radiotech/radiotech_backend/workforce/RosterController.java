@@ -8,8 +8,12 @@ import java.util.*;
 @RestController
 @RequestMapping("/api/v1/workforce")
 public class RosterController {
-    private final RosterService roster;private final AttendanceService attendance;
-    public RosterController(RosterService roster,AttendanceService attendance){this.roster=roster;this.attendance=attendance;}
+    private final RosterService roster;private final AttendanceService attendance;private final ClockRecoveryService recovery;
+    public RosterController(RosterService roster,AttendanceService attendance,ClockRecoveryService recovery){this.roster=roster;this.attendance=attendance;this.recovery=recovery;}
+    @PostMapping("/me/attendance/recovery") public Object archive(@Valid @RequestBody ClockRecoveryService.Request request) throws Exception{return recovery.archive(request);}
+    @GetMapping("/attendance/recoveries") public Object recoveries() throws Exception{return recovery.pending();}
+    @PostMapping("/attendance/recoveries/{id}/interval") public Object interval(@PathVariable String id,@Valid @RequestBody ClockRecoveryService.Interval request) throws Exception{return recovery.interval(id,request);}
+    @PostMapping("/attendance/recoveries/{id}/close") public Object close(@PathVariable String id,@Valid @RequestBody ClockRecoveryService.Close request) throws Exception{return recovery.close(id,request);}
     @GetMapping("/roster/members") public Object members() throws Exception{return roster.members();}
     @GetMapping("/roster/{month}") public Object draft(@PathVariable String month) throws Exception{return roster.draft(month);}
     @PutMapping("/roster/{month}") public Object save(@PathVariable String month,@Valid @RequestBody Roster.Config config) throws Exception{return roster.save(month,config);}

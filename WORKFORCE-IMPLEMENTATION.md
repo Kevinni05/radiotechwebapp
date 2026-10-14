@@ -8,7 +8,7 @@ Il modulo collega le transizioni esistenti START / BREAK / RESUME / END a sessio
 - Le nuove sessioni non cancellano quelle concluse. Secondi cumulativi conservati; le ore mostrate escludono le pause.
 - Originali conservati; proposte di correzione e validazioni hanno versioni e audit. Le ore approvate sono separate dalle registrate.
 - Coda mobile cifrata, separata per tenant e account, con gli stessi identificativi al retry. Stato locale esplicitamente in attesa. Replay su riapertura/ripresa e ogni minuto mentre la schermata è aperta.
-- Timbrature differite accettate entro 72 ore; orari futuri oltre 5 minuti, ordine inverso o versioni concorrenti sono respinti. I conflitti restano nella coda, senza cancellazione automatica. Una coda bloccata richiede riconciliazione con il responsabile prima di nuove timbrature.
+- Timbrature differite accettate entro 72 ore; orari futuri oltre 5 minuti, ordine inverso o versioni concorrenti sono respinti. I conflitti restano nella coda, senza cancellazione automatica. Una coda bloccata può essere consegnata al responsabile: viene rimossa dal telefono solo dopo la conferma del server. In Presenze il responsabile vede gli eventi originali, registra eventuali intervalli validati senza sovrapposizioni e conclude la verifica con motivazione.
 - Registro mensile con filtri per operatore, nome, validazione e anomalia, eventi originali ed export CSV.
 - Scostamenti: ritardi, uscite anticipate/tardive, durata, entrata/uscita mancante, presenza fuori pianificazione, sessione aperta oltre 24 ore e sincronizzazione tardiva. Non approva automaticamente straordinari o assenze.
 - Calendario manuale e generatore CP-SAT: copertura esatta, disponibilità, competenze richieste, notti, ferie, limiti mensili e settimanali, riposi minimi, giorni consecutivi, turni bloccati. Obiettivi: ore desiderate, giorni preferiti, equilibrio notti/weekend e stabilità della bozza.
@@ -28,7 +28,7 @@ La pausa pianificata non ha un orario preciso: nei limiti settimanali dei turni 
 
 Dipendenze backend: OR-Tools 9.15.6755 e PDFBox 3.0.8; Java 21. Il bundle web si ricostruisce con `npm ci` e `npm run build:control-room`.
 
-Nuove collezioni: workforceAttendance, workforceTimeEvents, workforceAttendanceAudit, workforcePlans, workforcePlanGuards, workforcePlanVersions, workforceRosterAudit. Accesso tramite API autenticata, scope tenant e UID verificati; nessuna scrittura diretta dai client. Le Firestore Rules esistenti negano l'accesso alle collezioni non esposte. Distribuire gli indici di firestore.indexes.json prima dei test integrati (`firebase deploy --only firestore:indexes` nel progetto corretto).
+Nuove collezioni: workforceClockRecoveries, workforceAttendance, workforceTimeEvents, workforceAttendanceAudit, workforcePlans, workforcePlanGuards, workforcePlanVersions, workforceRosterAudit. Accesso tramite API autenticata, scope tenant e UID verificati; nessuna scrittura diretta dai client. Le Firestore Rules esistenti negano l'accesso alle collezioni non esposte. Distribuire gli indici di firestore.indexes.json prima dei test integrati (`firebase deploy --only firestore:indexes` nel progetto corretto).
 
 Test aggiunti: RosterSolverTest, AttendanceReconciliationTest, AttendanceLedgerEmulatorTest e workforce-module.spec.js. Suite mobile: attendance_clock_test.dart. Il protocollo operativo e il collaudo Samsung sono anche nel repository mobile.
 
