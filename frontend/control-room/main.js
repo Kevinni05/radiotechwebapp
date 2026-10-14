@@ -1,3 +1,4 @@
+import {installDossier} from './features/dossier.js';
 import {installWorkforce} from './features/workforce.js';
 import {createFeature as create_profile} from './features/profile.js';
 import {createFeature as create_map} from './features/map.js';
@@ -931,6 +932,7 @@ function loadAudit(...args){return feature_system.loadAudit(...args);}
                 enterprise = window.RadioTechEnterprise({ apiFetch, state, escapeHtml, toast, switchView });
                 companyHub = window.RadioTechCompanyHub({ apiFetch, state, escapeHtml, toast, switchView });
                 installWorkforce({ apiFetch, state, escapeHtml, toast, switchView });
+                installDossier({ apiFetch, state, escapeHtml, toast });
                 proSuite = window.RadioTechPro({ apiFetch, state, escapeHtml, toast, switchView });
                 proSecurity = window.RadioTechProSecurity({ apiFetch, toast, switchView });
                 window.RadioTechTelcoTools();
