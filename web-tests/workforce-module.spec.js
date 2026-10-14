@@ -28,11 +28,12 @@ test('constraint controls and manual calendar save exact versions and assignment
  await expect(page.locator('#rosterRules [data-field="minRestMinutes"]')).toHaveValue('660');
  await page.locator('#rosterMembers summary').click();
  await page.locator('#rosterMembers [data-field="unavailableDates"]').fill('2026-10-15, 2026-10-16');
+ await page.locator('#rosterMembers [data-list="allowedTemplates"] input').first().check();
  await page.locator('#rosterCalendar select').first().selectOption('DAY');
  await page.locator('#rosterCalendar input').first().check();await page.locator('#rosterSave').click();
  await expect.poll(()=>page.evaluate(()=>window.calls.filter(r=>r.options.method==='PUT').length)).toBe(1);
  const body=await page.evaluate(()=>JSON.parse(window.calls.find(r=>r.options.method==='PUT').options.body));
- expect(body.expectedVersion).toBe(1);expect(body.members[0].unavailableDates).toEqual(['2026-10-15','2026-10-16']);expect(body.assignments[0].locked).toBe(true);
+ expect(body.members[0].allowedTemplates).toEqual(['DAY']);expect(body.expectedVersion).toBe(1);expect(body.members[0].unavailableDates).toEqual(['2026-10-15','2026-10-16']);expect(body.assignments[0].locked).toBe(true);
 });
 test('infeasible generator exposes diagnostics and never publishes',async({page})=>{
  await setup(page);await page.locator('[data-view="rostering"]').click();await expect(page.locator('#rosterSave')).toBeEnabled();await page.locator('#rosterGenerate').click();
