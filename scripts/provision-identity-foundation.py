@@ -49,6 +49,16 @@ for file in [private / 'app-secret.txt', root / '.dist/secrets/RADIOTECH_REPORT_
 print('Enabling service APIs', flush=True)
 run(['services', 'enable', 'run.googleapis.com', 'cloudbuild.googleapis.com', 'artifactregistry.googleapis.com', 'secretmanager.googleapis.com', 'iamcredentials.googleapis.com', '--project=' + app_project])
 authority = account(registry_project, 'radiotech-identity')
+signer = account(app_project, 'radiotech-identity-signer')
+signing_role = 'radiotechIdentitySignBlob'
+existing_role = run(['iam', 'roles', 'describe', signing_role, '--project=' + app_project, '--format=json'], True)
+if existing_role is None:
+    run(['iam', 'roles', 'create', signing_role, '--project=' + app_project,
+         '--title=RadioTech identity token signing', '--permissions=iam.serviceAccounts.signBlob', '--stage=GA'])
+elif set(json.loads(existing_role).get('includedPermissions', [])) != {'iam.serviceAccounts.signBlob'}:
+    raise RuntimeError('The dedicated signing role has unexpected permissions.')
+run(['iam', 'service-accounts', 'add-iam-policy-binding', signer, '--project=' + app_project,
+     '--member=serviceAccount:' + authority, '--role=projects/' + app_project + '/roles/' + signing_role, '--format=value(etag)'])
 builder = account(registry_project, 'radiotech-image-builder')
 runtime = account(app_project, 'radiotech-runtime')
 web_builder = account(app_project, 'radiotech-web-builder')
