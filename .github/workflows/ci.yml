@@ -85,7 +85,7 @@ jobs:
       - name: Audit JavaScript dependencies
         run: npm audit --audit-level=high
       - name: Managed authentication session contracts
-        run: node --test scripts/auth-client-session.test.mjs
+        run: node --test scripts/auth-client-session.test.mjs scripts/auth-response.test.mjs
 
       - name: Firestore and Storage rules
         run: npm run test:rules
