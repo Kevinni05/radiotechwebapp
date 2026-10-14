@@ -6,7 +6,11 @@ from pathlib import Path
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--image', required=True)
+parser.add_argument('--no-traffic', action='store_true')
+parser.add_argument('--tag')
 args = parser.parse_args()
+if args.tag and (not args.tag.replace('-', '').isalnum() or len(args.tag) > 63):
+    raise ValueError('Invalid revision tag.')
 project = 'radiotech-id-1051055442339'
 if not args.image.startswith(f'europe-west1-docker.pkg.dev/{project}/radiotech/identity:'):
     raise ValueError('Use the reviewed image in the isolated project.')
@@ -16,6 +20,7 @@ env = {
     'IDENTITY_ORIGIN': 'https://radiotech-identity-654979616749.europe-west1.run.app',
     'IDENTITY_APP_ORIGIN': 'https://radiotechwebapp.onrender.com',
     'IDENTITY_FIREBASE_PROJECT': 'gestionale-radio',
+    'IDENTITY_TOKEN_SIGNER': 'radiotech-identity-signer@gestionale-radio.iam.gserviceaccount.com',
     'IDENTITY_REGISTRY_PROJECT': project,
     'IDENTITY_FIREBASE_API_KEY': settings['webApiKey'],
     'IDENTITY_OWNER_EMAIL': 'kcagnazzo@gmail.com',
@@ -26,12 +31,14 @@ env = {
 }
 env_file = private / 'authority-env.json'
 env_file.write_text(json.dumps(env))
+revision_flags = (['--no-traffic'] if args.no_traffic else []) + (['--tag=' + args.tag] if args.tag else [])
 result = subprocess.run(['gcloud.cmd', 'run', 'deploy', 'radiotech-identity', '--project=' + project,
     '--region=europe-west1', '--image=' + args.image, '--service-account=radiotech-identity@' + project + '.iam.gserviceaccount.com',
     '--env-vars-file=' + str(env_file), '--set-secrets=IDENTITY_APP_SECRET=radiotech-app-secret:1',
     '--allow-unauthenticated', '--min=0', '--max=3', '--memory=512Mi', '--cpu=1', '--concurrency=40',
-    '--timeout=60', '--port=8080', '--quiet', '--format=value(status.url)'], capture_output=True, text=True)
+    '--timeout=60', '--port=8080', '--quiet', '--format=value(status.url)', *revision_flags], capture_output=True, text=True)
 if result.returncode:
     raise RuntimeError(result.stderr.strip())
 print(json.dumps({'deployed': True, 'service': 'radiotech-identity', 'url': result.stdout.strip(),
-    'ownerEmail': env['IDENTITY_OWNER_EMAIL'], 'privilegedAccountsChanged': False}))
+    'ownerEmail': env['IDENTITY_OWNER_EMAIL'], 'privilegedAccountsChanged': False,
+    'noTrafficRequested': args.no_traffic, 'tag': args.tag}))

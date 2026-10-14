@@ -16,6 +16,7 @@ export default defineConfig({
     command: `java -jar "${process.env.RADIOTECH_BROWSER_TEST_JAR || 'build/libs/radiotech.jar'}" --server.port=18080 --app.firebase.enabled=false --debug=false`,
     url: 'http://127.0.0.1:18080/api/v1/health',
     reuseExistingServer: !process.env.CI,
-    timeout: 60000,
+    // Local signed Android compilation can contend with the cold Java startup.
+    timeout: process.env.CI ? 60000 : 180000,
   },
 });

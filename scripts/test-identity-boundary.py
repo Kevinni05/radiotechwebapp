@@ -26,7 +26,8 @@ registry = request('https://cloudresourcemanager.googleapis.com/v1/projects/radi
 assert not registry, 'The application runtime can access the isolated project.'
 signing = ['iam.serviceAccounts.signBlob', 'iam.serviceAccounts.signJwt', 'iam.serviceAccounts.getAccessToken',
     'iam.serviceAccounts.actAs', 'iam.serviceAccounts.setIamPolicy']
-for account in [runtime, 'radiotech-identity@radiotech-id-1051055442339.iam.gserviceaccount.com']:
+for account in [runtime, 'radiotech-identity@radiotech-id-1051055442339.iam.gserviceaccount.com',
+        'radiotech-identity-signer@gestionale-radio.iam.gserviceaccount.com']:
     result = request('https://iam.googleapis.com/v1/projects/-/serviceAccounts/' + account + ':testIamPermissions',
         {'permissions': signing}).get('permissions', [])
     assert not result, 'The runtime can sign or impersonate a service account.'

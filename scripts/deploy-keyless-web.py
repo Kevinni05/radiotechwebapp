@@ -13,6 +13,7 @@ if not args.image.startswith(f'europe-west1-docker.pkg.dev/{project}/radiotech/w
 private = Path.home() / '.radiotech/identity'
 settings = json.loads((Path.home() / '.radiotech/cloud/acceptance-settings.json').read_text())
 env = {'SPRING_PROFILES_ACTIVE': 'production', 'FIREBASE_PROJECT_ID': project,
+    'FIREBASE_DATABASE_URL': 'https://gestionale-radio-default-rtdb.europe-west1.firebasedatabase.app',
     'RADIOTECH_FIREBASE_WEB_API_KEY': settings['webApiKey'],
     'RADIOTECH_IDENTITY_REQUIRED': 'true',
     'RADIOTECH_IDENTITY_ORIGIN': 'https://radiotech-identity-654979616749.europe-west1.run.app',

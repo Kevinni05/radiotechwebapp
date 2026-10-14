@@ -17,10 +17,13 @@ import java.util.Map;
 public class NotificationController {
     private final NotificationService notifications;
     private final OperatorService operators;
+    private final com.radiotech.radiotech_backend.service.NotificationDispatchService dispatch;
 
-    public NotificationController(NotificationService notifications, OperatorService operators) {
+    public NotificationController(NotificationService notifications, OperatorService operators,
+            com.radiotech.radiotech_backend.service.NotificationDispatchService dispatch) {
         this.notifications = notifications;
         this.operators = operators;
+        this.dispatch = dispatch;
     }
 
     @PostMapping("/operator/{operatorId}")
@@ -70,25 +73,9 @@ public class NotificationController {
             requirePermission(Permission.USER_UPDATE, tenantId);
             if (body == null)
                 return bad("Body della notifica obbligatorio.");
-            String title = String.valueOf(body.getOrDefault("title", "")).trim();
-            String message = String.valueOf(body.getOrDefault("message", "")).trim();
-            String target = String.valueOf(body.getOrDefault("target", "ALL"));
-            if (title.isBlank() || message.isBlank())
-                return ResponseEntity.badRequest()
-                        .body(Map.of("success", false, "message", "Titolo e messaggio sono obbligatori."));
-            int delivered = 0;
-            if ("SELECTED".equalsIgnoreCase(target)) {
-                Object raw = body.get("recipients");
-                if (!(raw instanceof java.util.List<?> list) || list.isEmpty())
-                    return ResponseEntity.badRequest()
-                            .body(Map.of("success", false, "message", "Selezionare almeno un destinatario."));
-                for (Object id : list) {
-                    delivered += notifications.notifyOperator(String.valueOf(id), title, message);
-                }
-            } else {
-                delivered = notifications.notifyAllOperators(title, message);
-            }
-            return ResponseEntity.ok(Map.of("success", true, "delivered", delivered));
+            return ResponseEntity.ok(dispatch.dispatch(body));
+        } catch (org.springframework.web.server.ResponseStatusException e) {
+            return ResponseEntity.status(e.getStatusCode()).body(Map.of("success",false,"message",java.util.Objects.toString(e.getReason(),"Operazione non valida.")));
         } catch (SecurityException e) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(Map.of("success", false, "message", e.getMessage()));
@@ -102,6 +89,12 @@ public class NotificationController {
 
     private ResponseEntity<?> bad(String message) {
         return ResponseEntity.badRequest().body(Map.of("success", false, "message", message));
+    }
+
+    @PostMapping("/{id}/retry")
+    public ResponseEntity<?> retry(@PathVariable String id, @RequestHeader(value="X-Tenant-Id",required=false) String tenantId) throws Exception {
+        requirePermission(Permission.USER_UPDATE,tenantId);
+        return ResponseEntity.ok(notifications.retryRecorded(id));
     }
 
     @GetMapping("/recipients")

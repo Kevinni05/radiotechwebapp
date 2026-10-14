@@ -1,9 +1,12 @@
 import {createPagedResource,preserveTableInteraction} from '../paged-resource.js';
+import {resolvePresence} from '../presence-state.js';
 // operators: presentation and operations for this feature.
 export function createFeature(ctx){
 const pages=createPagedResource(ctx,{path:'/api/v1/dashboard/resources/operators/page',legacy:'/api/v1/operators',stateKey:'operators',tableId:'operatorsTableBody',filters:()=>({q:ctx.$('operatorSearch')?.value||'',role:ctx.$('operatorRoleFilter')?.value||''}),onUpdated:()=>{ctx.renderRecipients();renderOperatorTable();ctx.populateTaskSelectors();ctx.refreshReportTitles();}});
 let presenceStop=null,presenceScope=null,presenceRevision=0,presenceRecords={},presenceReady=false;
+let presenceTimer=null;
 function stopPresence(){
+ clearInterval(presenceTimer);presenceTimer=null;
  presenceRevision++;presenceStop?.();presenceStop=null;presenceScope=null;
  presenceRecords={};presenceReady=false;
 }
@@ -24,6 +27,8 @@ async function syncPresence(){
   });
   if(revision!==presenceRevision){stop?.();return;}
   presenceStop=stop||null;
+  if(stop)presenceTimer=setInterval(()=>{if(!document.hidden)updatePresenceIndicators();},5000);
+  else {presenceScope=null;presenceReady=false;updatePresenceIndicators();}
  }catch{presenceReady=false;renderOperatorTable();}
 }
 window.addEventListener('radiotech:view-changed',()=>{syncPresence();updatePresenceIndicators();});
@@ -32,8 +37,7 @@ window.addEventListener('radiotech:auth-ended',()=>{stopPresence();updatePresenc
 document.addEventListener('visibilitychange',()=>{syncPresence();updatePresenceIndicators();});
 function livePresence(operator){
  const record=presenceRecords[operator.firebaseUid||operator.id];
- return {online:presenceReady&&Object.values(record?.connections||{}).some(value=>value===true),
-  lastSeen:record?.lastSeen,known:presenceReady};
+ return resolvePresence(record,{connected:presenceReady,now:Date.now()+(window.RadioTechFederation?.presenceClockOffset?.()||0)});
 }
 function updatePresenceIndicators(){
  for(const row of ctx.$('operatorsTableBody')?.querySelectorAll('[data-operator-record]')||[]){
@@ -42,7 +46,8 @@ function updatePresenceIndicators(){
   const presence=livePresence(operator), indicator=row.querySelector('.operator-presence');
   if(indicator){
    indicator.classList.toggle('is-online',presence.online);
-   indicator.innerHTML=`<span aria-hidden="true"></span>${!presence.known?'Presenza non disponibile':presence.online?'Online · app aperta':'Offline'}`;
+   indicator.textContent=presence.label;
+   indicator.dataset.presenceState=presence.state;
   }
   const last=row.querySelector('.operator-last-seen');
   const timestamp=presence.lastSeen||operator.lastSeen;
@@ -138,7 +143,7 @@ function updatePresenceIndicators(){
                             <label><input type="radio" name="operator-role-${safeId}" value="OPERATOR" data-operator-role="${safeId}" data-role-option="OPERATOR" data-role-locked="${roleLocked}" ${role === 'OPERATOR' ? 'checked' : ''} ${roleLocked ? 'disabled' : ''}><span>Operatore</span></label>
                             <label><input type="radio" name="operator-role-${safeId}" value="VIEWER" data-operator-role="${safeId}" data-role-option="VIEWER" data-role-locked="${roleLocked}" ${role === 'VIEWER' ? 'checked' : ''} ${roleLocked ? 'disabled' : ''}><span>Sola lettura</span></label>
                         </fieldset><button type="button" class="mini-btn" data-save-role="${safeId}" ${roleLocked ? 'disabled' : ''}>Salva ruolo</button></div><div class="operator-role-hint">${roleLocked ? (pending ? 'Approvazione account necessaria' : 'Collegamento account necessario') : role === 'VIEWER' ? 'Consultazione senza azioni operative' : 'Accesso alle funzioni operative'}</div></td>
-                        <td role="cell" data-label="Stato e presenza"><span class="badge ${statusTone}">${ctx.escapeHtml(ctx.formatStatus(status))}</span><div class="operator-presence ${online?'is-online':''}"><span aria-hidden="true"></span>${!presence.known?'Presenza non disponibile':online?'Online · app aperta':'Offline'}</div><div class="subtle operator-last-seen">${lastSeen && Number.isFinite(Date.parse(lastSeen)) ? ctx.escapeHtml(new Date(lastSeen).toLocaleString('it-IT')) : 'Nessuna presenza registrata'}</div></td>
+                        <td role="cell" data-label="Stato e presenza"><span class="badge ${statusTone}">${ctx.escapeHtml(ctx.formatStatus(status))}</span><div class="operator-presence ${online?'is-online':''}" data-presence-state="${presence.state}">${ctx.escapeHtml(presence.label)}</div><div class="subtle operator-last-seen">${lastSeen && Number.isFinite(Date.parse(lastSeen)) ? ctx.escapeHtml(new Date(lastSeen).toLocaleString('it-IT')) : 'Nessuna presenza registrata'}</div></td>
                         <td role="cell" data-label="Badge di accesso"><strong class="operator-badge-state ${expired?'is-expired':''}">${expired?'QR scaduto':'Badge QR'}</strong><div class="subtle">${ctx.escapeHtml(badgeDescription)}</div><div class="operator-role-hint">${operator.qrLastUsedAt && Number.isFinite(Date.parse(operator.qrLastUsedAt)) ? `Ultimo uso: ${ctx.escapeHtml(new Date(operator.qrLastUsedAt).toLocaleDateString('it-IT'))}` : 'Nessun utilizzo registrato'}</div></td>
                     </tr><tr role="row" class="operator-record-actions"><td role="cell" colspan="5"><div class="operator-actions" role="group" aria-label="Azioni per ${safeName}">
                         <div class="operator-action-group"><span class="operator-action-label">Anagrafica</span><button type="button" class="mini-btn operator-action-main" data-operator-details="${safeId}">Scheda operatore</button>${pending ? `<button type="button" class="mini-btn primary" data-approve="${safeId}">Approva account</button>` : ''}</div>

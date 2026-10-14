@@ -18,7 +18,9 @@ import {
 } from 'firebase/firestore';
 import { getBytes, ref, uploadBytes } from 'firebase/storage';
 
-const projectId = 'demo-radiotech-tenant-isolation';
+// Cross-service Storage rules must resolve the same project as the CLI's
+// Firestore emulator. Tenant fixtures remain separated by signed tenant claims.
+const projectId = 'demo-radiotech';
 let environment;
 
 before(async () => {
@@ -87,6 +89,43 @@ beforeEach(async () => {
 
 after(async () => {
     await environment?.cleanup();
+});
+
+test('bound devices require a current matching active record for Firestore and Storage', async () => {
+    const id = 'a'.repeat(64);
+    const actor = environment.authenticatedContext('user-a', {
+        role: 'OPERATOR', tenantId: 'tenant-a', operatorId: 'operator-a', radioDeviceId: id,
+    });
+    const asset = doc(actor.firestore(), 'antennas/antennas-a');
+    const image = ref(actor.storage(), 'tenants/tenant-a/maintenance-reports/user-a/bound-device.png');
+    const upload = () => uploadBytes(image, new Uint8Array([1, 2, 3]), { contentType: 'image/png' });
+    await assertFails(getDoc(asset));
+    await assertFails(upload());
+    await environment.withSecurityRulesDisabled(async context => {
+        await setDoc(doc(context.firestore(), `pro_devices/${id}`), { uid: 'user-a', tenantId: 'tenant-a', status: 'ACTIVE' });
+    });
+    await assertSucceeds(getDoc(asset));
+    await assertSucceeds(upload());
+    await assertSucceeds(getBytes(image));
+    await assertFails(updateDoc(doc(actor.firestore(), `pro_devices/${id}`), { status: 'ACTIVE' }));
+    for (const patch of [{ status: 'REVOKED' }, { status: 'ACTIVE', uid: 'user-b' }, { uid: 'user-a', tenantId: 'tenant-b' }]) {
+        await environment.withSecurityRulesDisabled(async context => {
+            await updateDoc(doc(context.firestore(), `pro_devices/${id}`), patch);
+        });
+        await assertFails(getDoc(asset));
+        await assertFails(upload());
+        await assertFails(getBytes(image));
+    }
+});
+
+test('invalid bound device claims fail closed without changing legacy sessions', async () => {
+    for (const value of [null, 42, 'invalid', '../foreign-device']) {
+        const actor = environment.authenticatedContext('user-a', { role: 'OPERATOR', tenantId: 'tenant-a', radioDeviceId: value });
+        await assertFails(getDoc(doc(actor.firestore(), 'antennas/antennas-a')));
+        await assertFails(uploadBytes(ref(actor.storage(), 'tenants/tenant-a/maintenance-reports/user-a/invalid-device.png'), new Uint8Array([1]), { contentType: 'image/png' }));
+    }
+    const legacy = environment.authenticatedContext('user-a', { role: 'OPERATOR', tenantId: 'tenant-a' });
+    await assertSucceeds(getDoc(doc(legacy.firestore(), 'antennas/antennas-a')));
 });
 
 test('Tenant A can read its task but cannot read or query Tenant B', async () => {

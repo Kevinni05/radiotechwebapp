@@ -173,6 +173,49 @@ export class IdentityAuthority {
       && (this.config.ownerProof === 'google-cloud' || email(user.email) !== this.config.ownerEmail), 'Account protetto: operazione amministrativa esterna richiesta.');
     return user;
   }
+  async deviceSession(input) {
+    const token = await this.verify(input.idToken);
+    const targetUid = uid(input.uid);
+    requireAccess(token.uid === targetUid && token.tenantId === input.tenantId,
+      'La sessione non appartiene al dispositivo richiesto.');
+    requireAccess(typeof input.installationId === 'string'
+      && /^[A-Za-z0-9_-]{16,128}$/.test(input.installationId), 'Dispositivo non valido.', 400);
+    const age = this.now() / 1000 - token.auth_time;
+    requireAccess(Number.isFinite(age) && age >= -30 && age <= 300
+      && !token.radioDeviceId && !token.radioMfaVerified,
+      'Accedi nuovamente per registrare il dispositivo.');
+    return this.withUserLock(targetUid, async () => {
+      // A revoke may have completed between the first proof check and this lease.
+      await this.verify(input.idToken);
+      const user = await this.auth.getUser(targetUid);
+      const [member, pending, owner] = await Promise.all([
+        this.store.get(`members/${targetUid}`), this.store.get(`protected/${targetUid}`), this.store.get('owners/main')
+      ]);
+      const current = user.customClaims ?? {};
+      requireAccess(!member && !pending && owner?.uid !== targetUid && !isHigh(current) && !isHigh(token)
+        && (this.config.ownerProof === 'google-cloud' || email(user.email) !== this.config.ownerEmail)
+        && !user.disabled && ['OPERATOR', 'VIEWER', 'CUSTOMER'].includes(current.role)
+        && token.role === current.role && token.tenantId === current.tenantId
+        && typeof current.tenantId === 'string' && /^[A-Za-z0-9_-]{1,128}$/.test(current.tenantId),
+        'Account non autorizzato alla sessione di dispositivo.');
+      const factors = user.multiFactor?.enrolledFactors ?? [];
+      const hasSecondFactor = token.firebase?.sign_in_second_factor != null;
+      const needsMfa = current.mfaRequired === true || token.mfaRequired === true || factors.length > 0;
+      let verifiedMfa = false;
+      if (needsMfa || hasSecondFactor) {
+        freshMfa(token, this.now());
+        requireAccess(user.emailVerified && email(user.email) === email(token.email)
+          && token.firebase?.sign_in_provider !== 'custom'
+          && factors.some(f => f.factorId === 'totp' && f.uid === token.firebase?.second_factor_identifier),
+          'Accedi nuovamente con il fattore attualmente registrato.');
+        verifiedMfa = true;
+      }
+      const deviceId = hash(`${current.tenantId}:${targetUid}:${input.installationId}`);
+      const customToken = await this.auth.createCustomToken(targetUid,
+        { radioDeviceId: deviceId, radioMfaVerified: verifiedMfa });
+      return { uid: targetUid, tenantId: current.tenantId, deviceId, customToken };
+    });
+  }
   async operator(operation, input) {
     if (operation === 'create') {
       const address = email(input.email);

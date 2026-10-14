@@ -3,8 +3,10 @@ import {getFirestore,collection,query,where,onSnapshot} from 'firebase/firestore
 import {getAuth, signInWithPopup, GoogleAuthProvider, OAuthProvider, EmailAuthProvider, reauthenticateWithCredential, reauthenticateWithPopup, signInWithEmailAndPassword, getMultiFactorResolver, TotpMultiFactorGenerator, multiFactor, setPersistence, browserLocalPersistence, browserSessionPersistence, onAuthStateChanged, signOut} from 'firebase/auth';
 import {getDatabase,ref,onValue,goOffline,goOnline} from 'firebase/database';
 import QRCode from 'qrcode';
+import {readAuthResponse} from './auth-response.mjs';
 import '../src/main/resources/static/assets/mfa-dialog.js';
 let auth=null, initialization=null, federationEnabled=false, presenceDatabase=null;
+let presenceClockOffset=0;
 async function initialize(){
  if(initialization)return initialization;
  if(auth)return true;
@@ -53,7 +55,7 @@ async function challenge(error){
 async function exchange(user){
  const token=await user.getIdToken();
  const response=await fetch('/api/v1/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({idToken:token}),signal:AbortSignal.timeout(20000)});
- const data=await response.json();
+ const data=await readAuthResponse(response);
  if(auth.currentUser!==user)throw new DOMException('Sessione cambiata.','AbortError');
  if(!response.ok){await signOut(auth);throw new Error(data.message||'Account aziendale non autorizzato.');}
  // Backend login can assign claims to a newly linked account. Use the refreshed identity.
@@ -131,6 +133,9 @@ async function watchOperatorPresence(tenant,changed,failed){
  if(auth.currentUser!==user||identity.claims.tenantId!==tenant)return null;
  goOnline(presenceDatabase);
  const stops=[];let connected=false,records={},received=false;
+ stops.push(onValue(ref(presenceDatabase,'.info/serverTimeOffset'),snapshot=>{
+  const value=snapshot.val();presenceClockOffset=Number.isFinite(value)?value:0;
+ }));
  stops.push(onValue(ref(presenceDatabase,'.info/connected'),snapshot=>{
   connected=snapshot.val()===true;
   if(!connected)failed(new Error('Connessione presenza interrotta.'));
@@ -139,7 +144,7 @@ async function watchOperatorPresence(tenant,changed,failed){
  stops.push(onValue(ref(presenceDatabase,`presence/${tenant}`),snapshot=>{records=snapshot.val()||{};received=true;if(connected)changed(records);},failed));
  return()=>{stops.forEach(stop=>stop());goOffline(presenceDatabase);};
 }
-window.RadioTechFederation={initialize,login,restoreSession,refreshSession,enrollTotp,watchInventory,watchOperatorPresence,logout:async()=>{if(auth)await signOut(auth);}};
+window.RadioTechFederation={initialize,login,restoreSession,refreshSession,enrollTotp,watchInventory,watchOperatorPresence,presenceClockOffset:()=>presenceClockOffset,logout:async()=>{if(auth)await signOut(auth);}};
 document.addEventListener('DOMContentLoaded',async()=>{
  try{
   if(!await initialize()||!federationEnabled)return;const form=document.getElementById('loginForm');if(!form)return;

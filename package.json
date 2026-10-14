@@ -4,7 +4,8 @@
     "scripts": {
         "build:auth": "esbuild scripts/auth-client.entry.js --bundle --minify --format=iife --outfile=src/main/resources/static/assets/auth-client.js",
         "test:web": "playwright test --reporter=line",
-        "test:rules": "firebase emulators:exec --only firestore,storage --project demo-radiotech \"node --test rules-tests/*.test.js\"",
+        "test:rules": "firebase emulators:exec --only firestore,storage,database --project demo-radiotech \"node --test rules-tests/*.test.js\"",
+        "test:presence": "firebase emulators:exec --only database --project demo-radiotech \"node --test rules-tests/presence-isolation.test.js\"",
         "test:firestore": "firebase emulators:exec --only firestore,auth --project demo-radiotech \"node scripts/run-firestore-tests.cjs\"",
         "build:pdf": "node scripts/copy-pdfjs.mjs",
         "test:telco": "node --test scripts/qa-telco-core.test.mjs",

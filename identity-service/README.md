@@ -45,6 +45,8 @@ Una concessione parziale resta sospesa. L’approvazione può essere ripetuta co
 
 ## Prova del confine IAM
 
+Impostare `IDENTITY_TOKEN_SIGNER` su un account dedicato nel progetto `IDENTITY_FIREBASE_PROJECT`, privo di ruoli sulle risorse. Concedere **solo al servizio identità** `iam.serviceAccounts.signBlob` su questo account tramite un ruolo personalizzato. Non usare il runtime web o un account amministrativo come firmatario. L'account del progetto del registro produce token di un progetto differente: impostare il solo `projectId` nell'SDK non basta. Dopo la configurazione, verificare anche lo scambio reale del custom token con Firebase Auth, oltre alla sua generazione. [Documentazione Firebase](https://firebase.google.com/docs/auth/admin/create-custom-tokens).
+
 Con l’identità effettiva del backend, verificare che siano negate: aggiornamento/creazione/eliminazione amministrativa degli utenti Auth, `signBlob`/`signJwt`, impersonificazione del servizio identità, scritture nel progetto del registro e modifica IAM/distribuzione del servizio separato. Non concedere `Editor`, `Owner`, `Firebase Admin` o `Service Account Token Creator` al runtime.
 
 Controllare anche le autorizzazioni ereditate da cartella/organizzazione e le identità della pipeline. Il solo controllo nel codice non dimostra l’isolamento contro una compromissione completa del backend. La presenza di una chiave privata nel container invalida questa protezione.
@@ -56,3 +58,7 @@ Controllare anche le autorizzazioni ereditate da cartella/organizzazione e le id
 La modalità `IDENTITY_DEMO=true` richiede progetto `demo-*`, entrambi gli emulatori locali e origini `localhost` distinte. Non abilitarla in produzione. I segreti degli inviti vengono conservati soltanto come hash; i link email usano un frammento rimosso dalla pagina appena letto. Le approvazioni sono vincolate a UID/email/tenant/ruolo e consumate una sola volta.
 
 La MFA, la gestione email e il servizio separato richiedono configurazione cloud e verifiche di fatturazione. Il codice non attiva automaticamente la fatturazione, non registra autenticatori al posto della persona e non dichiara verificata una casella senza la conferma del destinatario.
+
+## Backup e recupero del registro
+
+Il backup applicativo non comprende il progetto del registro. Usare lo strumento amministrativo cifrato, chiave separata dalla pipeline web e restore solo nell’emulatore isolato: [procedura ed evidenza del 13 ottobre](../docs/IDENTITY-RECOVERY-2026-10-13.md). Non delegare accesso al registro alla CI web; conservare una copia offsite amministrativa e il recupero MFA separatamente.

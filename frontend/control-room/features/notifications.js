@@ -1,5 +1,18 @@
 // notifications: presentation and operations for this feature.
+import {notificationOperation,completeNotificationOperation} from '../notification-operation.js';
 export function createFeature(ctx){
+let pendingOperation=null;
+window.addEventListener('radiotech:auth-ended',()=>{pendingOperation=null;});
+window.addEventListener('radiotech:identity-changed',()=>{pendingOperation=null;});
+function deliveryDescription(notice){
+ const labels={PENDING:'Push in attesa',SENDING:'Tentativo di invio',PARTIAL:'Invio push parziale',SENT:'Accettata dal provider',NO_TOKENS:'Nessun dispositivo registrato',NO_RECIPIENTS:'Nessun destinatario autorizzato',DEAD_LETTER:'Invio push da riprovare'};
+ const state=notice.deliveryStatus;
+ const accepted=Number(notice.providerAccepted??notice.delivered??0);
+ const failed=Number(notice.failedDevices??notice.failedRecipients??0);
+ const errors=notice.errorCodes||{};
+ const reason=errors.PERMISSION_DENIED?'Configurazione invio push non autorizzata':errors.SENDER_ID_MISMATCH?'Progetto Firebase non corrispondente':errors.UNREGISTERED?'Token dispositivo scaduto':errors.UNAVAILABLE?'Provider temporaneamente non disponibile':Object.keys(errors).length?'Errore provider da verificare':'';
+ return `${labels[state]||'Esito push non disponibile'} · ${accepted} dispositivi accettati${failed?` · ${failed} falliti`:''}${reason?` · ${reason}`:''}. Ricezione sul telefono e lettura da verificare.`;
+}
 function renderRecipients() {
                 const recipients = ctx.eligibleOperators();
                 if (!recipients.length) {
@@ -53,6 +66,7 @@ function renderRecipients() {
                     const metadata = isSignal
                         ? `<span class="notification-meta">Segnalazione urgente${n.severity ? ` · ${ctx.escapeHtml(n.severity)}` : ""}${n.assetId ? ` · Asset ${ctx.escapeHtml(n.assetId)}` : ""}</span><button class="mini-btn notification-action" type="button" data-open-signals>Apri segnalazioni</button>`
                         : "";
+                    const retryable=n.id&&['PENDING','PARTIAL','NO_TOKENS','DEAD_LETTER'].includes(n.deliveryStatus);
 
                     return `
                 <div class="notification-item${isSignal ? " notification-critical" : ""}">
@@ -61,6 +75,9 @@ function renderRecipients() {
                         <strong>${ctx.escapeHtml(title)}</strong>
                         <p>${ctx.escapeHtml(message)}</p>
                         ${metadata}
+                        <p class="notification-delivery">${ctx.escapeHtml(deliveryDescription(n))}</p>
+                        ${n.operationId?`<span class="subtle">Operazione ${ctx.escapeHtml(n.operationId)}</span>`:''}
+                        ${retryable?`<button type="button" class="mini-btn" data-notification-retry="${ctx.escapeHtml(n.id)}">Riprova push</button>`:''}
                     </div>
                     <span class="subtle">${date ? ctx.escapeHtml(new Date(date).toLocaleDateString("it-IT")) : "—"}</span>
                 </div>`;
@@ -68,6 +85,12 @@ function renderRecipients() {
                 ctx.$("notificationHistory").querySelectorAll("[data-open-signals]").forEach(button => {
                     button.addEventListener("click", () => ctx.switchView("people"));
                 });
+                ctx.$('notificationHistory').querySelectorAll('[data-notification-retry]').forEach(button=>button.addEventListener('click',async()=>{
+                  button.disabled=true;
+                  try{await ctx.apiFetch(`/api/v1/notifications/${encodeURIComponent(button.dataset.notificationRetry)}/retry`,{method:'POST'});await loadNotifications();}
+                  catch(error){ctx.toast('Retry non riuscito',error.message,'error');button.disabled=false;}
+                }));
+                ctx.applyPermissions();
             }
 
             function updateNotificationCount() {
@@ -113,20 +136,27 @@ function renderRecipients() {
                     priority,
                     type: "TASK_NOTIFICATION"
                 };
+                const fingerprint=JSON.stringify([ctx.state.user?.uid||ctx.state.user?.id,ctx.state.user?.tenantId,target,[...recipients].sort(),title,message,priority]);
+                if(!pendingOperation||pendingOperation.fingerprint!==fingerprint)pendingOperation={fingerprint,...await notificationOperation(fingerprint,sessionStorage)};
+                payload.operationId=pendingOperation.id;
 
                 const button = ctx.$("sendNotificationBtn");
                 button.disabled = true;
                 button.textContent = "Invio...";
 
                 try {
-                    await ctx.apiFetch("/api/v1/notifications", {
+                    const response=await ctx.apiFetch("/api/v1/notifications", {
                         method: "POST",
                         body: JSON.stringify(payload)
                     });
+                    const result=response?.data??response;
+                    if(result?.persisted!==true&&result?.success!==true)throw new Error('Salvataggio della comunicazione non confermato dal server. Riprova con la stessa operazione.');
 
                     ctx.$("notificationTitle").value = "";
                     ctx.$("notificationMessage").value = "";
-                    ctx.toast("Comunicazione salvata", "Disponibile nello storico. L’accettazione della push non conferma la lettura.");
+                    completeNotificationOperation(pendingOperation,sessionStorage);
+                    pendingOperation=null;
+                    ctx.toast("Comunicazione salvata", deliveryDescription(result||{}), result?.deliveryStatus==='SENT'?'success':'warning');
                     await loadNotifications();
                 } catch (error) {
                     ctx.toast("Invio fallito", error.message, "error");

@@ -14,6 +14,8 @@ export function createFeature(ctx){
                     ctx.state.map = L.map("map", {
                         zoomControl: true,
                         preferCanvas: true,
+                        fadeAnimation: !window.matchMedia('(prefers-reduced-motion: reduce)').matches,
+                        zoomAnimation: !window.matchMedia('(prefers-reduced-motion: reduce)').matches,
                         attributionControl: true
                     }).setView([41.9028, 12.4964], 6);
 

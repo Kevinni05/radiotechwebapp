@@ -1,0 +1,47 @@
+{
+  "status": "CANDIDATE_NOT_PUBLISHED",
+  "available": false,
+  "applicationId": "com.example.gestionale_radio",
+  "versionName": "1.5.5",
+  "versionCode": 11005,
+  "channel": "PRIVATE_SITE",
+  "mobileCommit": "f304070945c18a1655278738bf01dbe498e6f370",
+  "webCandidateCommit": "7b6088b9a054f359f3b3388edbe0b9c3ea44e264",
+  "backend": {
+    "filename": "radiotech-backend-candidate.jar",
+    "sha256": "b4adcf4d60a05c5ca6449eedd5a47b4f43a58f82d1e8c19f51af3f4739063b5e",
+    "bytes": 112141529,
+    "sourceCommit": "7b6088b9a054f359f3b3388edbe0b9c3ea44e264"
+  },
+  "identityCandidate": {
+    "sourceCommit": "9afdb5c2a23b3a65847730a4a5eb54761b56e610",
+    "imageDigest": "sha256:23c78146401605bdb83352c62f253238df6725a07e838197c7849804e1a895d1",
+    "revision": "radiotech-identity-00006-vuc",
+    "ordinaryTrafficPercent": 100,
+    "ordinaryRevision": "radiotech-identity-00006-vuc",
+    "promotionAuthorizedByOwner": true,
+    "rollbackRevision": "radiotech-identity-00004-nbf"
+  },
+  "firebaseRulesCandidateCommit": "34dc074583cf0fb3c573da7e4cd66b6b494d8a28",
+  "firebaseRulesPublished": false,
+  "configurationRevision": "radiotech-web-00004-5sv",
+  "signingSha256": "73005990b6bad93b1bb3383121f6dcc2293b3e5e3a60e1ae7eaf09a7d97c4fa4",
+  "apk": {
+    "filename": "RadioTech-1.5.5-11005.apk",
+    "sha256": "10ed6a884f77191bd1636bb489ea6a3107d68b9f38cd2021917ecf932c946511",
+    "bytes": 81998164
+  },
+  "aab": {
+    "filename": "RadioTech-1.5.5-11005.aab",
+    "sha256": "00a9344fdb9a6309e3e26a8f2cec5b7f687df881599dd0ac45ef5688a1f560b0",
+    "bytes": 74527474
+  },
+  "createdAt": "2026-10-14T11:24:18.365010+00:00",
+  "mobileCi": "https://github.com/Kevinni05/gestionale_radio/actions/runs/38554095848",
+  "webCi": "https://github.com/Kevinni05/radiotechwebapp/actions/runs/38554088372",
+  "publicationGate": "Production backend/rules candidate deployment, simultaneous physical receivers, wider account/role revocation, TalkBack, custody/support and pilot acceptance pending",
+  "mobileTestHarnessCommit": "2a37cd3e4f7d7a0f498e24868d4b79eb594dfc71",
+  "installedOnOwnedSamsung": true,
+  "publicAppLogin": "PASSED_OWNER_CONFIRMED_AFTER_AUTHORITY_CORRECTION",
+  "publicAppReadNavigation": "PASSED_OWNER_CONFIRMED_TASKS_AND_ANTENNAS"
+}

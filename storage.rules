@@ -2,8 +2,19 @@ rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
     function signedIn() { return request.auth != null; }
+    function activeDevice() {
+      let device = firestore.get(/databases/(default)/documents/pro_devices/$(request.auth.token.radioDeviceId)).data;
+      return device.uid == request.auth.uid && device.tenantId == request.auth.token.tenantId
+        && device.status == 'ACTIVE';
+    }
+    function deviceSessionAllowed() {
+      return signedIn() && (!('radioDeviceId' in request.auth.token)
+        || (request.auth.token.radioDeviceId is string
+          && request.auth.token.radioDeviceId.matches('^[a-f0-9]{64}$')
+          && activeDevice()));
+    }
     function hasTenant() {
-      return signedIn()
+      return deviceSessionAllowed()
         && request.auth.token.tenantId is string
         && request.auth.token.tenantId.size() > 0;
     }

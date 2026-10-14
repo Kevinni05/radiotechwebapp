@@ -141,7 +141,8 @@ public class FirebaseAuthenticationFilter
                 if (Boolean.TRUE.equals(decoded.getClaims().get("mfaRequired"))) {
                         Object firebase = decoded.getClaims().get("firebase");
                         if ((!(firebase instanceof java.util.Map<?,?> claims) || claims.get("sign_in_second_factor") == null)
-                                && !(!IdentityGateway.isolated() && Boolean.TRUE.equals(decoded.getClaims().get("radioMfaVerified")) && decoded.getClaims().get("radioDeviceId") instanceof String)) {
+                                && !(IdentityGateway.lowDeviceMfa(decoded.getClaims())
+                                    || !IdentityGateway.isolated() && Boolean.TRUE.equals(decoded.getClaims().get("radioMfaVerified")) && decoded.getClaims().get("radioDeviceId") instanceof String)) {
                                 sendForbidden(response, "Autenticazione a due fattori richiesta.");
                                 return;
                         }

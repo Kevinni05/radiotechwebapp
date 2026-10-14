@@ -10,7 +10,10 @@
           "connections": {
             "$connection": {
               ".write": "auth != null && auth.token.tenantId == $tenant && auth.uid == $uid && (auth.token.role == 'OPERATOR' || auth.token.role == 'OPERATORE' || auth.token.role == 'VIEWER' || auth.token.role == 'ADMIN' || auth.token.role == 'SUPER_ADMIN' || auth.token.role == 'CAPO' || auth.token.role == 'CHIEF_EXECUTIVE' || auth.token.role == 'NETWORK_MANAGER' || auth.token.role == 'ENGINEER')",
-              ".validate": "newData.val() == true"
+              ".validate": "newData.val() == true || newData.hasChildren(['state', 'updatedAt'])",
+              "state": { ".validate": "newData.isString() && (newData.val() == 'foreground' || newData.val() == 'background')" },
+              "updatedAt": { ".validate": "newData.isNumber() && newData.val() <= now && newData.val() >= now - 60000" },
+              "$other": { ".validate": false }
             }
           },
           "lastSeen": {

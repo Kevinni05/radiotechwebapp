@@ -26,4 +26,24 @@ class IdentityGatewayTest {
             assertThrows(IllegalStateException.class, gateway::initialize, origin);
         }
     }
+    @Test void deviceSessionResponseMustMatchTheAuthenticatedUserTenantAndInstallation() {
+        var response = new java.util.HashMap<String, Object>(Map.of("uid", "u", "tenantId", "t", "deviceId", "d", "customToken", "signed"));
+        assertEquals("signed", IdentityGateway.verifiedDeviceSessionToken(response, "u", "t", "d"));
+        for (String key : new String[] {"uid", "tenantId", "deviceId", "customToken"}) {
+            var invalid = new java.util.HashMap<String, Object>(response);
+            invalid.put(key, key.equals("customToken") ? " " : "other");
+            assertThrows(SecurityException.class, () -> IdentityGateway.verifiedDeviceSessionToken(invalid, "u", "t", "d"), key);
+            invalid.remove(key);
+            assertThrows(SecurityException.class, () -> IdentityGateway.verifiedDeviceSessionToken(invalid, "u", "t", "d"), key);
+        }
+    }
+    @Test void aDeviceMfaProofIsLimitedToLowRolesAndAValidBoundDevice() {
+        for (String role : new String[] {"OPERATOR", "OPERATORE", "VIEWER", "CUSTOMER"})
+            assertTrue(IdentityGateway.lowDeviceMfa(Map.of("role", role, "radioDeviceId", "a".repeat(64), "radioMfaVerified", true)));
+        for (String role : new String[] {"ADMIN", "SUPER_ADMIN", "CAPO", "CHIEF_EXECUTIVE", "NETWORK_MANAGER", "ENGINEER", "NONE"})
+            assertFalse(IdentityGateway.lowDeviceMfa(Map.of("role", role, "radioDeviceId", "a".repeat(64), "radioMfaVerified", true)));
+        assertFalse(IdentityGateway.lowDeviceMfa(Map.of("role", "OPERATOR", "admin", true, "radioDeviceId", "a".repeat(64), "radioMfaVerified", true)));
+        assertFalse(IdentityGateway.lowDeviceMfa(Map.of("role", "OPERATOR", "radioDeviceId", "invalid", "radioMfaVerified", true)));
+        assertFalse(IdentityGateway.lowDeviceMfa(Map.of("role", "OPERATOR", "radioDeviceId", "a".repeat(64), "radioMfaVerified", false)));
+    }
 }
