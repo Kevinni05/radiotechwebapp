@@ -15,8 +15,8 @@ Pacchetto preparato su richiesta di Kevin, con riferimenti da compilare. Stato: 
 | Referente privacy / retention approvata | ____________________ |
 | Budget mensile e destinatario alert | ____________________ |
 | Periodo pilota / partecipanti | ____________________ |
-| Versione mobile e codice | 1.5.5 / 11004, candidata da verificare |
-| Commit web/API/mobile e digest APK/AAB | [Manifest verificato 11004](RELEASE-CANDIDATE-11004.json) |
+| Versione mobile e codice | 1.5.5 / 11005, installata sul Samsung; accesso pubblico riuscito |
+| Commit web/API/mobile e digest APK/AAB | [Manifest verificato 11005](RELEASE-CANDIDATE-11005.json) |
 | Revisione backend e ultimo restore | Da verificare alla consegna |
 
 Non inserire password, token o chiavi nel verbale. Testare il recupero degli accessi con il referente e senza l'account personale dello sviluppatore.
@@ -27,17 +27,17 @@ Per ogni caso annotare: data/ora, esecutore, commit/revisione/build, ID operazio
 
 | Caso | Prova da eseguire | Esito / evidenza |
 |---|---|---|
-| T01 | Dashboard assegna → mobile → QR/GPS → checklist/report → approva → stock | Assegnazione nei tre stati, anteprima GPS annullata e foto/PDF QA riusciti; QR/geofence e flusso completo sul campo ancora aperti |
-| T02 | Rete assente; timeout dopo commit; tre retry con stesso ID | ____________________ |
-| T03 | Termina processo / riavvia con bozza e coda | QA Samsung riuscita 14/10, incluso upgrade debug 11004→11005; commerciale da verificare |
-| T04 | Due approvazioni contemporanee, un consumo | ____________________ |
-| T05 | Rimozione report in revisione/approvato, audit e stock invariato | ____________________ |
+| T01 | Dashboard assegna → mobile → QR/GPS → checklist/report → approva → stock | Flusso QA candidato riuscito: assegnazione, GPS confermato, checklist, foto/firma/PDF, approvazione e consumo singolo; QR fisico corretto. [Verbale completo](COLLAUDO-COMPLETO-2026-10-14.md) |
+| T02 | Rete assente; timeout dopo commit; tre retry con stesso ID | Risposta persa dopo 201, due retry 503 e retry finale 201: stesso ID, chiave e payload, un solo report; rete totalmente assente distinta |
+| T03 | Termina processo / riavvia con bozza e coda | Bozza completa Samsung conservata dopo termine processo; recovery coda verificato nel retry; contenuti commerciali non ispezionati |
+| T04 | Due approvazioni contemporanee, un consumo | Due richieste reali dello stesso responsabile, 400/200; APPROVED, stock 3→2, un movimento |
+| T05 | Rimozione report in revisione/approvato, audit e stock invariato | Approvato rimosso dalla dashboard, audit conservato e stock a 2; caso in revisione coperto dalle suite |
 | T06 | A esce → B entra, nessuna bozza/coda/push di A esposta | Samsung QA: logout A/login B, ricevute e inbox distinte; separazione bozza/coda coperta automaticamente, scenario integrato completo residuo |
-| T07 | Tenant B: ID, allegato e QR respinti | ____________________ |
+| T07 | Tenant B: ID, allegato e QR respinti | Nove verifiche HTTP riuscite; allegato tra tenant coperto dalle suite regole, non da questa prova fisica |
 | T08 | Foreground/background/crash/rete persa; Samsung + emulatore | ____________________ |
 | T09 | Push parziale, token invalido, permesso negato, cold start | Samsung QA: PARTIAL/NO_TOKENS → registrazione B → retry stesso ID SENT; cold start riuscito. Token invalido e permesso negato fisici residui |
 | T10 | Revoca account/dispositivo e cambio ruolo, recovery | Revoca A dalla dashboard, 401/schermata e nuovo accesso riusciti; SDK B passa da lettura consentita a permission-denied dopo revoca emulata; 17 prove regole. Revoca account/cambio ruolo distribuiti residui |
-| T11 | Upgrade senza disinstallare, coda/bozze e firma conservate | Recovery APK QA debug riuscita; upgrade firmato commerciale ancora aperto |
+| T11 | Upgrade senza disinstallare, coda/bozze e firma conservate | Upgrade commerciale firmato 11004→11005 riuscito senza disinstallazione; UID/cartelle conservati. Contenuto bozze/coda commerciale non ispezionato |
 | T12 | Restore isolato dati/allegati/identità, digest e RPO/RTO | ____________________ |
 | T13 | Quota/timeout/meteo indisponibile, nessun successo falso | ____________________ |
 | T14 | Tastiera, zoom 200%, testo grande, TalkBack, schermo piccolo | Suite browser e semantica foto riuscite; Kevin preferisce non attivare TalkBack: prova fisica aperta |
@@ -45,6 +45,8 @@ Per ogni caso annotare: data/ora, esecutore, commit/revisione/build, ID operazio
 | T16 · P0 | Incarico dalla dashboard, disponibilità/push/deep link, nessun duplicato | Tre stati riusciti nel percorso candidato 14/10; tre task e tre notifiche senza duplicati; verifica distribuita residua. [Evidenza](SAMSUNG-QA-2026-10-14.md) |
 
 Eccezione dispositivi: un Samsung fisico disponibile; due account provati sequenzialmente sul medesimo telefono. L'emulatore locale non parte senza accelerazione; recovery su emulatore Android riuscito in CI. Una ricezione simultanea su due dispositivi non è stata eseguita. Per Android l'arresto forzato dalle impostazioni richiede la riapertura dell'app per riprendere FCM; distinguere questa condizione dalla normale terminazione del processo.
+
+Il [collaudo completo del 14 ottobre](COLLAUDO-COMPLETO-2026-10-14.md) dettaglia prove, difetti corretti, differenze QA/produzione e gate residui.
 
 ## Gestione incidenti
 

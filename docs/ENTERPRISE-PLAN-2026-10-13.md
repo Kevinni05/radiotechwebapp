@@ -1,4 +1,6 @@
-# RADIO TECH — registro della candidata 1.5.5+11004
+# RADIO TECH — registro della candidata 1.5.5+11005
+
+Aggiornamento 14/10, collaudo integrato: [verbale completo](COLLAUDO-COMPLETO-2026-10-14.md) e [manifest corrente 11005](RELEASE-CANDIDATE-11005.json). Il flusso operativo QA sul campo e l'upgrade commerciale firmato senza disinstallazione sono riusciti. L'autorità 00006 è stata attivata sul servizio pubblico su autorizzazione esplicita per correggere il token con audience errata; accesso normale riuscito, confermato da Kevin. Backend e regole candidati restano distinti dal servizio pubblico. I riferimenti 11004 successivi descrivono prove e pacchetti storici, conservati. I gate pilota/consegna restano aperti.
 
 Fonte: piano Enterprise Pro 2.1 del 13 ottobre 2026 consegnato da Kevin. Le richieste operative sono quelle dell'utente; soglie, calendario e campione contenuti nel piano restano criteri di verifica, non risultati già ottenuti.
 
