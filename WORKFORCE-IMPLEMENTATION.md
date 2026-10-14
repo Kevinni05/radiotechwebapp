@@ -28,10 +28,22 @@ La pausa pianificata non ha un orario preciso: nei limiti settimanali dei turni 
 
 Dipendenze backend: OR-Tools 9.15.6755 e PDFBox 3.0.8; Java 21. Il bundle web si ricostruisce con `npm ci` e `npm run build:control-room`.
 
-Nuove collezioni: workforceClockRecoveries, workforceAttendance, workforceTimeEvents, workforceAttendanceAudit, workforcePlans, workforcePlanGuards, workforcePlanVersions, workforceRosterAudit. Accesso tramite API autenticata, scope tenant e UID verificati; nessuna scrittura diretta dai client. Le Firestore Rules esistenti negano l'accesso alle collezioni non esposte. Distribuire gli indici di firestore.indexes.json prima dei test integrati (`firebase deploy --only firestore:indexes` nel progetto corretto).
+Nuove collezioni: workforceClockRecoveries, workforceAttendance, workforceTimeEvents, workforceAttendanceAudit, workforcePlans, workforcePlanGuards, workforcePlanVersions, workforceRosterAudit. Accesso tramite API autenticata, scope tenant e UID verificati; nessuna scrittura diretta dai client. Le Firestore Rules esistenti negano l'accesso alle collezioni non esposte. Preparare gli indici prima dei test integrati con `python scripts/prepare-workforce-indexes.py --project gestionale-radio --apply` dal repository web. Lo script usa la sessione gcloud del PC, crea solo i quattro indici del modulo mancanti e attende lo stato READY; non modifica documenti, regole o altri indici. Senza `--apply` esegue solo il controllo. Non usa il progetto demo della `.firebaserc`.
 
 Test aggiunti: RosterSolverTest, AttendanceReconciliationTest, AttendanceLedgerEmulatorTest e workforce-module.spec.js. Suite mobile: attendance_clock_test.dart. Il protocollo operativo e il collaudo Samsung sono anche nel repository mobile.
 
 ## Passaggio a VS Code
 
-Usare il branch `feat/workforce-attendance-planning` in entrambi i repository. Non fare reset di modifiche locali: eseguire fetch e aprire un worktree separato se necessario. Prima del merge verificare le due CI e distribuire gli indici; testare poi contro backend e app compilati da questi branch.
+Usare il branch `feat/workforce-attendance-planning` in entrambi i repository. Non fare reset di modifiche locali: eseguire fetch e aprire un worktree separato se necessario. Le CI funzionali web/backend e mobile sono passate, inclusi i test Android nativi e su emulatore. Prima del rilascio preparare gli indici e completare il collaudo reale contro backend e app compilati da questi branch. La CI verifica anche lo script indici con API simulate; questo non certifica il deployment sul progetto reale.
+
+## Preparazione indici dal PC
+
+Prerequisiti: Python 3, Google Cloud CLI e account già autorizzato a gestire gli indici del progetto. Dal repository web:
+
+```powershell
+gcloud auth login
+python scripts/prepare-workforce-indexes.py --project gestionale-radio
+python scripts/prepare-workforce-indexes.py --project gestionale-radio --apply
+```
+
+Il primo comando Python è un controllo e termina con codice 2 se mancano indici pronti. Il secondo termina con codice 0 solo quando tutti e quattro sono READY; codice 1 indica errore o timeout. Dopo un timeout la creazione continua su Firestore: rilanciare il controllo. L’accesso gcloud per amministrare gli indici è distinto dall’identità keyless usata dal backend. Non copiare token o credenziali nei repository.
