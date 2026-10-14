@@ -7,6 +7,33 @@ async function openReports(page) {
   await page.locator('#reportCollapseAll').click();
 }
 
+for(const status of ['APPROVED','APPROVAL_PENDING']) {
+  test(`concurrent approval refreshes the actual ${status} outcome`,async({page})=>{
+    const reports=[report('concurrent','SUBMITTED')];
+    await session(page,'ADMIN',{'/reports':reports});
+    await page.route('**/api/v1/reports/concurrent/approve',async route=>{
+      reports[0].status=status;
+      await route.fulfill({status:400,json:{message:'Il report è già in fase di approvazione.'}});
+    });
+    await openReports(page);await page.locator('[data-report-approve="concurrent"]').click();
+    await expect(page.locator('[data-report-id="concurrent"]')).toHaveAttribute('data-status',status);
+    await expect(page.locator('#toastStack')).toContainText(status==='APPROVED'?'Report già approvato':'Approvazione in corso');
+    await expect(page.locator('#toastStack')).not.toContainText('Revisione fallita');
+    if(status==='APPROVED')await expect(page.locator('[data-report-approve="concurrent"]')).toHaveCount(0);
+    else await expect(page.locator('[data-report-approve="concurrent"]')).toBeVisible();
+  });
+}
+
+test('approval refusal retains the error when the report is still submitted',async({page})=>{
+  await session(page,'ADMIN',{'/reports':[report('refused','SUBMITTED')]});
+  await page.route('**/api/v1/reports/refused/approve',route=>route.fulfill({status:400,json:{message:'Materiale da verificare.'}}));
+  await openReports(page);await page.locator('[data-report-approve="refused"]').click();
+  await expect(page.locator('#toastStack')).toContainText('Revisione fallita');
+  await expect(page.locator('#toastStack')).toContainText('Materiale da verificare.');
+  await expect(page.locator('[data-report-approve="refused"]')).toBeEnabled();
+  await expect(page.locator('[data-report-id="refused"]')).toHaveAttribute('data-status','SUBMITTED');
+});
+
 test('collapsed reports keep authorized approval and removal visible across lifecycle states', async ({page}) => {
   const reports = ['SUBMITTED','APPROVAL_PENDING','APPROVED','REJECTED','DRAFT'].map(status=>report(status,status));
   const approvals=[];

@@ -909,8 +909,9 @@
       buttons.forEach((b) => {
         b.disabled = true;
       });
+      const epoch = ctx.state.sessionEpoch || 0;
       try {
-        const epoch = ctx.state.sessionEpoch || 0, report = ctx.state.reports.find((item) => item.id === id);
+        const report = ctx.state.reports.find((item) => item.id === id);
         let materialMappings;
         if (approve && report?.materialsUsed?.some((material) => !["inventoryId", "inventoryItemId", "itemId", "ricambioId", "id", "sku"].some((field) => material[field]))) {
           materialMappings = await window.RadioTechReviewMaterials({ apiFetch: ctx.apiFetch, report, escapeHtml: ctx.escapeHtml });
@@ -922,7 +923,13 @@
         window.dispatchEvent(new Event("radiotech:tasks-changed"));
         ctx.toast(approve ? "Report approvato" : "Report rifiutato", approve ? "Materiali aggiornati e incarico completato." : "L\u2019operatore pu\xF2 correggere e inviare nuovamente il rapporto dagli incarichi attivi.");
       } catch (e) {
-        ctx.toast("Revisione fallita", e.message, "error");
+        if (epoch !== (ctx.state.sessionEpoch || 0)) return;
+        await Promise.allSettled([loadReports(), ctx.loadTasks(), ctx.loadStats()]);
+        if (epoch !== (ctx.state.sessionEpoch || 0)) return;
+        const current = ctx.state.reports.find((item) => item.id === id);
+        if (approve && current?.status === "APPROVED") ctx.toast("Report gi\xE0 approvato", "L\u2019elenco \xE8 aggiornato con l\u2019esito della centrale.");
+        else if (approve && current?.status === "APPROVAL_PENDING") ctx.toast("Approvazione in corso", "Un\u2019altra richiesta sta elaborando il report. Lo stato \xE8 stato aggiornato.");
+        else ctx.toast("Revisione fallita", e.message, "error");
       } finally {
         buttons.forEach((b) => {
           b.disabled = false;
