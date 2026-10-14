@@ -56,8 +56,10 @@ class Client:
     def list(self, collection):
         indexes, page = [], ""
         while True:
-            query = urllib.parse.urlencode({"pageSize": 100, "pageToken": page})
-            result = self.request(self.root + collection + "/indexes?" + query)
+            # Firestore currently rejects nonzero pageSize. Use its default
+            # and preserve any continuation token returned by the service.
+            query = urllib.parse.urlencode({"pageToken": page}) if page else ""
+            result = self.request(self.root + collection + "/indexes" + ("?" + query if query else ""))
             indexes.extend(result.get("indexes", []))
             page = result.get("nextPageToken", "")
             if not page:

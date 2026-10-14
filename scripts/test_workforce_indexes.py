@@ -66,6 +66,9 @@ class WorkforceIndexesTest(unittest.TestCase):
         client.request = Mock(side_effect=[{"indexes": [self.desired[0]], "nextPageToken": "a+/="},
                                            {"indexes": [self.desired[1]]}])
         self.assertEqual(client.list("workforceAttendance"), self.desired[:2])
+        for call in client.request.call_args_list:
+            self.assertNotIn("pageSize", call.args[0])
+        self.assertNotIn("?", client.request.call_args_list[0].args[0])
         self.assertIn("pageToken=a%2B%2F%3D", client.request.call_args.args[0])
 
 
