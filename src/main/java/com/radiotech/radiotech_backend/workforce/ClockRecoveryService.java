@@ -15,7 +15,7 @@ import static com.radiotech.radiotech_backend.workforce.RosterService.*;
 /** Conflicted device events are transferred before the queue can be cleared. */
 @Service
 public class ClockRecoveryService {
-    public record Request(@NotEmpty @Size(max=100) List<@Valid WorkforceRequests.Shift> events) {}
+    public record Request(@Valid @NotEmpty @Size(max=100) List<WorkforceRequests.Shift> events) {}
     public record Interval(@NotBlank String startedAt,@NotBlank String endedAt,@Min(0) @Max(1440) int breakMinutes,
             @NotBlank @Size(max=1000) String reason,@Min(0) long expectedVersion) {}
     public record Close(@NotBlank @Size(max=1000) String reason,@Min(0) long expectedVersion) {}

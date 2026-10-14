@@ -261,6 +261,9 @@
     });
     window.addEventListener("radiotech:identity-changed", () => {
       serial++;
+      document.querySelectorAll(".wf-dialog").forEach((d) => d.close());
+      $("attendanceOperator").innerHTML = '<option value="">Tutti gli operatori</option>';
+      $("attendanceSearch").value = "";
       people = [];
       recoveries = [];
       plan = null;
