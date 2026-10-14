@@ -139,7 +139,7 @@ public class RosterService {
     }
     public Map<String,Object> forPdf(String value,String operatorId) throws Exception {
         Map<String,Object> p;
-        if(operatorId==null) { p=new LinkedHashMap<>(personal(value));p.put("operatorName",SecurityContextAccessor.currentUid()); }
+        if(operatorId==null) { p=new LinkedHashMap<>(personal(value));var own=operators.getByFirebaseUid(uid());p.put("operatorName",own!=null&&tenant().equals(own.getTenantId())?Objects.toString(own.getFullName(),uid()):uid()); }
         else { WorkforceService.requireManager();var op=operators.getById(operatorId);if(op==null||!tenant().equals(op.getTenantId()))throw new SecurityException("Operatore non autorizzato.");p=new LinkedHashMap<>(published(tenant(),month(value).toString()));p.put("slots",rows(p,"slots").stream().filter(s->operatorId.equals(s.get("operatorId"))).toList());p.put("operatorName",Objects.toString(op.getFullName(),operatorId)); }
         if(!p.containsKey("revision"))throw new IllegalArgumentException("Calendario non ancora pubblicato.");
         if(!rows(p,"slots").isEmpty())p.put("operatorName",rows(p,"slots").getFirst().get("name"));return p;

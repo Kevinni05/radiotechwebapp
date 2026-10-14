@@ -105,7 +105,7 @@ public class AttendanceService {
                 long delta=Math.abs(Duration.between(Instant.parse(slot.get("startAt").toString()),started).toMinutes());
                 if(delta<=720&&delta<distance){best=i;distance=delta;}
             }
-            if(best<0)anomalies.add(anomaly("UNPLANNED",session,"Presenza senza turno associato.",sid));
+            if(best<0) { if(!Boolean.TRUE.equals(session.get("boundarySession")))anomalies.add(anomaly("UNPLANNED",session,"Presenza senza turno associato.",sid)); }
             else {
                 usedSlots.add(best);matched.add(sid);var slot=slots.get(best);
                 long late=Duration.between(Instant.parse(slot.get("startAt").toString()),started).toMinutes();

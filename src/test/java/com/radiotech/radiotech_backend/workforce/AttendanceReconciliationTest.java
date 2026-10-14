@@ -19,6 +19,10 @@ class AttendanceReconciliationTest {
         assertTrue(AttendanceService.reconcile(List.of(slot("a","2026-10-14T06:00:00Z","2026-10-14T14:00:00Z")),List.of(row),10,Instant.parse("2026-10-14T15:00:00Z")).isEmpty());
         assertEquals("2026-10-14T06:18:00Z",row.get("startedAt"));
     }
+    @Test void completedPreviousMonthSessionIsNotMarkedUnplannedInTheNewMonth() {
+        var prior=session("a","2026-09-30T20:00:00Z","2026-10-01T04:00:00Z");prior.put("boundarySession",true);
+        assertTrue(AttendanceService.reconcile(List.of(),List.of(prior),10,Instant.parse("2026-10-01T10:00:00Z")).isEmpty());
+    }
     @Test void futureShiftDoesNotCreateAnAbsenceAndOvernightSessionMatches() {
         var result=AttendanceService.reconcile(List.of(slot("a","2026-10-14T20:00:00Z","2026-10-15T04:00:00Z")),List.of(),10,Instant.parse("2026-10-14T19:00:00Z"));assertTrue(result.isEmpty());
         result=AttendanceService.reconcile(List.of(slot("a","2026-10-14T20:00:00Z","2026-10-15T04:00:00Z")),List.of(session("a","2026-10-14T20:00:00Z","2026-10-15T04:00:00Z")),10,Instant.parse("2026-10-15T08:00:00Z"));assertTrue(result.isEmpty());
