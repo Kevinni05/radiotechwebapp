@@ -48,19 +48,26 @@ public class WorkforceService {
                 "readiness", "READY", "version", 0L, "activeMinutes", 0L, "breakMinutes", 0L));
     }
     public Map<String, Object> changeShift(WorkforceRequests.Shift request) throws Exception {
-        String tenant = OperationalInsightsService.requireIdentity(), uid = uid(), name = name(); Instant now = Instant.now();
+        String tenant = OperationalInsightsService.requireIdentity(), uid = uid(), name = name(); Instant receivedAt = Instant.now(); Instant now = request.occurredAt() == null ? receivedAt : Instant.parse(request.occurredAt());
         var db = FirestoreClient.getFirestore(); var shift = ownReference(tenant, uid);
         var operation = db.collection("workforceOperations").document(key(tenant + ":" + uid + ":" + request.operationId()));
-        String fingerprint = key(request.action() + ":" + request.readiness() + ":" + request.expectedVersion());
+        String fingerprint = key(request.action() + ":" + request.readiness() + ":" + request.expectedVersion() + ":" + Objects.toString(request.occurredAt(), "SERVER"));
         boolean changed;
         try {
             changed = db.runTransaction(tx -> {
                 var doc = tx.get(shift).get(); var previous = tx.get(operation).get();
                 var state = doc.exists() ? new LinkedHashMap<>(doc.getData()) : emptyShift(tenant, uid, name);
+                String sessionId = request.action().equals("START") ? key(tenant + ":" + uid + ":session:" + request.operationId()) : Objects.toString(state.get("sessionId"), key(tenant + ":" + uid + ":legacy:" + state.get("startedAt")));
+                var sessionRef = db.collection("workforceAttendance").document(sessionId);
+                var sessionDoc = tx.get(sessionRef).get();
                 if (previous.exists()) {
                     if (!fingerprint.equals(previous.getString("fingerprint"))) throw conflict();
                     return false;
                 }
+                if (now.isAfter(receivedAt.plusSeconds(300)) || now.isBefore(receivedAt.minus(Duration.ofHours(72))))
+                    throw new IllegalArgumentException("Orario dispositivo fuori intervallo. Richiedi una correzione al responsabile.");
+                if (state.get("lastTransitionAt") != null && now.isBefore(Instant.parse(state.get("lastTransitionAt").toString())))
+                    throw new IllegalArgumentException("Timbratura precedente all'ultimo evento. Verifica l'orologio o richiedi una correzione.");
                 long version = number(state.get("version"));
                 if (version != request.expectedVersion()) throw conflict();
                 String old = String.valueOf(state.get("status"));
@@ -72,12 +79,29 @@ public class WorkforceService {
                     default -> throw invalid();
                 };
                 var totals = decorate(state, now);
-                if (request.action().equals("START")) { state.put("startedAt", now.toString()); state.put("activeMinutes", 0L); state.put("breakMinutes", 0L); state.remove("endedAt"); }
-                else { state.put("activeMinutes", totals.get("workMinutes")); state.put("breakMinutes", totals.get("restMinutes")); }
+                if (request.action().equals("START")) { state.put("startedAt", now.toString()); state.put("activeMinutes", 0L); state.put("breakMinutes", 0L); state.put("activeSeconds",0L); state.put("breakSeconds",0L); state.remove("endedAt"); }
+                else { state.put("activeMinutes", totals.get("workMinutes")); state.put("breakMinutes", totals.get("restMinutes")); state.put("activeSeconds", totals.get("workSeconds")); state.put("breakSeconds", totals.get("restSeconds")); }
                 if (next.equals("OFF_DUTY")) state.put("endedAt", now.toString());
                 state.put("name", name); state.put("status", next); state.put("readiness", request.readiness()); state.put("version", version + 1);
-                state.put("lastTransitionAt", now.toString()); state.put("updatedAt", now.toString());
+                state.put("lastTransitionAt", now.toString()); state.put("updatedAt", receivedAt.toString());
                 if (request.action().equals("BREAK") || request.action().equals("RESUME") || request.action().equals("START")) state.put("lastRestAt", now.toString());
+                state.put("sessionId", sessionId);
+                var session = sessionDoc.exists() ? new LinkedHashMap<>(sessionDoc.getData()) : new LinkedHashMap<String, Object>();
+                session.put("tenantId", tenant); session.put("uid", uid); session.put("name", name); session.put("id", sessionId);
+                session.put("startedAt", state.get("startedAt"));
+                Instant began=Instant.parse(state.get("startedAt").toString());
+                session.put("startedTime",com.google.cloud.Timestamp.ofTimeSecondsAndNanos(began.getEpochSecond(),began.getNano())); session.put("status", next);
+                session.put("workMinutes", state.get("activeMinutes")); session.put("breakMinutes", state.get("breakMinutes"));
+                session.put("activeSeconds",state.get("activeSeconds")); session.put("breakSeconds",state.get("breakSeconds"));
+                session.put("lastTransitionAt", now.toString()); session.put("updatedAt", receivedAt.toString());
+                session.put("version", number(session.get("version")) + 1);
+                session.putIfAbsent("reviewStatus", "UNREVIEWED");
+                if (Duration.between(now, receivedAt).toMinutes() > 5) session.put("delayedSync", true);
+                if (next.equals("OFF_DUTY")) session.put("endedAt", now.toString());
+                tx.set(sessionRef, session);
+                tx.create(db.collection("workforceTimeEvents").document(operation.getId()), Map.of(
+                        "tenantId", tenant, "uid", uid, "sessionId", sessionId, "action", request.action(),
+                        "recordedAt", receivedAt.toString(), "occurredAt", now.toString(), "source", request.occurredAt()==null?"SERVER":"DEVICE", "operationId", request.operationId(), "version", version + 1));
                 tx.set(shift, state);
                 tx.set(operation, Map.of("tenantId", tenant, "uid", uid, "fingerprint", fingerprint,
                         "expiresAt", com.google.cloud.Timestamp.ofTimeSecondsAndNanos(now.plus(Duration.ofDays(7)).getEpochSecond(), 0)));
@@ -149,12 +173,13 @@ public class WorkforceService {
     }
     public static Map<String, Object> decorate(Map<String, Object> data, Instant now) {
         var result = new LinkedHashMap<>(data); String status = String.valueOf(data.get("status"));
-        long delta = minutes(data.get("lastTransitionAt"), now);
-        result.put("workMinutes", number(data.get("activeMinutes")) + (status.equals("ACTIVE") ? delta : 0));
-        result.put("restMinutes", number(data.get("breakMinutes")) + (status.equals("BREAK") ? delta : 0));
+        long delta=0;try { delta=Math.max(0,Duration.between(Instant.parse(String.valueOf(data.get("lastTransitionAt"))),now).getSeconds()); } catch(RuntimeException ignored) {}
+        long work=number(data.getOrDefault("activeSeconds",number(data.get("activeMinutes"))*60))+(status.equals("ACTIVE")?delta:0);
+        long rest=number(data.getOrDefault("breakSeconds",number(data.get("breakMinutes"))*60))+(status.equals("BREAK")?delta:0);
+        result.put("workSeconds",work);result.put("restSeconds",rest);result.put("workMinutes",work/60);result.put("restMinutes",rest/60);
         result.put("pauseSuggested", status.equals("ACTIVE") && minutes(data.get("lastRestAt"), now) >= 90);
         result.put("stale", !status.equals("OFF_DUTY") && minutes(data.get("updatedAt"), now) >= 720);
-        result.put("notice", "Registrazione volontaria; promemoria pausa dopo 90 minuti. Non certifica presenze o conformità normativa."); return result;
+        result.put("notice", "Registrazione volontaria; promemoria pausa dopo 90 minuti. Le ore registrate sono soggette alla validazione del responsabile."); return result;
     }
     private static long minutes(Object value, Instant now) { try { return Math.max(0, Duration.between(Instant.parse(String.valueOf(value)), now).toMinutes()); } catch (RuntimeException e) { return 0; } }
     private static long number(Object value) { return value instanceof Number n ? n.longValue() : 0; }

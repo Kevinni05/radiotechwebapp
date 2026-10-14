@@ -54,6 +54,8 @@ jobs:
         run: bash gradlew test --no-daemon --console=plain
       - name: Backup configuration regression tests
         run: node --test scripts/backup-credentials.test.cjs scripts/refresh-coordinator.test.cjs scripts/ambient-canvas.test.mjs
+      - name: Workforce index rollout checks
+        run: python3 -m unittest discover -s scripts -p test_workforce_indexes.py
 
   firebase-rules:
     name: Firebase rules tests

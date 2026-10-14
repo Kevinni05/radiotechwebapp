@@ -18,6 +18,8 @@ repositories {
 }
 
 dependencies {
+    implementation 'com.google.ortools:ortools-java:9.15.6755'
+    implementation 'org.apache.pdfbox:pdfbox:3.0.8'
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
     implementation 'io.micrometer:micrometer-registry-prometheus'
     implementation 'io.micrometer:micrometer-tracing-bridge-otel'
