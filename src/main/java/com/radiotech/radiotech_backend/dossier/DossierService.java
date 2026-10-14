@@ -19,9 +19,9 @@ import static com.radiotech.radiotech_backend.dossier.DossierRules.*;
 
 @Service
 public class DossierService {
-    private final AntennaService antennas; private final LocalAttachmentService files; private final OperatorService operators; private final ObjectMapper json;
-    @Value("${radiotech.public-base-url:http://localhost:8080}") private String origin;
-    public DossierService(AntennaService antennas,LocalAttachmentService files,OperatorService operators,ObjectMapper json){this.antennas=antennas;this.files=files;this.operators=operators;this.json=json;}
+    private final AntennaService antennas; private final LocalAttachmentService files; private final OperatorService operators; private final ObjectMapper json=new ObjectMapper();
+    @Value("${radiotech.reports.public-base-url:}") private String origin;
+    public DossierService(AntennaService antennas,LocalAttachmentService files,OperatorService operators){this.antennas=antennas;this.files=files;this.operators=operators;}
     public record Change(long expectedVersion,String operationId,String section,Map<String,Object> data) {}
     public record Review(long expectedVersion,String operationId,String proposalId,boolean approve,String reason) {}
     public record Share(List<String> sections,int hours) {}
@@ -56,11 +56,13 @@ public class DossierService {
         return out;
     }
     public Map<String,Object> change(String antennaId,Change change)throws Exception{
-        if(change==null||change.data()==null)throw bad("Dati obbligatori.");String section=text(change.section(),30);writeAccess(Set.of("access","configuration","dependencies","components").contains(section));Antenna a=asset(antennaId);String t=tenant(),actor=uid(),op=id(change.operationId());
+        if(change==null||change.data()==null)throw bad("Dati obbligatori.");String section=text(change.section(),30);writeAccess(Set.of("access","configuration","dependencies","components","issueResolution","dependencyRemoval").contains(section));Antenna a=asset(antennaId);String t=tenant(),actor=uid(),op=id(change.operationId());
         Map<String,Object> canonical;
-        if(section.equals("proposals")){
+        if(Set.of("issueResolution","dependencyRemoval").contains(section)){
+            canonical=new LinkedHashMap<>(Map.of("entryId",id(change.data().get("entryId")),"reason",required(change.data(),"reason",2000)));
+        }else if(section.equals("proposals")){
             String target=required(change.data(),"target",20);if(!Set.of("access","configuration").contains(target))throw bad("Correzione non ammessa.");String field=required(change.data(),"field",80);if(target.equals("access")&&!Set.of("address","contact","hours","parking","keyInstructions","route","restrictions").contains(field)||field.contains("."))throw bad("Campo non valido.");
-            canonical=new LinkedHashMap<>(Map.of("target",target,"field",field,"value",required(change.data(),"value",2000),"reason",required(change.data(),"reason",2000),"status","PENDING"));
+            canonical=new LinkedHashMap<>(Map.of("target",target,"field",field,"value",required(change.data(),"value",target.equals("configuration")?1000:2000),"reason",required(change.data(),"reason",2000),"status","PENDING"));
         }else canonical=canonical(section,change.data());
         if(section.equals("dependencies")){String peer=canonical.get("antennaId").toString();if(peer.equals(a.getId()))throw bad("Un impianto non può dipendere da sé stesso.");antennas.getById(peer);}
         if(section.equals("documents")||section.equals("photos")){
@@ -73,10 +75,14 @@ public class DossierService {
             var prior=tx.get(receipt).get();if(prior.exists()){if(!hash.equals(prior.getString("hash")))throw bad("Identificativo operazione già usato.");return Map.<String,Object>of("version",prior.get("version"));}
             var snapshot=tx.get(root).get();owned(snapshot,t);var state=snapshot.exists()?new LinkedHashMap<>(snapshot.getData()):empty();if(version(state.get("version"))!=change.expectedVersion())throw conflict();
             String now=Instant.now().toString();var row=new LinkedHashMap<>(canonical);row.put("id",op);row.put("actor",actor);row.put("createdAt",now);
-            if(section.equals("access"))state.put(section,canonical);else{
+            if(Set.of("issueResolution","dependencyRemoval").contains(section)){
+                String target=section.equals("issueResolution")?"issues":"dependencies";var entries=rows(state,target);var entry=entries.stream().filter(r->canonical.get("entryId").equals(r.get("id"))).findFirst().orElseThrow(()->bad("Elemento inesistente."));
+                if(section.equals("issueResolution")){if(!"OPEN".equals(entry.get("status")))throw bad("Problema già risolto.");entry.put("status","RESOLVED");}else{if(Boolean.TRUE.equals(entry.get("archived")))throw bad("Collegamento già rimosso.");entry.put("archived",true);}
+                entry.put("resolutionReason",canonical.get("reason"));entry.put("resolvedAt",now);entry.put("resolvedBy",actor);state.put(target,entries);
+            }else if(section.equals("access"))state.put(section,canonical);else{
                 var list=rows(state,section);int max=section.equals("measurements")?500:100;if(list.size()>=max)throw bad("Limite della sezione raggiunto: "+max+" elementi. Nessun dato eliminato.");
                 if(section.equals("proposals")){var current=proposalValues(state,row.get("target").toString());row.put("before",Objects.toString(current.get(row.get("field")),""));}
-                if(section.equals("dependencies")&&list.stream().anyMatch(e->e.get("antennaId").equals(row.get("antennaId"))))throw bad("Collegamento già presente.");list.add(row);state.put(section,list);
+                if(section.equals("dependencies")&&list.stream().anyMatch(e->!Boolean.TRUE.equals(e.get("archived"))&&e.get("antennaId").equals(row.get("antennaId"))))throw bad("Collegamento già presente.");list.add(row);state.put(section,list);
             }
             long next=change.expectedVersion()+1;state.put("tenantId",t);state.put("antennaId",a.getId());state.put("version",next);state.put("updatedAt",now);bounded(state);
             tx.set(root,state);tx.create(receipt,Map.of("hash",hash,"version",next));tx.create(root.collection("audit").document(op),Map.of("section",section,"actor",actor,"createdAt",now,"version",next,"data",canonical));return Map.<String,Object>of("version",next);
@@ -91,7 +97,10 @@ public class DossierService {
         }));
     }
     public Map<String,Object> createShare(String antennaId,Share request)throws Exception{
-        writeAccess(true);if(request.hours()<1||request.hours()>720)throw bad("Scadenza consentita: da 1 ora a 30 giorni.");var snapshot=publicSnapshot(get(antennaId),request.sections());bounded(snapshot);byte[] bytes=new byte[32];new SecureRandom().nextBytes(bytes);String token=Base64.getUrlEncoder().withoutPadding().encodeToString(bytes),key=digest(token);String until=Instant.now().plus(Duration.ofHours(request.hours())).toString();
+        writeAccess(true);java.net.URI publicOrigin;
+        try{publicOrigin=java.net.URI.create(origin==null?"":origin.trim());}catch(IllegalArgumentException e){throw bad("Configura l’indirizzo pubblico del servizio.");}
+        if(publicOrigin.getHost()==null||publicOrigin.getUserInfo()!=null||publicOrigin.getQuery()!=null||publicOrigin.getFragment()!=null||!(publicOrigin.getPath().isEmpty()||publicOrigin.getPath().equals("/"))||!("https".equals(publicOrigin.getScheme())||"http".equals(publicOrigin.getScheme())&&Set.of("localhost","127.0.0.1").contains(publicOrigin.getHost())))throw bad("Configura RADIOTECH_PUBLIC_BASE_URL con l’origine HTTPS del servizio.");
+        if(request.hours()<1||request.hours()>720)throw bad("Scadenza consentita: da 1 ora a 30 giorni.");var snapshot=publicSnapshot(get(antennaId),request.sections());bounded(snapshot);byte[] bytes=new byte[32];new SecureRandom().nextBytes(bytes);String token=Base64.getUrlEncoder().withoutPadding().encodeToString(bytes),key=digest(token);String until=Instant.now().plus(Duration.ofHours(request.hours())).toString();
         var record=new LinkedHashMap<String,Object>();record.put("tenantId",tenant());record.put("antennaId",antennaId);record.put("snapshot",snapshot);record.put("sections",request.sections());record.put("expiresAt",until);record.put("revoked",false);record.put("createdAt",Instant.now().toString());record.put("createdBy",uid());record.put("accessCount",0L);db().collection("antennaDossierShares").document(key).create(record).get();
         return Map.of("id",key,"token",token,"url",origin.replaceAll("/+$","")+"/assets/dossier-share.html#"+token,"expiresAt",until);
     }

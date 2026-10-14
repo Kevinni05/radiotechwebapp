@@ -2,9 +2,9 @@
   // frontend/control-room/features/dossier.js
   var sections = { overview: "Riepilogo", access: "Accesso al sito", configuration: "Configurazioni", measurements: "Misurazioni", dependencies: "Dipendenze", photos: "Fotografie", documents: "Documenti", components: "Componenti", issues: "Problemi aperti", proposals: "Correzioni", sessions: "Ponte radio", shares: "Condivisione" };
   var accessLabels = { address: "Indirizzo e punto di accesso", contact: "Referente e contatti", hours: "Orari di accesso", parking: "Parcheggio", keyInstructions: "Ritiro chiavi", route: "Percorso e indicazioni", restrictions: "Restrizioni e precauzioni" };
-  var labels = { metric: "Parametro", unit: "Unit\xE0", value: "Valore", low: "Soglia minima", high: "Soglia massima", measuredAt: "Data e ora della misura", notes: "Note", label: "Nome revisione", reason: "Motivazione", values: "Parametri (uno per riga: nome = valore)", antennaId: "Impianto da cui dipende", type: "Tipo di collegamento", title: "Titolo", name: "Componente", model: "Modello", serial: "Matricola", installedAt: "Installazione", warrantyUntil: "Fine garanzia", target: "Sezione da correggere", field: "Campo", status: "Stato" };
+  var labels = { metric: "Parametro", unit: "Unit\xE0", value: "Valore", low: "Soglia minima", high: "Soglia massima", measuredAt: "Data e ora della misura", notes: "Note", label: "Nome revisione", reason: "Motivazione", values: "Parametri (uno per riga: nome = valore)", antennaId: "Impianto da cui dipende", type: "Tipo di collegamento", title: "Titolo", name: "Componente", model: "Modello", serial: "Matricola", installedAt: "Installazione", warrantyUntil: "Fine garanzia", target: "Sezione da correggere", field: "Campo", status: "Stato", peerAntennaId: "Impianto all\u2019altro estremo", operatorAId: "Tecnico estremo A", operatorBId: "Tecnico estremo B" };
   var stamp = (v) => v ? new Date(v).toLocaleString("it-IT") : "\u2014";
-  var op = () => crypto.randomUUID();
+  var op = () => crypto.randomUUID?.() || Array.from(crypto.getRandomValues(new Uint8Array(24)), (v) => v.toString(16).padStart(2, "0")).join("");
   var pairs = (text) => Object.fromEntries(text.split("\n").filter((l) => l.trim()).map((l) => {
     const p = l.indexOf("=");
     if (p < 1) throw Error("Usa una riga per parametro: nome = valore.");
@@ -41,7 +41,9 @@
       activeSession = null;
       data = null;
       assetId = null;
-      dialog?.close();
+      const old = dialog;
+      dialog = null;
+      old?.close();
       document.querySelectorAll(".ds-editor").forEach((d) => d.close());
       urls.forEach((u) => URL.revokeObjectURL(u));
       urls.clear();
@@ -59,10 +61,12 @@
       dialog.className = "ds-dialog";
       dialog.setAttribute("aria-label", "Fascicolo impianto");
       dialog.innerHTML = `<header class="ds-header"><div><span class="ds-eyebrow">RADIOTECH \xB7 FASCICOLO IMPIANTO</span><h2>Caricamento\u2026</h2><p data-summary></p></div><div class="actions">${button("Aggiorna", "refresh")}${button("Chiudi", "close")}</div></header><nav class="ds-tabs" aria-label="Sezioni fascicolo"></nav><div class="ds-content" role="region" aria-live="polite"></div>`;
+      const ownDialog = dialog;
       dialog.addEventListener("close", () => {
-        clearInterval(poll);
-        dialog?.remove();
+        ownDialog.remove();
+        if (dialog === ownDialog) dialog = null;
         if (epoch === e) {
+          clearInterval(poll);
           data = null;
           epoch++;
         }
@@ -107,10 +111,10 @@
         chart();
       }
       if (tab === "dependencies") {
-        const rows = data.dependencies;
-        content.innerHTML = panel("Dipendenze dirette registrate", `<p class="subtle">Le frecce indicano da quali impianti dipende questo sito. Lo schema descrive i collegamenti registrati, senza simulare la disponibilit\xE0 della rete.</p>${rows.length ? `<svg class="ds-graph" viewBox="0 0 720 ${Math.max(150, rows.length * 88)}" role="img" aria-label="Mappa delle dipendenze"><defs><marker id="dsArrow" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="currentColor"/></marker></defs><rect x="10" y="${Math.max(45, rows.length * 44 - 24)}" width="240" height="48" rx="10"/><text x="24" y="${Math.max(45, rows.length * 44 - 24) + 29}">${esc(data.name.slice(0, 26))}</text>${rows.map((r, i) => `<path d="M250 ${Math.max(45, rows.length * 44 - 24) + 24} L440 ${i * 88 + 48}" marker-end="url(#dsArrow)"/><rect x="450" y="${i * 88 + 24}" width="255" height="48" rx="10"/><text x="464" y="${i * 88 + 53}">${esc((r.name || r.antennaId).slice(0, 27))}</text>`).join("")}</svg>` : empty("Nessuna dipendenza registrata.")}${cards(rows, (r) => `<article class="ds-record"><h4>${esc(r.name || r.antennaId)}</h4><p>${esc(r.type)} \xB7 ${esc(r.label)} \xB7 ${esc(r.status || "")}</p><p>${esc(r.notes)}</p>${button("Apri fascicolo collegato", "peer", `data-id="${esc(r.antennaId)}"`)}</article>`)}`, data.canManage ? button("Aggiungi collegamento", "add-dependencies") : "");
+        const rows = data.dependencies.filter((r) => !r.archived);
+        content.innerHTML = panel("Dipendenze dirette registrate", `<p class="subtle">Le frecce indicano da quali impianti dipende questo sito. Lo schema descrive i collegamenti registrati, senza simulare la disponibilit\xE0 della rete.</p>${rows.length ? `<svg class="ds-graph" viewBox="0 0 720 ${Math.max(150, rows.length * 88)}" role="img" aria-label="Mappa delle dipendenze"><defs><marker id="dsArrow" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="currentColor"/></marker></defs><rect x="10" y="${Math.max(45, rows.length * 44 - 24)}" width="240" height="48" rx="10"/><text x="24" y="${Math.max(45, rows.length * 44 - 24) + 29}">${esc(data.name.slice(0, 26))}</text>${rows.map((r, i) => `<path d="M250 ${Math.max(45, rows.length * 44 - 24) + 24} L440 ${i * 88 + 48}" marker-end="url(#dsArrow)"/><rect x="450" y="${i * 88 + 24}" width="255" height="48" rx="10"/><text x="464" y="${i * 88 + 53}">${esc((r.name || r.antennaId).slice(0, 27))}</text>`).join("")}</svg>` : empty("Nessuna dipendenza registrata.")}${cards(rows, (r) => `<article class="ds-record"><h4>${esc(r.name || r.antennaId)}</h4><p>${esc(r.type)} \xB7 ${esc(r.label)} \xB7 ${esc(r.status || "")}</p><p>${esc(r.notes)}</p>${button("Apri fascicolo collegato", "peer", `data-id="${esc(r.antennaId)}"`)}${data.canManage ? button("Rimuovi collegamento", "remove-dependency", `data-id="${esc(r.id)}"`) : ""}</article>`)}`, data.canManage ? button("Aggiungi collegamento", "add-dependencies") : "");
       }
-      if (["photos", "documents", "components", "issues"].includes(tab)) content.innerHTML = panel(sections[tab], cards([...data[tab]].reverse(), (r) => `<article class="ds-record"><h4>${esc(r.title || r.name)}</h4><p>${esc(r.notes || "")}</p>${tab === "photos" ? `<div class="ds-photo" data-photo="${esc(r.id)}"></div>` : ""}${tab === "components" ? facts({ Modello: r.model, Matricola: r.serial, Installazione: r.installedAt, Garanzia: r.warrantyUntil }) : ""}${r.status ? `<span class="badge">${r.status === "OPEN" ? "Aperto" : "Risolto"}</span>` : ""}${r.fileId ? button(tab === "photos" ? "Visualizza originale e annotazioni" : "Scarica documento", "file", `data-id="${esc(r.id)}"`) : ""}<small>${stamp(r.createdAt)}</small></article>`), tab === "components" && !data.canManage ? "" : button("Aggiungi", "add-" + tab));
+      if (["photos", "documents", "components", "issues"].includes(tab)) content.innerHTML = panel(sections[tab], cards([...data[tab]].reverse(), (r) => `<article class="ds-record"><h4>${esc(r.title || r.name)}</h4><p>${esc(r.notes || "")}</p>${tab === "photos" ? `<div class="ds-photo" data-photo="${esc(r.id)}"></div>` : ""}${tab === "components" ? facts({ Modello: r.model, Matricola: r.serial, Installazione: r.installedAt, Garanzia: r.warrantyUntil }) : ""}${r.status ? `<span class="badge">${r.status === "OPEN" ? "Aperto" : "Risolto"}</span>` : ""}${tab === "issues" && data.canManage && r.status === "OPEN" ? button("Segna risolto", "resolve-issue", `data-id="${esc(r.id)}"`) : ""}${r.resolutionReason ? `<p>Esito: ${esc(r.resolutionReason)}</p>` : ""}${r.fileId ? button(tab === "photos" ? "Visualizza originale e annotazioni" : "Scarica documento", "file", `data-id="${esc(r.id)}"`) : ""}<small>${stamp(r.createdAt)}</small></article>`), tab === "components" && !data.canManage ? "" : button("Aggiungi", "add-" + tab));
       if (tab === "proposals") content.innerHTML = panel("Correzioni proposte e decisioni", cards([...data.proposals].reverse(), (p) => `<article class="ds-record"><h4>${esc(p.target === "access" ? "Accesso al sito" : "Configurazione")} \xB7 ${esc(accessLabels[p.field] || p.field)}</h4><div class="ds-columns"><div><small>Prima</small><p>${esc(p.before || "\u2014")}</p></div><div><small>Proposta</small><p>${esc(p.value)}</p></div></div><p>${esc(p.reason)}</p><span class="badge">${{ PENDING: "Da verificare", APPROVED: "Approvata", REJECTED: "Respinta" }[p.status]}</span>${p.reviewReason ? `<p>Esito: ${esc(p.reviewReason)}</p>` : ""}${data.canManage && p.status === "PENDING" ? `<div class="actions">${button("Approva", "approve", `data-id="${esc(p.id)}"`)}${button("Respingi", "reject", `data-id="${esc(p.id)}"`)}</div>` : ""}</article>`), button("Proponi correzione", "add-proposals"));
       if (tab === "shares") loadShares().catch(error);
       if (tab === "sessions") {
@@ -204,7 +208,11 @@
         return;
       }
       if (section === "proposals") {
-        editor("Proponi una correzione", field("target", "access", "text", true, [["access", "Accesso al sito"], ["configuration", "Configurazione"]]) + field("field") + field("value", "", "textarea") + field("reason", "", "textarea"), (f) => save(section, Object.fromEntries(f)), "Per l\u2019accesso usa: " + Object.keys(accessLabels).join(", ") + ". Per la configurazione usa il nome del parametro.");
+        const options = (target) => target === "access" ? Object.entries(accessLabels) : Object.keys(data.configuration.at(-1)?.values || {}).map((k) => [k, k]);
+        const d = editor("Proponi una correzione", field("target", "access", "text", true, [["access", "Accesso al sito"], ["configuration", "Configurazione"]]) + field("field", "", "text", true, options("access")) + field("value", "", "textarea") + field("reason", "", "textarea"), (f) => save(section, Object.fromEntries(f)), "La modifica sar\xE0 applicata solo dopo la verifica del responsabile.");
+        d.querySelector("[name=target]").onchange = (e) => {
+          d.querySelector("[name=field]").innerHTML = options(e.target.value).map(([v, l]) => `<option value="${esc(v)}">${esc(l)}</option>`).join("");
+        };
         return;
       }
       if (section === "documents" || section === "photos") {
@@ -340,6 +348,10 @@
         switch (a) {
           case "refresh":
             await reload();
+            break;
+          case "resolve-issue":
+          case "remove-dependency":
+            editor(a === "resolve-issue" ? "Concludi problema" : "Rimuovi collegamento", field("reason", "", "textarea"), (f) => save(a === "resolve-issue" ? "issueResolution" : "dependencyRemoval", { entryId: b.dataset.id, reason: f.get("reason") }));
             break;
           case "edit-access":
             await add("access");
@@ -2795,7 +2807,8 @@
     async function apiFetch(url, options = {}) {
       const { _retried = false, responseType, maxResponseBytes, timeoutMs = CONFIG.REQUEST_TIMEOUT, ...requestOptions } = options;
       const privatePackage = url.startsWith("/api/v1/distribution/");
-      const responseLimit = privatePackage && maxResponseBytes === 150 * 1024 * 1024 ? maxResponseBytes : 1e7;
+      const dossierFile = /^\/api\/v1\/antennas\/[A-Za-z0-9_-]+\/dossier\/files\/[a-f0-9]{64}$/.test(url);
+      const responseLimit = privatePackage && maxResponseBytes === 150 * 1024 * 1024 ? maxResponseBytes : dossierFile && maxResponseBytes === 15e6 ? 15e6 : 1e7;
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), Math.min(privatePackage ? 18e4 : 6e4, timeoutMs));
       const token = getSessionToken();

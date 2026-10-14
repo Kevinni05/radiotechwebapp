@@ -287,7 +287,8 @@ get updateMap(){return updateMap;}};
             async function apiFetch(url, options = {}) {
                 const { _retried = false, responseType, maxResponseBytes, timeoutMs = CONFIG.REQUEST_TIMEOUT, ...requestOptions } = options;
                 const privatePackage=url.startsWith('/api/v1/distribution/');
-                const responseLimit=privatePackage&&maxResponseBytes===150*1024*1024?maxResponseBytes:10000000;
+                const dossierFile=/^\/api\/v1\/antennas\/[A-Za-z0-9_-]+\/dossier\/files\/[a-f0-9]{64}$/.test(url);
+                const responseLimit=privatePackage&&maxResponseBytes===150*1024*1024?maxResponseBytes:dossierFile&&maxResponseBytes===15000000?15000000:10000000;
                 const controller = new AbortController();
                 const timeout = setTimeout(() => controller.abort(), Math.min(privatePackage?180000:60000, timeoutMs));
 
