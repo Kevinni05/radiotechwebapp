@@ -2,7 +2,7 @@
 
 Fonte: piano Enterprise Pro 2.1 del 13 ottobre 2026 consegnato da Kevin. Le richieste operative sono quelle dell'utente; soglie, calendario e campione contenuti nel piano restano criteri di verifica, non risultati già ottenuti.
 
-**Decisione attuale: No-Go commerciale.** Sono state corrette cause concrete di mancata registrazione/consegna push. T15/T16, collaudo sul campo e pilota richiedono ancora evidenza effettiva. Questo registro non sostituisce l'accettazione del cliente.
+**Decisione attuale: No-Go commerciale.** Il 14 ottobre sono riuscite sei prove dashboard→Samsung nei tre stati dell'app, invio multiplo a due account sequenziali con retry senza duplicati, recupero della foto cifrata e revoca/nuovo accesso. Restano verifica dopo distribuzione, ricezione simultanea concordata, upgrade firmato, flusso completo sul campo, custodia/assistenza e pilota. Questo registro non sostituisce l'accettazione del cliente. [Evidenza aggiornata Samsung](SAMSUNG-QA-2026-10-14.md).
 
 ## Baseline e configurazione verificata
 
@@ -22,27 +22,27 @@ Fonte: piano Enterprise Pro 2.1 del 13 ottobre 2026 consegnato da Kevin. Le rich
 |---|---|---|---|
 | SEC-01 | Da validare | Matrice ruoli/tenant, ENGINEER; suite API, emulatori e regole | Matrice cliente sul backend distribuito con MFA indipendente |
 | SEC-02 | Da validare | Tenant su API/regole; bozze/coda/allegati e ricevute separati; chiusura schermate al cambio tenant/ruolo | T07 su candidata distribuita e due aziende QA |
-| SEC-03 | Da validare | Verifica `/auth/me` su avvio/resume/rete e ogni 5 minuti in foreground; 401/403 bloccano, fallback massimo 8 ore | Revoca/ruolo con identità reale; T10 |
+| SEC-03 | Da validare | Verifica `/auth/me` su avvio/resume/rete e ogni 5 minuti; fallback massimo 8 ore; revoca dispositivo fisica e guardie Firestore/Storage candidate verificate | Revoca account/ruolo e regole nell'ambiente distribuito; T10 |
 | DATA-01 | Da validare | Chiavi durevoli e replay dominio; notifica dashboard atomica e ID conservato su retry/reload | T02 con timeout dopo commit in ambiente candidato |
 | DATA-02 | Da validare | Transazione approvazione/stock, concorrenza e recovery verificati con Firestore emulato | T04 nel percorso web/mobile distribuito |
 | DATA-03 | Da validare | Audit atomico e recovery intenti Auth; audit retry e revoca dispositivo | Retention/owner e controllo audit dell'identità attuale |
 | DATA-04 | Da validare | Backup applicativo cifrato e restore isolato; nuova autorità: export/restore di 90 documenti e un segreto con chiave amministrativa separata, confronto riuscito (IDENTITY-RECOVERY-2026-10-13) | T12 completo, copia offsite amministrativa del registro, custodia separata, recupero MFA e RPO/RTO cliente |
 | DATA-05 | Da validare | Snapshot/versioni/unità/checksum PDF; prove immutabilità e rinomina | Modello report e PDF accettati dal cliente |
 | AUTH-01 | Da validare | Ripristino Firebase e access gate; test riavvio logico/offline/UID | Avvio e upgrade della nuova build firmata sul Samsung |
-| AUTH-02 | Da validare | Rotazione token UID+tenant, cleanup seriale, scope guard; mapping FCM per dispositivo e revoca atomica | T06/T10; installazioni legacy senza mapping devono riassociare il token al login/sync |
-| AUTH-03 | Da validare | Recovery distinto per rete, scadenza, sospensione e revoca; lista dispositivi e audit | Utente nuovo prova recovery e revoca dalla centrale |
+| AUTH-02 | Da validare | Rotazione UID+tenant, cleanup seriale, scope guard; logout A/login B Samsung con inbox/ricevute separate; revoca del solo dispositivo A e altro device conservato | T06 completo bozza/coda e T10 account/ruolo; legacy devono riassociare il token al login/sync |
+| AUTH-03 | Da validare | Recovery distinto per rete/scadenza/sospensione/revoca; 401 revoca corretto; nuovo accesso reale Samsung riattiva lo stesso ID | Utente nuovo prova recovery; verifica distribuita |
 | PRES-01 | Da validare | Connessioni per dispositivo; foreground/background separati, heartbeat 30 s, scadenza 90 s e orologio server; test multi-device/regole | T08: Samsung + emulatore; misurare cambio entro 10 s con rete sana |
 | PRES-02 | Chiuso | La presenza contiene soltanto stato e timestamp; GPS acquisito solo nel check-in | Sorvegliare consumi nel pilota |
-| NOTIF-01 | Da validare | Inbox persistente, outbox, esiti per dispositivo, errori IAM visibili e retry sullo stesso ID | Push parziale reale, token scaduto e ricevuta sul telefono |
+| NOTIF-01 | Da validare | Inbox/outbox, esiti per dispositivo; PARTIAL con B NO_TOKENS → registra B → retry SENT dello stesso ID, ricevuta/apertura fisiche | Token scaduto/permesso negato e percorso distribuito |
 | NOTIF-02 | Da validare | Listener anticipati, rinnovo/resume/rete, deep link generale/task, tag stabile Android e testo lock screen generico | Foreground/background/cold start; account sostituito e permesso negato |
-| NOTIF-03 | In corso | Permesso FCM ripristinato; proprietario token ammesso nell'archivio Android; invio dashboard atomico | **T15/T16 bloccanti: dashboard → dati → provider → Samsung → destinazione** |
+| NOTIF-03 | Da validare | Sei prove nei tre stati; multipli A/B sequenziali sul Samsung e retry senza duplicazione riusciti | **T15 simultaneo e T15/T16 dopo distribuzione governata** |
 | MOB-01 | Da validare | Scheda antenna/task e azioni integrate già presenti; widget test | QR/camera e prima schermata su telefono |
 | MOB-02 | Da validare | Checklist nello stesso report, versione e snapshot | Compilazione e campi obbligatori sul campo |
-| MOB-03 | Da validare | Preview distanza/accuratezza, impostazioni posizione/permessi, conferma prima di EN_ROUTE | GPS reale, geofence e deroga autorizzata/audit |
-| MOB-04 | Da validare | Archivio Keystore/SQLite; bozze autosalvate, back blocca errori, restore non sovrascrive dati illeggibili; test nativo Samsung riuscito | Upgrade candidata e coda/bozza reali sintetiche; T03/T06/T11 |
+| MOB-03 | Da validare | Preview distanza/accuratezza e permesso preciso provati sul Samsung; prima di confermare resta ACCEPTED senza check-in | Check-in reale nel geofence e deroga autorizzata/audit |
+| MOB-04 | Da validare | Archivio Keystore/SQLite; recovery seed/restart/upgrade QA riuscito; foto bozza recuperata dopo aggiornamento e restaging cifrato verificato | Upgrade commerciale firmato e T06 completo; T11 |
 | MOB-05 | Da validare | Stati bozza/coda/invio/ricevuta/errore e retry idempotente | T01/T02 su rete degradata |
 | MOB-06 | Da validare | Sync avvio/resume/rete, coda ispezionabile, conflitti espliciti | Recovery e conflitto tra dispositivi in ambiente candidato |
-| MOB-07 | Da validare | Compressione e layout piccoli/testo grande coperti automaticamente | Camera, TalkBack e misure su Samsung |
+| MOB-07 | Da validare | Camera/anteprima foto recuperata/PDF verificati Samsung; semantica foto e rimozione coperta automaticamente | TalkBack fisico declinato da Kevin; misure e restante T14 |
 | WEB-01 | Da validare | Componenti condivisi, suite browser e prove visuali esistenti | Revisione cliente della candidata |
 | WEB-02 | Da validare | Topbar/azienda/navigazione responsive e tastiera | T14 e verifica ambiente distribuito |
 | WEB-03 | Da validare | Dashboard urgenze/KPI, meteo non bloccante e fallback | Freschezza KPI e tempo utilizzo misurati |
@@ -95,9 +95,11 @@ Il pilota richiede due settimane di uso reale o un campione equivalente **concor
 
 Baseline privata: `.radiotech/cloud/notification-config-20261013.json`. Se il problema è relativo solo alla nuova URL, rimuovere `FIREBASE_DATABASE_URL` con `gcloud run services update radiotech-web --region=europe-west1 --project=gestionale-radio --remove-env-vars=FIREBASE_DATABASE_URL`; registrare la nuova revisione pronta. Rimuovere il ruolo FCM solo se il file prova che era assente prima e se si vuole sospendere anche gli invii già autorizzati in coda. Non revocare gli altri ruoli del runtime. Il rollback codice deve mantenere compatibilità con mobile 11002; un rollback mobile richiede una build correttiva con codice superiore a 11004, stessa firma e nessuna disinstallazione con dati pendenti.
 
-PR di revisione: [web/API PR45](https://github.com/Kevinni05/radiotechwebapp/pull/45), [mobile PR30](https://github.com/Kevinni05/gestionale_radio/pull/30). Entrambe draft; nessun Go/No-Go commerciale implicito. La prova FCM fisica non è partita perché il Samsung era scollegato; fixture e credenziali QA sono state rimosse. Lo script può preparare una nuova prova dopo il collegamento.
+PR di revisione: [web/API PR45](https://github.com/Kevinni05/radiotechwebapp/pull/45), [mobile PR30](https://github.com/Kevinni05/gestionale_radio/pull/30). Entrambe draft. Il Samsung scollegato aveva impedito le prime prove il 13 ottobre; gli esiti fisici del 14 ottobre sono nel registro aggiornato.
 
-## Chiusura della preparazione tecnica
+## Evidenze storiche del 13 ottobre
+
+I commit e digest sotto appartengono alla candidata precedente conservata nel pacchetto privato del 13 ottobre. Per gli artefatti attuali usare esclusivamente il manifest aggiornato e l'appendice del 14 ottobre.
 
 Ultima revisione mobile `47c7103a05dada60e4038ec4f343da4ea329dfe7`: le cache della schermata principale vengono eliminate al cambio UID/tenant/ruolo. La nuova prova verifica la scomparsa dei dati di A dal root dopo il passaggio a B con lo stesso UID. Analisi pulita e **181 test** riusciti; APK/AAB ricompilati con identità/certificato originali, digest definitivi nel [manifest 11004](RELEASE-CANDIDATE-11004.json). [CI ultima revisione](https://github.com/Kevinni05/gestionale_radio/actions/runs/38423238699). La CI verde del commit precedente rimane un'evidenza distinta.
 
@@ -108,3 +110,17 @@ Mobile commit `c12b50cff1d24a9772c867dc922195ab9c63b114`: [CI finale](https://gi
 Backend: 191 test unitari eseguiti senza fallimenti, 114 emulator case saltati in quel run; separatamente 113 test Firestore/Auth riusciti. Il caso dispositivi ora passa dalla route HTTP effettiva `/api/v1/operator/me/fcm-token`, oltre a provare transazioni/revoca, mantenendo compatibilità dei client legacy. Autorità: 28 test riusciti e restore reale→emulatore di 90 documenti/un segreto con confronto completo.
 
 Le sei prove browser mirate finali (notifiche, Pro in caricamento, animazioni/layout) sono riuscite. Rimangono da collegare gli esiti della CI web alla revisione finale dopo il consolidamento del percorso HTTP e del recupero del registro. Manuale di recupero amministrativo: [IDENTITY-RECOVERY](IDENTITY-RECOVERY-2026-10-13.md).
+
+## Consolidamento del 14 ottobre
+
+Sorgente commerciale mobile **f304070**, APK/AAB **1.5.5+11004** ricompilati dopo la correzione foto e 401 revoca: **184 test Flutter**, analisi pulita, **8 test nativi Linux** e recovery Android emulato riusciti. [CI mobile](https://github.com/Kevinni05/gestionale_radio/actions/runs/38489631207). La sonda QA successiva isola anche Firestore SDK nell'emulatore; la prima configurazione aveva effettuato soltanto letture reali delle antenne del tenant, mentre tutte le scritture operative API erano emulatore.
+
+Web candidato **34dc074**: [CI interamente verde](https://github.com/Kevinni05/radiotechwebapp/actions/runs/38495119175). Autorità 35 prove, backend 193 test unitari eseguiti e 114 emulator case separati dal run unitario; regole 17 prove, integrazioni Firestore/Auth, tre browser, container e build riproducibile. Il nuovo endpoint dell'autorità verifica una prova recente reale prima di firmare la sessione di dispositivo; firmatario isolato del progetto Auth senza ruoli applicativi, runtime web privo di nuovi privilegi Auth/IAM.
+
+Prove Samsung: tre generali e tre incarichi nei tre stati; multipli A/B sequenziali, PARTIAL→SENT mediante retry sul medesimo ID; separazione inbox/ricevute al cambio account. Revoca A dalla dashboard e nuova autenticazione riuscite. B, con record proprio revocato soltanto nell'emulatore: API 401 e SDK Firestore permission-denied dopo precedente lettura consentita. GPS preciso/preview annullata, foto recuperata da bozza, PDF/restaging cifrato riusciti. TalkBack fisico non eseguito per preferenza esplicita di Kevin.
+
+Pacchetto corrente privato `1.5.5-11004-rc-20261014-f304070`: APK, AAB, simboli e JAR backend dal sorgente **9afdb5c**, più documenti ed evidenze selezionate. Manifest [RELEASE-CANDIDATE-11004](RELEASE-CANDIDATE-11004.json) verificato rispetto ai byte. APK con identità/firma originali; tutti i 484 payload AAB verificati con il medesimo certificato. La build contiene il normale entrypoint, non le credenziali delle sonde QA. Il pacchetto storico precedente è conservato separatamente.
+
+Autorità candidata `radiotech-identity-00006-vuc` a zero traffico ordinario; `00004-nbf` resta al 100%. Backend pubblico ancora `radiotech-web-00004-5sv`; regole Firestore/Storage nuove non pubblicate. Prima della distribuzione delle regole Storage verificare il service agent per le letture Firestore, come descritto nel registro Samsung. La pubblicazione/accettazione resta subordinata ai gate espliciti del verbale.
+
+Collaudo chiuso: tag temporaneo rimosso, account sintetici e presenze propri eliminati, server/browser e reverse USB QA arrestati. Il PDF è conservato nel pacchetto privato ed eliminato dal telefono; bozza sintetica cifrata conservata. Il backend pubblico e il traffico ordinario dell'autorità non sono stati promossi alla candidata.

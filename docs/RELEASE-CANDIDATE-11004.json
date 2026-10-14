@@ -5,26 +5,37 @@
   "versionName": "1.5.5",
   "versionCode": 11004,
   "channel": "PRIVATE_SITE",
-  "mobileCommit": "47c7103a05dada60e4038ec4f343da4ea329dfe7",
-  "webCandidateCommit": "15ad8e8f7aa91f4f02b306ae405632994f6948a8",
+  "mobileCommit": "f304070945c18a1655278738bf01dbe498e6f370",
+  "webCandidateCommit": "34dc074583cf0fb3c573da7e4cd66b6b494d8a28",
   "backend": {
-    "filename": "radiotech-backend-dashboard-final.jar",
-    "sha256": "2eaddfd804f393a375df272b7e904f7ca98bb47010ccac0ee4967ee7a888a20b",
-    "bytes": 112140523,
-    "sourceCommit": "15ad8e8f7aa91f4f02b306ae405632994f6948a8"
+    "filename": "radiotech-backend-device-session.jar",
+    "sha256": "3e24ca0b55b27621a570e02ab83b8f613b96387b34ea57103df0345959f2116b",
+    "bytes": 112141294,
+    "sourceCommit": "9afdb5c2a23b3a65847730a4a5eb54761b56e610"
   },
+  "identityCandidate": {
+    "sourceCommit": "9afdb5c2a23b3a65847730a4a5eb54761b56e610",
+    "imageDigest": "sha256:23c78146401605bdb83352c62f253238df6725a07e838197c7849804e1a895d1",
+    "revision": "radiotech-identity-00006-vuc",
+    "ordinaryTrafficPercent": 0,
+    "ordinaryRevision": "radiotech-identity-00004-nbf"
+  },
+  "firebaseRulesCandidateCommit": "34dc074583cf0fb3c573da7e4cd66b6b494d8a28",
+  "firebaseRulesPublished": false,
   "configurationRevision": "radiotech-web-00004-5sv",
   "signingSha256": "73005990b6bad93b1bb3383121f6dcc2293b3e5e3a60e1ae7eaf09a7d97c4fa4",
   "apk": {
     "filename": "RadioTech-1.5.5-11004.apk",
-    "sha256": "1a616674ec460569a04d117ed34b6faf1f22b82c244816a73947afbb465cbcbb",
-    "bytes": 82063700
+    "sha256": "345ed9aee5714dca6d35ab605f03e3ead52686905596e78ee885800aa90b8a30",
+    "bytes": 81998164
   },
   "aab": {
     "filename": "RadioTech-1.5.5-11004.aab",
-    "sha256": "68fc496365ca1bf331de6b3caf35a2e33b0d7081722db437cde24e03da171ace",
-    "bytes": 74533831
+    "sha256": "fa6f6aaa6ed79d7d61b459ff9685925747b5f4dff8e444f9e5bb0ded9ebfe7df",
+    "bytes": 74527469
   },
-  "createdAt": "2026-10-13T15:41:34.1455090Z",
-  "publicationGate": "T15/T16, signed upgrade, current identity recovery custody and pilot acceptance pending"
+  "createdAt": "2026-10-14T01:37:00Z",
+  "mobileCi": "https://github.com/Kevinni05/gestionale_radio/actions/runs/38489631207",
+  "webCi": "https://github.com/Kevinni05/radiotechwebapp/actions/runs/38495119175",
+  "publicationGate": "Governed distribution and T15/T16 verification, simultaneous receivers, signed upgrade, full field workflow, TalkBack, custody/support and pilot acceptance pending"
 }
