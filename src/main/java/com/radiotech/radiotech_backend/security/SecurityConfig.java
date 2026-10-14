@@ -66,6 +66,9 @@ public class SecurityConfig {
                                                 .requestMatchers("/actuator/metrics", "/actuator/metrics/**", "/actuator/prometheus")
                                                 .hasAnyRole(Role.ACCOUNT_ADMINS)
 
+                                                .requestMatchers("/api/v1/workforce/**")
+                                                .hasAnyRole(Role.INCIDENT_API)
+
                                                 // Auto-registrazione: basta un account Firebase valido.
                                                 // L'operatore nasce IN_ATTESA e non ha accesso alle API
                                                 // finche' un manager non lo approva.

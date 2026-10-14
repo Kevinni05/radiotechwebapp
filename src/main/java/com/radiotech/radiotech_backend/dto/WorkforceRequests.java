@@ -5,7 +5,9 @@ public final class WorkforceRequests {
     public record Shift(@NotBlank @Pattern(regexp = "START|BREAK|RESUME|END") String action,
             @NotBlank @Pattern(regexp = "READY|NEEDS_BREAK|REQUEST_SUPPORT") String readiness,
             @NotNull @Min(0) Long expectedVersion,
-            @NotBlank @Pattern(regexp = "[a-zA-Z0-9-]{16,64}") String operationId) {}
+            @NotBlank @Pattern(regexp = "[a-zA-Z0-9-]{16,64}") String operationId, @Size(max=40) String occurredAt) {
+        public Shift(String action, String readiness, Long expectedVersion, String operationId) { this(action, readiness, expectedVersion, operationId, null); }
+    }
     public record Signal(@NotBlank @Pattern(regexp = "NEAR_MISS|HAZARD|SUPPORT_REQUEST") String type,
             @NotBlank @Pattern(regexp = "LOW|MEDIUM|HIGH|CRITICAL") String severity,
             @NotBlank @Size(max = 1000) String description,

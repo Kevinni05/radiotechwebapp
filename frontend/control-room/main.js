@@ -1,3 +1,4 @@
+import {installWorkforce} from './features/workforce.js';
 import {createFeature as create_profile} from './features/profile.js';
 import {createFeature as create_map} from './features/map.js';
 import {createFeature as create_dashboard} from './features/dashboard.js';
@@ -202,6 +203,7 @@ get updateMap(){return updateMap;}};
                 const identityOf = account => JSON.stringify([account?.tenantId, account?.uid || account?.id || account?.email]);
                 if (state.user && identityOf(state.user) !== identityOf(user)) {
                     state.sessionEpoch = (state.sessionEpoch || 0) + 1;
+                    window.dispatchEvent(new Event('radiotech:identity-changed'));
                     featureContext.reportAttachments?.clear();
                     document.querySelectorAll(".report-delete-dialog, .report-material-review").forEach(dialog => dialog.close());
                 }
@@ -212,6 +214,7 @@ get updateMap(){return updateMap;}};
                 state.authRole = user?.role || null;
                 chiefAccess?.syncRole();
                 signatureWorkspace?.syncIdentity();
+                window.dispatchEvent(new Event('radiotech:session-ready'));
                 purgeLegacyTokens();
                 try { localStorage.setItem(CONFIG.STORAGE_REMEMBER, String(remember)); } catch (_) {}
             }
@@ -564,6 +567,8 @@ function exportInventoryCsv(...args){return feature_inventory.exportInventoryCsv
                     tools: ["TelcoTools", "Calcolo e verifica dei collegamenti radio"],
                     enterprise: ["Rischi e competenze", "Incidenti, SLA e abilitazioni della squadra"],
                     ai: ["Pianificazione preventiva", "Scadenze, priorità e manutenzione programmata"],
+                    attendance: ["Presenze", "Timbrature, validazione e incongruenze"],
+                    rostering: ["Turnistica", "Pianificazione mensile, vincoli e copertura"],
                     people: ["Squadra e sicurezza", "Turni, pause, segnalazioni e supporto alla squadra"],
                     operators: ["Operatori", "Anagrafica, accessi e abilitazione della squadra"],
                     reports: ["Centro report", "Revisione dei resoconti degli interventi"],
@@ -925,6 +930,7 @@ function loadAudit(...args){return feature_system.loadAudit(...args);}
                 chiefAccess = window.RadioTechChiefAccess.install({apiFetch, toast, currentRole: () => state.authRole});
                 enterprise = window.RadioTechEnterprise({ apiFetch, state, escapeHtml, toast, switchView });
                 companyHub = window.RadioTechCompanyHub({ apiFetch, state, escapeHtml, toast, switchView });
+                installWorkforce({ apiFetch, state, escapeHtml, toast, switchView });
                 proSuite = window.RadioTechPro({ apiFetch, state, escapeHtml, toast, switchView });
                 proSecurity = window.RadioTechProSecurity({ apiFetch, toast, switchView });
                 window.RadioTechTelcoTools();
