@@ -68,7 +68,13 @@ const pairText = (v) =>
   Object.entries(v || {})
     .map(([k, x]) => `${k} = ${x}`)
     .join("\n");
-export function installDossier({ apiFetch, state, escapeHtml: esc, toast }) {
+export function installDossier({
+  apiFetch,
+  state,
+  escapeHtml: esc,
+  toast,
+  formatStatus = (v) => v,
+}) {
   let data = null,
     assetId = null,
     tab = "overview",
@@ -88,7 +94,7 @@ export function installDossier({ apiFetch, state, escapeHtml: esc, toast }) {
     `<dl class="ds-facts">${Object.entries(obj || {})
       .map(
         ([k, v]) =>
-          `<div><dt>${esc(accessLabels[k] || k)}</dt><dd>${esc(typeof v === "object" ? pairText(v) : v || "—")}</dd></div>`,
+          `<div><dt>${esc(accessLabels[k] || k)}</dt><dd>${esc(typeof v === "object" ? pairText(v) : k === "status" ? formatStatus(v) : v || "—")}</dd></div>`,
       )
       .join("")}</dl>`;
   const cards = (rows, fn) =>
@@ -201,7 +207,7 @@ export function installDossier({ apiFetch, state, escapeHtml: esc, toast }) {
         )
         .join(
           "",
-        )}</div><div class="ds-columns">${panel("Identità e dati tecnici", facts(data.identity))}${panel("Configurazione attuale", latest ? `<p>${esc(latest.label)} · ${stamp(latest.createdAt)}</p>${facts(latest.values)}` : empty("Nessuna configurazione registrata."))}</div>${panel("Cronologia interventi e report", `${data.historyPartial ? '<p class="ds-notice">Sono mostrati fino a 200 elementi per sorgente. Consulta gli archivi per lo storico completo.</p>' : ""}${cards(data.history, (r) => `<article class="ds-record"><span class="badge">${r.type === "TASK" ? "Incarico" : "Report"}</span><h4>${esc(r.title || r.id)}</h4><p>${esc(r.summary || r.description || "")}</p><small>${esc(r.status || "")} · ${stamp(r.submittedAt || r.createdAt)}</small></article>`)}`)}`;
+        )}</div><div class="ds-columns">${panel("Identità e dati tecnici", facts(data.identity))}${panel("Configurazione attuale", latest ? `<p>${esc(latest.label)} · ${stamp(latest.createdAt)}</p>${facts(latest.values)}` : empty("Nessuna configurazione registrata."))}</div>${panel("Cronologia interventi e report", `${data.historyPartial ? '<p class="ds-notice">Sono mostrati fino a 200 elementi per sorgente. Consulta gli archivi per lo storico completo.</p>' : ""}${cards(data.history, (r) => `<article class="ds-record"><span class="badge">${r.type === "TASK" ? "Incarico" : "Report"}</span><h4>${esc(r.title || r.id)}</h4><p>${esc(r.summary || r.description || "")}</p><small>${esc(formatStatus(r.status || ""))} · ${stamp(r.submittedAt || r.createdAt)}</small></article>`)}`)}`;
     }
     if (tab === "access")
       content.innerHTML = panel(
@@ -238,7 +244,7 @@ export function installDossier({ apiFetch, state, escapeHtml: esc, toast }) {
       const rows = data.dependencies.filter((r) => !r.archived);
       content.innerHTML = panel(
         "Dipendenze dirette registrate",
-        `<div data-network></div><p class="subtle">Le frecce indicano da quali impianti dipende questo sito. Lo schema descrive i collegamenti registrati, senza simulare la disponibilità della rete.</p>${rows.length ? `<svg class="ds-graph" viewBox="0 0 720 ${Math.max(150, rows.length * 88)}" role="img" aria-label="Mappa delle dipendenze"><defs><marker id="dsArrow" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="currentColor"/></marker></defs><rect x="10" y="${Math.max(45, rows.length * 44 - 24)}" width="240" height="48" rx="10"/><text x="24" y="${Math.max(45, rows.length * 44 - 24) + 29}">${esc(data.name.slice(0, 26))}</text>${rows.map((r, i) => `<path d="M250 ${Math.max(45, rows.length * 44 - 24) + 24} L440 ${i * 88 + 48}" marker-end="url(#dsArrow)"/><rect x="450" y="${i * 88 + 24}" width="255" height="48" rx="10"/><text x="464" y="${i * 88 + 53}">${esc((r.name || r.antennaId).slice(0, 27))}</text>`).join("")}</svg>` : empty("Nessuna dipendenza registrata.")}${cards(rows, (r) => `<article class="ds-record"><h4>${esc(r.name || r.antennaId)}</h4><p>${esc(r.type)} · ${esc(r.label)} · ${esc(r.status || "")}</p><p>${esc(r.notes)}</p>${button("Apri fascicolo collegato", "peer", `data-id="${esc(r.antennaId)}"`)}${data.canManage ? button("Rimuovi collegamento", "remove-dependency", `data-id="${esc(r.id)}"`) : ""}</article>`)}`,
+        `<div data-network></div><p class="subtle">Le frecce indicano da quali impianti dipende questo sito. Lo schema descrive i collegamenti registrati, senza simulare la disponibilità della rete.</p>${rows.length ? `<svg class="ds-graph" viewBox="0 0 720 ${Math.max(150, rows.length * 88)}" role="img" aria-label="Mappa delle dipendenze"><defs><marker id="dsArrow" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="currentColor"/></marker></defs><rect x="10" y="${Math.max(45, rows.length * 44 - 24)}" width="240" height="48" rx="10"/><text x="24" y="${Math.max(45, rows.length * 44 - 24) + 29}">${esc(data.name.slice(0, 26))}</text>${rows.map((r, i) => `<path d="M250 ${Math.max(45, rows.length * 44 - 24) + 24} L440 ${i * 88 + 48}" marker-end="url(#dsArrow)"/><rect x="450" y="${i * 88 + 24}" width="255" height="48" rx="10"/><text x="464" y="${i * 88 + 53}">${esc((r.name || r.antennaId).slice(0, 27))}</text>`).join("")}</svg>` : empty("Nessuna dipendenza registrata.")}${cards(rows, (r) => `<article class="ds-record"><h4>${esc(r.name || r.antennaId)}</h4><p>${esc(r.type)} · ${esc(r.label)} · ${esc(formatStatus(r.status || ""))}</p><p>${esc(r.notes)}</p>${button("Apri fascicolo collegato", "peer", `data-id="${esc(r.antennaId)}"`)}${data.canManage ? button("Rimuovi collegamento", "remove-dependency", `data-id="${esc(r.id)}"`) : ""}</article>`)}`,
         data.canManage
           ? button("Aggiungi collegamento", "add-dependencies")
           : "",

@@ -209,6 +209,9 @@ public class DossierService {
                   "createdAt",
                   "submittedAt",
                   "operatorName")) if (s.contains(k)) row.put(k, excerpt(s.get(k), 4000));
+          row.putIfAbsent(
+              "title",
+              collection.equals("tasks") ? "Incarico operativo" : "Rapporto di manutenzione");
           history.add(row);
         }
     }
