@@ -1,3 +1,4 @@
+import {installDossier} from './features/dossier.js';
 import {installWorkforce} from './features/workforce.js';
 import {createFeature as create_profile} from './features/profile.js';
 import {createFeature as create_map} from './features/map.js';
@@ -286,7 +287,8 @@ get updateMap(){return updateMap;}};
             async function apiFetch(url, options = {}) {
                 const { _retried = false, responseType, maxResponseBytes, timeoutMs = CONFIG.REQUEST_TIMEOUT, ...requestOptions } = options;
                 const privatePackage=url.startsWith('/api/v1/distribution/');
-                const responseLimit=privatePackage&&maxResponseBytes===150*1024*1024?maxResponseBytes:10000000;
+                const dossierFile=/^\/api\/v1\/antennas\/[A-Za-z0-9_-]+\/dossier\/files\/[a-f0-9]{64}$/.test(url);
+                const responseLimit=privatePackage&&maxResponseBytes===150*1024*1024?maxResponseBytes:dossierFile&&maxResponseBytes===15000000?15000000:10000000;
                 const controller = new AbortController();
                 const timeout = setTimeout(() => controller.abort(), Math.min(privatePackage?180000:60000, timeoutMs));
 
@@ -931,6 +933,7 @@ function loadAudit(...args){return feature_system.loadAudit(...args);}
                 enterprise = window.RadioTechEnterprise({ apiFetch, state, escapeHtml, toast, switchView });
                 companyHub = window.RadioTechCompanyHub({ apiFetch, state, escapeHtml, toast, switchView });
                 installWorkforce({ apiFetch, state, escapeHtml, toast, switchView });
+                installDossier({ apiFetch, state, escapeHtml, toast, formatStatus });
                 proSuite = window.RadioTechPro({ apiFetch, state, escapeHtml, toast, switchView });
                 proSecurity = window.RadioTechProSecurity({ apiFetch, toast, switchView });
                 window.RadioTechTelcoTools();

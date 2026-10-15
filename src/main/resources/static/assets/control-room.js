@@ -1,11 +1,773 @@
 (() => {
+  // frontend/control-room/features/dossier.js
+  var sections = {
+    overview: "Riepilogo",
+    access: "Accesso al sito",
+    configuration: "Configurazioni",
+    measurements: "Misurazioni",
+    dependencies: "Dipendenze",
+    photos: "Fotografie",
+    documents: "Documenti",
+    components: "Componenti",
+    issues: "Problemi aperti",
+    proposals: "Correzioni",
+    sessions: "Ponte radio",
+    shares: "Condivisione"
+  };
+  var accessLabels = {
+    address: "Indirizzo e punto di accesso",
+    contact: "Referente e contatti",
+    hours: "Orari di accesso",
+    parking: "Parcheggio",
+    keyInstructions: "Ritiro chiavi",
+    route: "Percorso e indicazioni",
+    restrictions: "Restrizioni e precauzioni"
+  };
+  var labels = {
+    metric: "Parametro",
+    unit: "Unit\xE0",
+    value: "Valore",
+    low: "Soglia minima",
+    high: "Soglia massima",
+    measuredAt: "Data e ora della misura",
+    notes: "Note",
+    label: "Nome revisione",
+    reason: "Motivazione",
+    values: "Parametri (uno per riga: nome = valore)",
+    antennaId: "Impianto da cui dipende",
+    type: "Tipo di collegamento",
+    title: "Titolo",
+    name: "Componente",
+    model: "Modello",
+    serial: "Matricola",
+    installedAt: "Installazione",
+    warrantyUntil: "Fine garanzia",
+    target: "Sezione da correggere",
+    field: "Campo",
+    status: "Stato",
+    peerAntennaId: "Impianto all\u2019altro estremo",
+    operatorAId: "Tecnico estremo A",
+    operatorBId: "Tecnico estremo B"
+  };
+  var stamp = (v) => v ? new Date(v).toLocaleString("it-IT") : "\u2014";
+  var op = () => crypto.randomUUID?.() || Array.from(
+    crypto.getRandomValues(new Uint8Array(24)),
+    (v) => v.toString(16).padStart(2, "0")
+  ).join("");
+  var pairs = (text) => Object.fromEntries(
+    text.split("\n").filter((l) => l.trim()).map((l) => {
+      const p = l.indexOf("=");
+      if (p < 1) throw Error("Usa una riga per parametro: nome = valore.");
+      return [l.slice(0, p).trim(), l.slice(p + 1).trim()];
+    })
+  );
+  var pairText = (v) => Object.entries(v || {}).map(([k, x]) => `${k} = ${x}`).join("\n");
+  function installDossier({
+    apiFetch,
+    state,
+    escapeHtml: esc,
+    toast,
+    formatStatus = (v) => v
+  }) {
+    let data = null, assetId = null, tab = "overview", epoch = 0, dialog = null, poll = null, activeSession = null, busy = false;
+    const urls = /* @__PURE__ */ new Set();
+    const base = () => `/api/v1/antennas/${encodeURIComponent(assetId)}/dossier`;
+    const button = (label, action, extra = "") => `<button type="button" class="btn" data-dossier-action="${action}" ${extra}>${label}</button>`;
+    const empty = (message) => `<div class="empty">${esc(message)}</div>`;
+    const panel = (title, body, actions = "") => `<section class="panel"><div class="panel-head"><h3>${esc(title)}</h3><div class="actions">${actions}</div></div><div class="panel-body">${body}</div></section>`;
+    const facts = (obj) => `<dl class="ds-facts">${Object.entries(obj || {}).map(
+      ([k, v]) => `<div><dt>${esc(accessLabels[k] || k)}</dt><dd>${esc(typeof v === "object" ? pairText(v) : k === "status" ? formatStatus(v) : v || "\u2014")}</dd></div>`
+    ).join("")}</dl>`;
+    const cards = (rows, fn) => rows.length ? `<div class="ds-stack">${rows.map(fn).join("")}</div>` : empty("Nessun elemento registrato.");
+    const error = (e) => toast("Fascicolo", e.message || "Operazione non riuscita.", "error");
+    async function run(fn) {
+      const ownEpoch = epoch;
+      if (busy) return;
+      busy = true;
+      dialog?.setAttribute("aria-busy", "true");
+      try {
+        await fn();
+      } catch (e) {
+        if (epoch === ownEpoch) error(e);
+      } finally {
+        if (epoch === ownEpoch) {
+          busy = false;
+          dialog?.removeAttribute("aria-busy");
+        }
+      }
+    }
+    function reset() {
+      epoch++;
+      tab = "overview";
+      busy = false;
+      clearInterval(poll);
+      poll = null;
+      activeSession = null;
+      data = null;
+      assetId = null;
+      const old = dialog;
+      dialog = null;
+      old?.close();
+      document.querySelectorAll(".ds-editor").forEach((d) => d.close());
+      urls.forEach((u) => URL.revokeObjectURL(u));
+      urls.clear();
+    }
+    window.addEventListener("radiotech:identity-changed", reset);
+    document.addEventListener("click", (event) => {
+      const b = event.target.closest("[data-dossier]");
+      if (b) open(b.dataset.dossier);
+    });
+    async function open(id) {
+      reset();
+      assetId = id;
+      const e = epoch;
+      dialog = document.createElement("dialog");
+      dialog.className = "ds-dialog";
+      dialog.setAttribute("aria-label", "Fascicolo impianto");
+      dialog.innerHTML = `<header class="ds-header"><div><span class="ds-eyebrow">RADIOTECH \xB7 FASCICOLO IMPIANTO</span><h2>Caricamento\u2026</h2><p data-summary></p></div><div class="actions">${button("Aggiorna", "refresh")}${button("Chiudi", "close")}</div></header><nav class="ds-tabs" aria-label="Sezioni fascicolo"></nav><div class="ds-content" role="region" aria-live="polite"></div>`;
+      const ownDialog = dialog;
+      dialog.addEventListener("close", () => {
+        ownDialog.remove();
+        if (dialog === ownDialog) dialog = null;
+        if (epoch === e) {
+          clearInterval(poll);
+          data = null;
+          epoch++;
+        }
+      });
+      dialog.addEventListener("click", handle);
+      document.body.append(dialog);
+      dialog.showModal();
+      try {
+        await reload(e);
+      } catch (x) {
+        if (epoch === e)
+          dialog.querySelector(".ds-content").innerHTML = empty(x.message);
+      }
+    }
+    async function reload(e = epoch) {
+      const d = await apiFetch(base());
+      if (e !== epoch) return;
+      data = d;
+      dialog.querySelector("h2").textContent = d.name;
+      dialog.querySelector("[data-summary]").textContent = `${d.antennaId} \xB7 Revisione ${d.version} \xB7 Aggiornato ${stamp(d.updatedAt || d.fetchedAt)}`;
+      render();
+    }
+    function render() {
+      if (!data || !dialog?.open) return;
+      clearInterval(poll);
+      const visible = Object.entries(sections).filter(
+        ([k]) => k !== "shares" || data.canManage
+      );
+      dialog.querySelector(".ds-tabs").innerHTML = visible.map(
+        ([k, v]) => `<button type="button" class="${tab === k ? "active" : ""}" aria-current="${tab === k ? "page" : "false"}" data-tab="${k}">${v}</button>`
+      ).join("");
+      const content = dialog.querySelector(".ds-content");
+      if (tab === "overview") {
+        const latest = data.configuration.at(-1);
+        content.innerHTML = `<div class="ds-kpis">${[
+          ["Interventi e report", data.history.length],
+          ["Misurazioni", data.measurements.length],
+          [
+            "Problemi aperti",
+            data.issues.filter((x) => x.status === "OPEN").length
+          ],
+          ["Revisioni", data.configuration.length]
+        ].map(
+          ([k, v]) => `<div class="panel"><span>${k}</span><strong>${v}</strong></div>`
+        ).join(
+          ""
+        )}</div><div class="ds-columns">${panel("Identit\xE0 e dati tecnici", facts(data.identity))}${panel("Configurazione attuale", latest ? `<p>${esc(latest.label)} \xB7 ${stamp(latest.createdAt)}</p>${facts(latest.values)}` : empty("Nessuna configurazione registrata."))}</div>${panel("Cronologia interventi e report", `${data.historyPartial ? '<p class="ds-notice">Sono mostrati fino a 200 elementi per sorgente. Consulta gli archivi per lo storico completo.</p>' : ""}${cards(data.history, (r) => `<article class="ds-record"><span class="badge">${r.type === "TASK" ? "Incarico" : "Report"}</span><h4>${esc(r.title || r.id)}</h4><p>${esc(r.summary || r.description || "")}</p><small>${esc(formatStatus(r.status || ""))} \xB7 ${stamp(r.submittedAt || r.createdAt)}</small></article>`)}`)}`;
+      }
+      if (tab === "access")
+        content.innerHTML = panel(
+          "Preparazione dell\u2019accesso",
+          facts(data.access),
+          data.canManage ? button("Modifica indicazioni", "edit-access") : button("Proponi una correzione", "add-proposals")
+        );
+      if (tab === "configuration") {
+        const list = data.configuration;
+        content.innerHTML = panel(
+          "Revisioni della configurazione",
+          `${list.length ? `<div class="ds-compare"><label>Prima<select data-compare="before">${list.map((r, i) => `<option value="${i}" ${i === Math.max(0, list.length - 2) ? "selected" : ""}>${esc(r.label)} \xB7 ${stamp(r.createdAt)}</option>`).join("")}</select></label><label>Dopo<select data-compare="after">${list.map((r, i) => `<option value="${i}" ${i === list.length - 1 ? "selected" : ""}>${esc(r.label)} \xB7 ${stamp(r.createdAt)}</option>`).join("")}</select></label></div><div data-diff></div>` : empty("Registra la prima configurazione verificata.")}${cards([...list].reverse(), (r) => `<article class="ds-record"><h4>${esc(r.label)}</h4><p>${esc(r.reason)}</p><small>${stamp(r.createdAt)}</small><details><summary>Parametri registrati</summary>${facts(r.values)}</details></article>`)}`,
+          data.canManage ? button("Nuova revisione", "add-configuration") : button("Proponi una correzione", "add-proposals")
+        );
+        content.querySelectorAll("[data-compare]").forEach((s) => s.onchange = compare);
+        compare();
+      }
+      if (tab === "measurements") {
+        content.innerHTML = panel(
+          "Misurazioni e soglie",
+          `<p class="subtle">Valori inseriti manualmente. Le soglie vengono conservate con ogni misura.</p><label>Parametro<select data-metric>${[...new Set(data.measurements.map((x) => x.metric))].map((m) => `<option>${esc(m)}</option>`).join("")}</select></label><div data-chart></div>`,
+          button("Registra misura", "add-measurements")
+        );
+        content.querySelector("[data-metric]").onchange = chart;
+        chart();
+      }
+      if (tab === "dependencies") {
+        const rows = data.dependencies.filter((r) => !r.archived);
+        content.innerHTML = panel(
+          "Dipendenze dirette registrate",
+          `<div data-network></div><p class="subtle">Le frecce indicano da quali impianti dipende questo sito. Lo schema descrive i collegamenti registrati, senza simulare la disponibilit\xE0 della rete.</p>${rows.length ? `<svg class="ds-graph" viewBox="0 0 720 ${Math.max(150, rows.length * 88)}" role="img" aria-label="Mappa delle dipendenze"><defs><marker id="dsArrow" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="currentColor"/></marker></defs><rect x="10" y="${Math.max(45, rows.length * 44 - 24)}" width="240" height="48" rx="10"/><text x="24" y="${Math.max(45, rows.length * 44 - 24) + 29}">${esc(data.name.slice(0, 26))}</text>${rows.map((r, i) => `<path d="M250 ${Math.max(45, rows.length * 44 - 24) + 24} L440 ${i * 88 + 48}" marker-end="url(#dsArrow)"/><rect x="450" y="${i * 88 + 24}" width="255" height="48" rx="10"/><text x="464" y="${i * 88 + 53}">${esc((r.name || r.antennaId).slice(0, 27))}</text>`).join("")}</svg>` : empty("Nessuna dipendenza registrata.")}${cards(rows, (r) => `<article class="ds-record"><h4>${esc(r.name || r.antennaId)}</h4><p>${esc(r.type)} \xB7 ${esc(r.label)} \xB7 ${esc(formatStatus(r.status || ""))}</p><p>${esc(r.notes)}</p>${button("Apri fascicolo collegato", "peer", `data-id="${esc(r.antennaId)}"`)}${data.canManage ? button("Rimuovi collegamento", "remove-dependency", `data-id="${esc(r.id)}"`) : ""}</article>`)}`,
+          data.canManage ? button("Aggiungi collegamento", "add-dependencies") : ""
+        );
+      }
+      if (["photos", "documents", "components", "issues"].includes(tab))
+        content.innerHTML = panel(
+          sections[tab],
+          cards(
+            [...data[tab]].reverse(),
+            (r) => `<article class="ds-record"><h4>${esc(r.title || r.name)}</h4><p>${esc(r.notes || "")}</p>${tab === "photos" ? `<div class="ds-photo" data-photo="${esc(r.id)}"></div>` : ""}${tab === "components" ? facts({ Modello: r.model, Matricola: r.serial, Installazione: r.installedAt, Garanzia: r.warrantyUntil }) : ""}${r.status ? `<span class="badge">${r.status === "OPEN" ? "Aperto" : "Risolto"}</span>` : ""}${tab === "issues" && data.canManage && r.status === "OPEN" ? button("Segna risolto", "resolve-issue", `data-id="${esc(r.id)}"`) : ""}${r.resolutionReason ? `<p>Esito: ${esc(r.resolutionReason)}</p>` : ""}${r.fileId ? button(tab === "photos" ? "Visualizza originale e annotazioni" : "Scarica documento", "file", `data-id="${esc(r.id)}"`) : ""}<small>${stamp(r.createdAt)}</small></article>`
+          ),
+          tab === "components" && !data.canManage ? "" : button("Aggiungi", "add-" + tab)
+        );
+      if (tab === "proposals")
+        content.innerHTML = panel(
+          "Correzioni proposte e decisioni",
+          cards(
+            [...data.proposals].reverse(),
+            (p) => `<article class="ds-record"><h4>${esc(p.target === "access" ? "Accesso al sito" : "Configurazione")} \xB7 ${esc(accessLabels[p.field] || p.field)}</h4><div class="ds-columns"><div><small>Prima</small><p>${esc(p.before || "\u2014")}</p></div><div><small>Proposta</small><p>${esc(p.value)}</p></div></div><p>${esc(p.reason)}</p><span class="badge">${{ PENDING: "Da verificare", APPROVED: "Approvata", REJECTED: "Respinta" }[p.status]}</span>${p.reviewReason ? `<p>Esito: ${esc(p.reviewReason)}</p>` : ""}${data.canManage && p.status === "PENDING" ? `<div class="actions">${button("Approva", "approve", `data-id="${esc(p.id)}"`)}${button("Respingi", "reject", `data-id="${esc(p.id)}"`)}</div>` : ""}</article>`
+          ),
+          button("Proponi correzione", "add-proposals")
+        );
+      if (tab === "dependencies") loadGraph().catch(error);
+      if (tab === "shares") loadShares().catch(error);
+      if (tab === "sessions") {
+        loadSessions().catch(error);
+        poll = setInterval(() => {
+          if (!busy && !document.querySelector(".ds-editor") && dialog?.open)
+            run(loadSessions);
+        }, 1e4);
+      }
+      if (data.canContribute === false)
+        dialog.querySelectorAll('[data-dossier-action^="add-"]').forEach((b) => {
+          b.hidden = true;
+        });
+    }
+    function compare() {
+      const c = dialog.querySelector("[data-diff]");
+      if (!c) return;
+      const a = data.configuration[Number(dialog.querySelector('[data-compare="before"]').value)]?.values || {}, b = data.configuration[Number(dialog.querySelector('[data-compare="after"]').value)]?.values || {};
+      c.innerHTML = `<div class="table-wrap"><table><thead><tr><th>Parametro</th><th>Prima</th><th>Dopo</th></tr></thead><tbody>${[
+        .../* @__PURE__ */ new Set([...Object.keys(a), ...Object.keys(b)])
+      ].sort().map(
+        (k) => `<tr class="${a[k] !== b[k] ? "ds-changed" : ""}"><td>${esc(k)}</td><td>${esc(a[k] ?? "\u2014")}</td><td>${esc(b[k] ?? "\u2014")}</td></tr>`
+      ).join("")}</tbody></table></div>`;
+    }
+    function chart() {
+      const m = dialog.querySelector("[data-metric]").value, rows = data.measurements.filter((r) => r.metric === m).sort((a, b) => a.measuredAt.localeCompare(b.measuredAt));
+      const c = dialog.querySelector("[data-chart]");
+      if (!rows.length) {
+        c.innerHTML = empty("Nessuna misura registrata.");
+        return;
+      }
+      const units = [...new Set(rows.map((r) => r.unit))];
+      const grouped = units.length > 1 ? '<p class="ds-notice">Sono presenti unit\xE0 diverse: il grafico \xE8 separato per unit\xE0 per evitare confronti impropri.</p>' : "";
+      c.innerHTML = grouped + units.map((unit) => {
+        const items = rows.filter((r) => r.unit === unit);
+        const values = items.map((r) => r.value), lo = Math.min(...values), span = Math.max(...values) - lo || 1;
+        const times = items.map((r) => Date.parse(r.measuredAt)), from = Math.min(...times), duration = Math.max(...times) - from || 1;
+        const pts = items.map(
+          (r, i) => `${20 + (times[i] - from) / duration * 660},${150 - (r.value - lo) / span * 120}`
+        );
+        return `<figure><figcaption>${esc(m)} \xB7 ${esc(unit)} \xB7 ${items.length} misure</figcaption><svg class="ds-chart" viewBox="0 0 700 175" role="img" aria-label="Andamento ${esc(m)} in ${esc(unit)}"><polyline points="${pts.join(" ")}"/>${items.map((r, i) => `<circle cx="${pts[i].split(",")[0]}" cy="${pts[i].split(",")[1]}" r="4"><title>${stamp(r.measuredAt)}: ${r.value} ${esc(r.unit)}</title></circle>`).join("")}</svg></figure>`;
+      }).join("") + `<div class="table-wrap"><table><thead><tr><th>Data</th><th>Valore</th><th>Soglie</th><th>Esito</th><th>Note</th></tr></thead><tbody>${[
+        ...rows
+      ].reverse().map(
+        (r) => `<tr><td>${stamp(r.measuredAt)}</td><td>${r.value} ${esc(r.unit)}</td><td>${r.low ?? "\u2014"} / ${r.high ?? "\u2014"}</td><td>${r.outsideThreshold ? "Fuori soglia" : r.low == null && r.high == null ? "Soglie non definite" : "Nei limiti definiti"}</td><td>${esc(r.notes)}</td></tr>`
+      ).join("")}</tbody></table></div>`;
+    }
+    function editor(title, fields, onSave, description = "") {
+      const e = epoch, d = document.createElement("dialog");
+      d.className = "ds-editor";
+      d.innerHTML = `<header><h3>${esc(title)}</h3><p>${esc(description)}</p></header><form class="ds-form">${fields}<p role="alert" data-error></p><footer><button class="btn primary" type="submit">Salva</button><button class="btn" type="button" data-cancel>Annulla</button></footer></form>`;
+      d.querySelector("[data-cancel]").onclick = () => d.close();
+      d.addEventListener("close", () => d.remove());
+      d.querySelector("form").onsubmit = async (event) => {
+        event.preventDefault();
+        const submit = d.querySelector("[type=submit]");
+        submit.disabled = true;
+        try {
+          if (epoch !== e) throw Error("Sessione cambiata.");
+          const close = await onSave(new FormData(event.target), d);
+          if (epoch === e && close !== false) d.close();
+        } catch (x) {
+          const message = d.querySelector("[data-error]");
+          if (message) message.textContent = x.message;
+          else if (epoch === e) error(x);
+        } finally {
+          submit.disabled = false;
+        }
+      };
+      document.body.append(d);
+      d.showModal();
+      return d;
+    }
+    function field(key, value = "", type = "text", required = true, options = null) {
+      const label = labels[key] || accessLabels[key] || key;
+      return `<label>${esc(label)}${options ? `<select name="${key}" ${required ? "required" : ""}>${options.map(([v, l]) => `<option value="${esc(v)}" ${v === value ? "selected" : ""}>${esc(l)}</option>`).join("")}</select>` : type === "textarea" ? `<textarea name="${key}" maxlength="3000" ${required ? "required" : ""}>${esc(value)}</textarea>` : `<input name="${key}" type="${type}" value="${esc(value)}" ${type === "number" ? 'step="any"' : ""} ${required ? "required" : ""} maxlength="2000">`}</label>`;
+    }
+    async function save(section, payload) {
+      const e = epoch;
+      await apiFetch(base() + "/changes", {
+        method: "POST",
+        body: JSON.stringify({
+          expectedVersion: data.version,
+          operationId: op(),
+          section,
+          data: payload
+        })
+      });
+      if (epoch === e) await reload(e);
+    }
+    async function add(section) {
+      if (section === "access") {
+        editor(
+          "Accesso al sito",
+          Object.keys(accessLabels).map((k) => field(k, data.access[k] || "", "textarea", false)).join(""),
+          (f) => save("access", Object.fromEntries(f))
+        );
+        return;
+      }
+      if (section === "configuration") {
+        const current = data.configuration.at(-1)?.values || {};
+        editor(
+          "Nuova revisione",
+          field("label") + field("reason", "", "textarea") + field("values", pairText(current), "textarea"),
+          (f) => save(section, {
+            label: f.get("label"),
+            reason: f.get("reason"),
+            values: pairs(f.get("values"))
+          }),
+          "Ogni salvataggio conserva la revisione precedente."
+        );
+        return;
+      }
+      if (section === "measurements") {
+        editor(
+          "Registra misurazione",
+          field("metric") + field("unit", "", "text", false) + field("value", "", "number") + field("low", "", "number", false) + field("high", "", "number", false) + field("measuredAt", "", "datetime-local") + field("notes", "", "textarea", false),
+          (f) => save(section, {
+            ...Object.fromEntries(f),
+            value: Number(f.get("value")),
+            low: f.get("low") === "" ? null : Number(f.get("low")),
+            high: f.get("high") === "" ? null : Number(f.get("high")),
+            measuredAt: new Date(f.get("measuredAt")).toISOString()
+          })
+        );
+        return;
+      }
+      if (section === "dependencies") {
+        const list = state.antennas.filter((a) => a.id !== assetId);
+        editor(
+          "Collega impianto",
+          field(
+            "antennaId",
+            "",
+            "text",
+            true,
+            list.map((a) => [a.id, a.name || a.id])
+          ) + field("label") + field("type", "RADIO", "text", true, [
+            ["RADIO", "Ponte radio"],
+            ["CABLE", "Cavo"],
+            ["POWER", "Alimentazione"],
+            ["FIBER", "Fibra"]
+          ]) + field("notes", "", "textarea", false),
+          (f) => save(section, Object.fromEntries(f))
+        );
+        return;
+      }
+      if (section === "components") {
+        editor(
+          "Registra componente",
+          field("name") + ["model", "serial"].map((k) => field(k, "", "text", false)).join("") + ["installedAt", "warrantyUntil"].map((k) => field(k, "", "date", false)).join("") + field("notes", "", "textarea", false),
+          (f) => save(section, Object.fromEntries(f))
+        );
+        return;
+      }
+      if (section === "issues") {
+        editor(
+          "Registra problema",
+          field("title") + field("notes", "", "textarea") + field("status", "OPEN", "text", true, [
+            ["OPEN", "Aperto"],
+            ["RESOLVED", "Risolto"]
+          ]),
+          (f) => save(section, Object.fromEntries(f))
+        );
+        return;
+      }
+      if (section === "proposals") {
+        const options = (target) => target === "access" ? Object.entries(accessLabels) : Object.keys(data.configuration.at(-1)?.values || {}).map((k) => [
+          k,
+          k
+        ]);
+        const d = editor(
+          "Proponi una correzione",
+          field("target", "access", "text", true, [
+            ["access", "Accesso al sito"],
+            ["configuration", "Configurazione"]
+          ]) + field("field", "", "text", true, options("access")) + field("value", "", "textarea") + field("reason", "", "textarea"),
+          (f) => save(section, Object.fromEntries(f)),
+          "La modifica sar\xE0 applicata solo dopo la verifica del responsabile."
+        );
+        d.querySelector("[name=target]").onchange = (e) => {
+          d.querySelector("[name=field]").innerHTML = options(e.target.value).map(([v, l]) => `<option value="${esc(v)}">${esc(l)}</option>`).join("");
+        };
+        return;
+      }
+      if (section === "documents" || section === "photos") {
+        const marks = [];
+        const d = editor(
+          section === "photos" ? "Fotografia e annotazioni" : "Documento tecnico",
+          field("title") + `<label>File originale<input type="file" name="file" required accept="${section === "photos" ? "image/png,image/jpeg,image/webp" : ".pdf,.png,.jpg,.jpeg,.webp"}"></label>` + field("notes", "", "textarea", false) + (section === "photos" ? `<label>Annotazione<select data-mark-type><option value="ARROW">Freccia</option><option value="RECT">Riquadro</option><option value="TEXT">Nota</option></select></label><label>Testo annotazione<input data-mark-text maxlength="200"></label><p>Trascina sull\u2019immagine per aggiungere un\u2019annotazione.</p><div class="ds-annotator"><img alt="Anteprima originale"><svg viewBox="0 0 1000 1000" preserveAspectRatio="none"></svg></div><button class="btn" type="button" data-undo>Rimuovi ultima annotazione</button>` : ""),
+          async (f) => {
+            const file = f.get("file");
+            if (!file.size || file.size > 1e7)
+              throw Error("Scegli un file fino a 10 MB.");
+            const e = epoch, root = base();
+            const uploaded = await apiFetch(
+              `/api/v1/files?operationId=${op()}&name=${encodeURIComponent(file.name)}`,
+              {
+                method: "POST",
+                headers: { "Content-Type": "application/octet-stream" },
+                body: file
+              }
+            );
+            if (epoch !== e) throw Error("Sessione cambiata.");
+            await apiFetch(root + "/changes", {
+              method: "POST",
+              body: JSON.stringify({
+                expectedVersion: data.version,
+                operationId: op(),
+                section,
+                data: {
+                  title: f.get("title"),
+                  notes: f.get("notes"),
+                  fileId: uploaded.reference.replace("radiotech-file:", ""),
+                  annotations: marks
+                }
+              })
+            });
+            if (epoch === e) await reload(e);
+          }
+        );
+        if (section === "photos") {
+          const area = d.querySelector(".ds-annotator"), img = area.querySelector("img"), svg = area.querySelector("svg");
+          d.querySelector("[type=file]").onchange = (event) => {
+            const file = event.target.files[0];
+            if (!file) return;
+            const url = URL.createObjectURL(file);
+            urls.add(url);
+            img.src = url;
+            marks.length = 0;
+            svg.innerHTML = "";
+          };
+          let start = null;
+          const point = (e) => {
+            const b = svg.getBoundingClientRect();
+            return {
+              x: Math.max(0, Math.min(1, (e.clientX - b.left) / b.width)),
+              y: Math.max(0, Math.min(1, (e.clientY - b.top) / b.height))
+            };
+          };
+          svg.onpointerdown = (e) => {
+            if (!img.src) return;
+            start = point(e);
+            svg.setPointerCapture(e.pointerId);
+          };
+          svg.onpointerup = (e) => {
+            if (!start || marks.length >= 40) return;
+            const end = point(e);
+            marks.push({
+              ...start,
+              x2: end.x,
+              y2: end.y,
+              type: d.querySelector("[data-mark-type]").value,
+              text: d.querySelector("[data-mark-text]").value
+            });
+            start = null;
+            svg.innerHTML = annotationSvg(marks);
+          };
+          d.querySelector("[data-undo]").onclick = () => {
+            marks.pop();
+            svg.innerHTML = annotationSvg(marks);
+          };
+        }
+        return;
+      }
+    }
+    function annotationSvg(marks) {
+      return `<defs><marker id="dsPhotoArrow" markerWidth="9" markerHeight="9" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#ffb454"/></marker></defs>` + marks.map((m) => {
+        const x = m.x * 1e3, y = m.y * 1e3, x2 = m.x2 * 1e3, y2 = m.y2 * 1e3;
+        return (m.type === "RECT" ? `<rect x="${Math.min(x, x2)}" y="${Math.min(y, y2)}" width="${Math.abs(x2 - x)}" height="${Math.abs(y2 - y)}"/>` : m.type === "ARROW" ? `<line x1="${x}" y1="${y}" x2="${x2}" y2="${y2}" marker-end="url(#dsPhotoArrow)"/>` : "") + `<text x="${x}" y="${Math.max(20, y - 10)}">${esc(m.text)}</text>`;
+      }).join("");
+    }
+    async function showFile(id) {
+      const row = data[tab].find((r) => r.id === id);
+      if (!row) return;
+      const e = epoch, response = await apiFetch(`${base()}/files/${row.fileId}`, {
+        maxResponseBytes: 15e6
+      });
+      if (e !== epoch) return;
+      const bytes = Uint8Array.from(
+        atob(response.base64),
+        (c) => c.charCodeAt(0)
+      ), type = /\.png$/i.test(response.name) ? "image/png" : /\.webp$/i.test(response.name) ? "image/webp" : /\.jpe?g$/i.test(response.name) ? "image/jpeg" : "application/pdf";
+      const url = URL.createObjectURL(new Blob([bytes], { type }));
+      urls.add(url);
+      if (tab === "photos") {
+        const holder = dialog.querySelector(`[data-photo="${row.id}"]`);
+        holder.innerHTML = `<div class="ds-annotator"><img src="${url}" alt="${esc(row.title)}"><svg viewBox="0 0 1000 1000" preserveAspectRatio="none">${annotationSvg(row.annotations || [])}</svg></div><a class="btn" href="${url}" download="${esc(response.name)}">Scarica originale</a>`;
+      } else {
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = response.name;
+        a.click();
+      }
+    }
+    async function loadGraph() {
+      const e = epoch, network = await apiFetch(base() + "/graph");
+      if (e !== epoch || tab !== "dependencies") return;
+      const host = dialog.querySelector("[data-network]");
+      host.innerHTML = `<details><summary>Rete collegata \xB7 ${network.nodes.length} impianti \xB7 ${network.edges.length} collegamenti</summary><div class="ds-network">${network.edges.map((edge) => {
+        const source = network.nodes.find((n) => n.id === edge.source), target = network.nodes.find((n) => n.id === edge.target);
+        return `<article class="ds-record"><strong>${esc(source?.name || edge.source)} \u2192 ${esc(target?.name || edge.target)}</strong><p>${esc(edge.type)} \xB7 ${esc(edge.label)}</p>${button("Apri impianto a monte", "peer", `data-id="${esc(edge.target)}"`)}</article>`;
+      }).join("") || "<p>Nessun collegamento documentato.</p>"}</div></details>`;
+    }
+    async function loadShares() {
+      const e = epoch, rows = await apiFetch(base() + "/shares");
+      if (e !== epoch || tab !== "shares") return;
+      dialog.querySelector(".ds-content").innerHTML = panel(
+        "Link temporanei al fascicolo",
+        `<p class="subtle">Ogni link contiene una copia delle sole sezioni selezionate. Anche le indicazioni di accesso diventano visibili se le includi. Il link \xE8 mostrato una sola volta.</p>${cards(rows, (r) => `<article class="ds-record"><h4>${esc(r.sections.map((k) => sections[k] || "Identit\xE0").join(" \xB7 "))}</h4><p>Scade ${stamp(r.expiresAt)} \xB7 ${r.revoked ? "Revocato" : new Date(r.expiresAt) < /* @__PURE__ */ new Date() ? "Scaduto" : "Attivo"} \xB7 Accessi: ${r.accessCount}</p><div class="actions">${!r.revoked ? button("Revoca", "revoke", `data-id="${r.id}"`) : ""}${button("Registro accessi", "accesses", `data-id="${r.id}"`)}</div></article>`)}`,
+        button("Crea link", "share")
+      );
+    }
+    async function createShare() {
+      editor(
+        "Crea link temporaneo",
+        `<fieldset><legend>Informazioni da condividere</legend>${["identity", "configuration", "measurements", "dependencies", "documents", "photos", "components", "issues", "history", "access"].map((k) => `<label class="ds-check"><input type="checkbox" name="sections" value="${k}">${esc(k === "identity" ? "Identit\xE0 impianto" : sections[k] || "Cronologia")}</label>`).join("")}</fieldset><label>Durata in ore<input type="number" name="hours" value="24" min="1" max="720" required></label>`,
+        async (f, d) => {
+          const e = epoch, r = await apiFetch(base() + "/shares", {
+            method: "POST",
+            body: JSON.stringify({
+              sections: f.getAll("sections"),
+              hours: Number(f.get("hours"))
+            })
+          });
+          if (e !== epoch) return;
+          d.querySelector("form").innerHTML = `<p>Conserva il collegamento: non verr\xE0 mostrato nuovamente.</p><label>Link<input readonly value="${esc(r.url)}"></label><button type="button" class="btn" data-copy>Copia link</button><button type="button" class="btn" data-done>Chiudi</button>`;
+          d.querySelector("[data-copy]").onclick = () => navigator.clipboard.writeText(r.url).catch(error);
+          d.querySelector("[data-done]").onclick = () => d.close();
+          await loadShares();
+          return false;
+        }
+      );
+    }
+    async function loadSessions() {
+      const e = epoch, list = await apiFetch(base() + "/sessions");
+      if (e !== epoch || tab !== "sessions") return;
+      if (activeSession)
+        activeSession = list.find((s2) => s2.id === activeSession.id) || null;
+      const s = activeSession;
+      dialog.querySelector(".ds-content").innerHTML = panel(
+        "Prove coordinate ai due estremi",
+        `<p class="subtle">Aggiornamento ogni 10 secondi. Ogni tecnico registra il proprio estremo; le misure confermate restano immutabili.</p>${cards(list, (r) => `<article class="ds-record"><h4>${esc(r.title)}</h4><p>${esc(r.nameA)} \u2194 ${esc(r.nameB)} \xB7 ${r.state === "OPEN" ? "Aperta" : "Conclusa"}</p>${button("Apri sessione", "session", `data-id="${r.id}"`)}</article>`)}`,
+        data.canManage ? button("Crea sessione", "create-session") : ""
+      ) + (s ? panel(
+        s.title,
+        `<div class="ds-columns">${facts({ Estremo: s.nameA, Tecnico: s.operatorA })}${facts({ Estremo: s.nameB, Tecnico: s.operatorB })}</div>${cards(s.trials, (r) => `<article class="ds-record"><h4>${esc(r.label)}</h4>${facts(r.settings)}<div class="ds-columns">${["A", "B"].map((side) => `<div><h4>Estremo ${side}</h4>${r.results[side] ? facts({ Parametro: r.results[side].metric, Valore: `${r.results[side].value} ${r.results[side].unit}`, Note: r.results[side].notes, Ora: stamp(r.results[side].recordedAt) }) : `<p>In attesa della misura.</p>${s["uid" + side] === data.uid && s.state === "OPEN" ? button("Registra risultato", "result", `data-trial="${r.id}" data-side="${side}"`) : ""}`}</div>`).join("")}</div></article>`)}${s.conclusion ? `<p>Esito: ${esc(s.conclusion)}</p>` : ""}`,
+        s.state === "OPEN" ? button("Prepara prova", "create-trial") + button("Concludi sessione", "close-session") : ""
+      ) : "");
+    }
+    async function createSession() {
+      const e = epoch, people = await apiFetch("/api/v1/workforce/roster/members");
+      if (e !== epoch) return;
+      editor(
+        "Sessione ai due estremi",
+        field("title") + field(
+          "peerAntennaId",
+          "",
+          "text",
+          true,
+          state.antennas.filter((a) => a.id !== assetId).map((a) => [a.id, a.name || a.id])
+        ) + field(
+          "operatorAId",
+          "",
+          "text",
+          true,
+          people.map((p) => [p.operatorId, `A \xB7 ${p.name}`])
+        ) + field(
+          "operatorBId",
+          "",
+          "text",
+          true,
+          people.map((p) => [p.operatorId, `B \xB7 ${p.name}`])
+        ),
+        async (f) => {
+          activeSession = await apiFetch(base() + "/sessions", {
+            method: "POST",
+            body: JSON.stringify({ ...Object.fromEntries(f), operationId: op() })
+          });
+          await loadSessions();
+        }
+      );
+    }
+    async function trial(action, extra = {}) {
+      const e = epoch, s = activeSession;
+      const r = await apiFetch(`/api/v1/radio-pair-sessions/${s.id}/trials`, {
+        method: "POST",
+        body: JSON.stringify({
+          expectedVersion: s.version,
+          operationId: op(),
+          action,
+          ...extra
+        })
+      });
+      if (e === epoch) {
+        activeSession = r;
+        await loadSessions();
+      }
+    }
+    function handle(event) {
+      const t = event.target.closest("[data-tab]");
+      if (t) {
+        tab = t.dataset.tab;
+        activeSession = null;
+        render();
+        return;
+      }
+      const b = event.target.closest("[data-dossier-action]");
+      if (!b) return;
+      const a = b.dataset.dossierAction;
+      if (a === "close") {
+        reset();
+        return;
+      }
+      if (a.startsWith("add-")) {
+        run(() => add(a.slice(4)));
+        return;
+      }
+      run(async () => {
+        switch (a) {
+          case "refresh":
+            await reload();
+            break;
+          case "resolve-issue":
+          case "remove-dependency":
+            editor(
+              a === "resolve-issue" ? "Concludi problema" : "Rimuovi collegamento",
+              field("reason", "", "textarea"),
+              (f) => save(
+                a === "resolve-issue" ? "issueResolution" : "dependencyRemoval",
+                { entryId: b.dataset.id, reason: f.get("reason") }
+              )
+            );
+            break;
+          case "edit-access":
+            await add("access");
+            break;
+          case "peer":
+            await open(b.dataset.id);
+            break;
+          case "file":
+            await showFile(b.dataset.id);
+            break;
+          case "share":
+            await createShare();
+            break;
+          case "revoke":
+            await apiFetch(`${base()}/shares/${b.dataset.id}`, {
+              method: "DELETE"
+            });
+            await loadShares();
+            break;
+          case "accesses": {
+            const rows = await apiFetch(
+              `${base()}/shares/${b.dataset.id}/accesses`
+            );
+            editor(
+              "Ultimi 100 accessi",
+              cards(
+                rows,
+                (r) => `<p>${stamp(r.at)} \xB7 ${r.type === "FILE" ? "Allegato" : "Visualizzazione"}</p>`
+              ),
+              async () => {
+              }
+            );
+            break;
+          }
+          case "approve":
+          case "reject":
+            editor(
+              "Decisione sulla correzione",
+              field("reason", "", "textarea"),
+              async (f) => {
+                await apiFetch(base() + "/reviews", {
+                  method: "POST",
+                  body: JSON.stringify({
+                    expectedVersion: data.version,
+                    operationId: op(),
+                    proposalId: b.dataset.id,
+                    approve: a === "approve",
+                    reason: f.get("reason")
+                  })
+                });
+                await reload();
+              }
+            );
+            break;
+          case "create-session":
+            await createSession();
+            break;
+          case "session":
+            activeSession = await apiFetch(
+              `/api/v1/radio-pair-sessions/${b.dataset.id}`
+            );
+            await loadSessions();
+            break;
+          case "create-trial":
+            editor(
+              "Prepara prova coordinata",
+              field("label") + field("values", "", "textarea"),
+              (f) => trial("CREATE_TRIAL", {
+                label: f.get("label"),
+                settings: pairs(f.get("values"))
+              })
+            );
+            break;
+          case "result":
+            editor(
+              "Misura estremo " + b.dataset.side,
+              field("metric") + field("unit", "", "text", false) + field("value", "", "number") + field("notes", "", "textarea", false),
+              (f) => trial("RESULT", {
+                trialId: b.dataset.trial,
+                side: b.dataset.side,
+                ...Object.fromEntries(f),
+                value: Number(f.get("value"))
+              })
+            );
+            break;
+          case "close-session":
+            editor(
+              "Concludi prove",
+              field("notes", "", "textarea"),
+              (f) => trial("CLOSE", { notes: f.get("notes") })
+            );
+            break;
+        }
+      });
+    }
+    return { open };
+  }
+
   // frontend/control-room/features/workforce.js
   function installWorkforce({ apiFetch, state, escapeHtml: esc, toast, switchView }) {
     const $ = (id) => document.getElementById(id), base = "/api/v1/workforce";
     const manager = () => ["SUPER_ADMIN", "ADMIN", "CAPO", "CHIEF_EXECUTIVE", "NETWORK_MANAGER", "ENGINEER"].includes(state.authRole || state.user?.role);
     const month = () => new Intl.DateTimeFormat("sv-SE", { timeZone: "Europe/Rome", year: "numeric", month: "2-digit" }).format(/* @__PURE__ */ new Date());
     const hours = (n) => `${Math.floor(Number(n) / 60)}:${String(Number(n) % 60).padStart(2, "0")}`;
-    const labels = { UNREVIEWED: "Da validare", PENDING: "Correzione in attesa", APPROVED: "Approvato", REJECTED: "Correzione respinta", ACTIVE: "In servizio", BREAK: "In pausa", OFF_DUTY: "Concluso", LATE: "Ritardo", EARLY_EXIT: "Uscita anticipata", EXTRA_TIME: "Prolungamento", DURATION: "Durata", MISSING_ENTRY: "Entrata mancante", MISSING_EXIT: "Uscita mancante", OPEN_SESSION: "Turno aperto", UNPLANNED: "Fuori pianificazione", DELAYED_SYNC: "Sincronizzazione tardiva" };
+    const labels2 = { UNREVIEWED: "Da validare", PENDING: "Correzione in attesa", APPROVED: "Approvato", REJECTED: "Correzione respinta", ACTIVE: "In servizio", BREAK: "In pausa", OFF_DUTY: "Concluso", LATE: "Ritardo", EARLY_EXIT: "Uscita anticipata", EXTRA_TIME: "Prolungamento", DURATION: "Durata", MISSING_ENTRY: "Entrata mancante", MISSING_EXIT: "Uscita mancante", OPEN_SESSION: "Turno aperto", UNPLANNED: "Fuori pianificazione", DELAYED_SYNC: "Sincronizzazione tardiva" };
     let people = [], plan = null, report = null, cfg = null, loadedMonth = "", busy = false, dirty = false, serial = 0, recoveries = [];
     function view(id, title, html) {
       const button = document.createElement("button");
@@ -21,9 +783,9 @@
       container.insertBefore(section, container.querySelector(":scope > .footer"));
     }
     const select = (id, label, options) => `<label>${label}<select id="${id}">${options}</select></label>`;
-    view("attendance", "\u25F7 Presenze", `<div class="panel"><div class="panel-head"><div><h3>Registro presenze</h3><span>Timbrature, ore validate e scostamenti dalla pianificazione</span></div></div><div class="panel-body"><form id="attendanceFilters" class="wf-filters"><label>Mese<input id="attendanceMonth" type="month" value="${month()}" required></label>${select("attendanceOperator", "Operatore", '<option value="">Tutti gli operatori</option>')}${select("attendanceStatus", "Validazione", '<option value="">Tutti gli stati</option>' + Object.entries(labels).slice(0, 4).map(([k, v]) => `<option value="${k}">${v}</option>`).join(""))}<label>Cerca<input id="attendanceSearch" type="search" placeholder="Nome operatore"></label>${select("attendanceAnomaly", "Anomalie", '<option value="">Tutte le anomalie</option>' + Object.entries(labels).slice(7).map(([k, v]) => `<option value="${k}">${v}</option>`).join(""))}<button class="btn primary">Aggiorna registro</button><button type="button" class="btn" id="attendanceExport">Esporta CSV</button></form><p id="attendanceNotice" role="status"></p></div></div><div id="attendanceKpis" class="enterprise-kpis"></div><div class="panel"><div class="panel-head"><h3>Sessioni di lavoro</h3></div><div class="panel-body wf-scroll table-wrap"><table class="wf-table"><thead><tr><th>Operatore</th><th>Entrata / uscita</th><th>Attivit\xE0 / pausa</th><th>Stato</th><th>Validazione</th><th>Azioni</th></tr></thead><tbody id="attendanceRows"></tbody></table></div></div><div class="panel"><div class="panel-head"><h3>Incongruenze da verificare</h3><span>Le timbrature mancanti richiedono verifica del responsabile</span></div><div class="panel-body" id="attendanceAnomalies"></div></div><div class="panel"><div class="panel-head"><h3>Timbrature da riconciliare</h3><span>Code trasferite dagli operatori; gli eventi originali restano conservati</span></div><div class="panel-body" id="attendanceRecoveries"></div></div>`);
+    view("attendance", "\u25F7 Presenze", `<div class="panel"><div class="panel-head"><div><h3>Registro presenze</h3><span>Timbrature, ore validate e scostamenti dalla pianificazione</span></div></div><div class="panel-body"><form id="attendanceFilters" class="wf-filters"><label>Mese<input id="attendanceMonth" type="month" value="${month()}" required></label>${select("attendanceOperator", "Operatore", '<option value="">Tutti gli operatori</option>')}${select("attendanceStatus", "Validazione", '<option value="">Tutti gli stati</option>' + Object.entries(labels2).slice(0, 4).map(([k, v]) => `<option value="${k}">${v}</option>`).join(""))}<label>Cerca<input id="attendanceSearch" type="search" placeholder="Nome operatore"></label>${select("attendanceAnomaly", "Anomalie", '<option value="">Tutte le anomalie</option>' + Object.entries(labels2).slice(7).map(([k, v]) => `<option value="${k}">${v}</option>`).join(""))}<button class="btn primary">Aggiorna registro</button><button type="button" class="btn" id="attendanceExport">Esporta CSV</button></form><p id="attendanceNotice" role="status"></p></div></div><div id="attendanceKpis" class="enterprise-kpis"></div><div class="panel"><div class="panel-head"><h3>Sessioni di lavoro</h3></div><div class="panel-body wf-scroll table-wrap"><table class="wf-table"><thead><tr><th>Operatore</th><th>Entrata / uscita</th><th>Attivit\xE0 / pausa</th><th>Stato</th><th>Validazione</th><th>Azioni</th></tr></thead><tbody id="attendanceRows"></tbody></table></div></div><div class="panel"><div class="panel-head"><h3>Incongruenze da verificare</h3><span>Le timbrature mancanti richiedono verifica del responsabile</span></div><div class="panel-body" id="attendanceAnomalies"></div></div><div class="panel"><div class="panel-head"><h3>Timbrature da riconciliare</h3><span>Code trasferite dagli operatori; gli eventi originali restano conservati</span></div><div class="panel-body" id="attendanceRecoveries"></div></div>`);
     view("rostering", "\u25A6 Turnistica", `<div class="panel"><div class="panel-head"><div><h3>Pianificazione del personale</h3><span>Bozze, vincoli, generazione e pubblicazione mensile</span></div><div class="actions"><input aria-label="Mese pianificazione" id="rosterMonth" type="month" value="${month()}"><button class="btn" id="rosterLoad">Carica mese</button></div></div><div class="panel-body"><p id="rosterNotice" role="status">Carica un mese per configurare il calendario.</p><div class="actions"><button class="btn" id="rosterSave">Salva bozza</button><button class="btn primary" id="rosterGenerate">Genera turni</button><button class="btn primary" id="rosterPublish">Pubblica calendario</button><button class="btn" id="rosterNotify">Invia notifiche versione pubblicata</button></div></div></div><div class="panel"><div class="panel-head"><h3>Vincoli generali</h3><span>Obbligatori; le preferenze individuali sono ottimizzate separatamente</span></div><div class="panel-body wf-fields" id="rosterRules"></div></div><div class="panel"><div class="panel-head"><h3>Modelli di turno e copertura</h3><button class="btn" id="rosterTemplateAdd">Aggiungi modello</button></div><div class="panel-body" id="rosterTemplates"></div></div><div class="panel"><div class="panel-head"><h3>Vincoli individuali</h3><span>Seleziona gli operatori che partecipano alla pianificazione</span></div><div class="panel-body" id="rosterMembers"></div></div><div class="panel"><div class="panel-head"><h3>Calendario mensile</h3><span>Un turno al giorno per operatore \xB7 blocca le assegnazioni da preservare</span></div><div class="panel-body wf-scroll table-wrap" id="rosterCalendar"></div></div><div class="panel"><div class="panel-head"><h3>PDF personali della versione pubblicata</h3></div><div class="panel-body actions" id="rosterPdfs"></div></div>`);
-    const stamp = (s) => s ? new Date(s).toLocaleString("it-IT", { timeZone: report?.zone || "Europe/Rome" }) : "\u2014";
+    const stamp2 = (s) => s ? new Date(s).toLocaleString("it-IT", { timeZone: report?.zone || "Europe/Rome" }) : "\u2014";
     async function action(fn) {
       if (busy) return;
       busy = true;
@@ -62,13 +824,13 @@
     function renderAttendance() {
       $("attendanceNotice").textContent = `Versione calendario ${report.publishedRevision || "non pubblicata"} \xB7 ${report.notice}`;
       $("attendanceKpis").innerHTML = [["Ore pianificate", hours(report.plannedMinutes)], ["Ore registrate", hours(report.registeredMinutes)], ["Ore approvate", hours(report.approvedMinutes)], ["Anomalie", report.anomalies.length]].map(([label, value]) => `<div class="panel"><span>${label}</span><strong>${esc(value)}</strong></div>`).join("");
-      $("attendanceRows").innerHTML = filteredSessions().map((s) => `<tr><td><strong>${esc(s.name)}</strong>${s.boundarySession ? "<br><small>Iniziato nel mese precedente</small>" : ""}</td><td>${esc(stamp(s.startedAt))}<br>${esc(stamp(s.endedAt))}${s.approved ? `<br><small>Validato: ${esc(stamp(s.approved.startedAt))} / ${esc(stamp(s.approved.endedAt))}</small>` : ""}</td><td>${hours(s.workMinutes)} / ${hours(s.breakMinutes)}</td><td>${esc(labels[s.status] || s.status)}</td><td>${esc(labels[s.reviewStatus] || s.reviewStatus)}${s.correction ? `<br><small>${esc(s.correction.reason)}<br>Proposta: ${esc(stamp(s.correction.startedAt))} / ${esc(stamp(s.correction.endedAt))} \xB7 ${s.correction.breakMinutes} min pausa</small>` : ""}</td><td><button class="btn" data-events="${s.id}">Timbrature</button>${s.status === "OFF_DUTY" ? `<button class="btn" data-review="${s.id}" data-decision="APPROVE">Approva</button>${s.reviewStatus === "PENDING" ? `<button class="btn" data-review="${s.id}" data-decision="REJECT">Respingi</button>` : ""}` : ""}</td></tr>`).join("") || '<tr><td colspan="6">Nessuna sessione corrispondente.</td></tr>';
+      $("attendanceRows").innerHTML = filteredSessions().map((s) => `<tr><td><strong>${esc(s.name)}</strong>${s.boundarySession ? "<br><small>Iniziato nel mese precedente</small>" : ""}</td><td>${esc(stamp2(s.startedAt))}<br>${esc(stamp2(s.endedAt))}${s.approved ? `<br><small>Validato: ${esc(stamp2(s.approved.startedAt))} / ${esc(stamp2(s.approved.endedAt))}</small>` : ""}</td><td>${hours(s.workMinutes)} / ${hours(s.breakMinutes)}</td><td>${esc(labels2[s.status] || s.status)}</td><td>${esc(labels2[s.reviewStatus] || s.reviewStatus)}${s.correction ? `<br><small>${esc(s.correction.reason)}<br>Proposta: ${esc(stamp2(s.correction.startedAt))} / ${esc(stamp2(s.correction.endedAt))} \xB7 ${s.correction.breakMinutes} min pausa</small>` : ""}</td><td><button class="btn" data-events="${s.id}">Timbrature</button>${s.status === "OFF_DUTY" ? `<button class="btn" data-review="${s.id}" data-decision="APPROVE">Approva</button>${s.reviewStatus === "PENDING" ? `<button class="btn" data-review="${s.id}" data-decision="REJECT">Respingi</button>` : ""}` : ""}</td></tr>`).join("") || '<tr><td colspan="6">Nessuna sessione corrispondente.</td></tr>';
       renderRecoveries();
       const type = $("attendanceAnomaly").value, search = $("attendanceSearch").value.toLowerCase();
-      $("attendanceAnomalies").innerHTML = report.anomalies.filter((a) => (!type || a.type === type) && a.name.toLowerCase().includes(search)).map((a) => `<article class="task-row"><div><strong>${esc(a.name)} \xB7 ${esc(labels[a.type] || a.type)}</strong><p>${esc(a.date)} \xB7 ${esc(a.message)}</p></div></article>`).join("") || "<p>Nessuna anomalia corrispondente.</p>";
+      $("attendanceAnomalies").innerHTML = report.anomalies.filter((a) => (!type || a.type === type) && a.name.toLowerCase().includes(search)).map((a) => `<article class="task-row"><div><strong>${esc(a.name)} \xB7 ${esc(labels2[a.type] || a.type)}</strong><p>${esc(a.date)} \xB7 ${esc(a.message)}</p></div></article>`).join("") || "<p>Nessuna anomalia corrispondente.</p>";
     }
     function renderRecoveries() {
-      $("attendanceRecoveries").innerHTML = recoveries.filter((r) => r.status !== "RESOLVED").map((r) => `<article class="task-row"><div><strong>${esc(people.find((p) => p.uid === r.uid)?.name || r.name)}</strong><p>Ricevuta ${esc(stamp(r.createdAt))} \xB7 ${r.events.length} eventi \xB7 ${r.status === "PENDING" ? "Da verificare" : "In verifica"}</p><details><summary>Eventi originali del dispositivo</summary>${r.events.map((e) => `<p>${esc({ START: "Entrata", END: "Uscita", BREAK: "Inizio pausa", RESUME: "Fine pausa" }[e.action] || e.action)} \xB7 ${esc(stamp(e.occurredAt))}</p>`).join("")}</details><div class="actions"><button class="btn" data-recovery-interval="${r.id}">Registra intervallo validato</button><button class="btn" data-recovery-close="${r.id}">Concludi verifica</button></div></div></article>`).join("") || "<p>Nessuna coda da riconciliare.</p>";
+      $("attendanceRecoveries").innerHTML = recoveries.filter((r) => r.status !== "RESOLVED").map((r) => `<article class="task-row"><div><strong>${esc(people.find((p) => p.uid === r.uid)?.name || r.name)}</strong><p>Ricevuta ${esc(stamp2(r.createdAt))} \xB7 ${r.events.length} eventi \xB7 ${r.status === "PENDING" ? "Da verificare" : "In verifica"}</p><details><summary>Eventi originali del dispositivo</summary>${r.events.map((e) => `<p>${esc({ START: "Entrata", END: "Uscita", BREAK: "Inizio pausa", RESUME: "Fine pausa" }[e.action] || e.action)} \xB7 ${esc(stamp2(e.occurredAt))}</p>`).join("")}</details><div class="actions"><button class="btn" data-recovery-interval="${r.id}">Registra intervallo validato</button><button class="btn" data-recovery-close="${r.id}">Concludi verifica</button></div></div></article>`).join("") || "<p>Nessuna coda da riconciliare.</p>";
     }
     $("attendanceRecoveries").addEventListener("click", (event) => {
       const close = event.target.closest("[data-recovery-close]"), interval = event.target.closest("[data-recovery-interval]");
@@ -168,7 +930,7 @@
         const data = await apiFetch(`${base}/attendance/${events.dataset.events}/events`);
         const dialog = document.createElement("dialog");
         dialog.className = "wf-dialog";
-        dialog.innerHTML = `<h3>Timbrature originali</h3>${data.map((r) => `<p>${esc(r.action)} \xB7 ${esc(stamp(r.occurredAt || r.recordedAt))} \xB7 ricevuta ${esc(stamp(r.recordedAt))}</p>`).join("")}<button class="btn">Chiudi</button>`;
+        dialog.innerHTML = `<h3>Timbrature originali</h3>${data.map((r) => `<p>${esc(r.action)} \xB7 ${esc(stamp2(r.occurredAt || r.recordedAt))} \xB7 ricevuta ${esc(stamp2(r.recordedAt))}</p>`).join("")}<button class="btn">Chiudi</button>`;
         dialog.querySelector("button").onclick = () => dialog.close();
         dialog.addEventListener("close", () => dialog.remove());
         document.body.append(dialog);
@@ -184,7 +946,7 @@
     $("attendanceExport").onclick = () => {
       if (!report) return;
       const quote = (v) => `"${String(v ?? "").replace(/^\s*([=+@-])/, "'$1").replaceAll('"', '""')}"`;
-      const rows = [["Operatore", "Entrata", "Uscita", "Minuti attivit\xE0", "Minuti pausa", "Validazione", "Minuti approvati"], ...filteredSessions().map((s) => [s.name, s.startedAt, s.endedAt, s.workMinutes, s.breakMinutes, labels[s.reviewStatus], s.approved?.workMinutes])];
+      const rows = [["Operatore", "Entrata", "Uscita", "Minuti attivit\xE0", "Minuti pausa", "Validazione", "Minuti approvati"], ...filteredSessions().map((s) => [s.name, s.startedAt, s.endedAt, s.workMinutes, s.breakMinutes, labels2[s.reviewStatus], s.approved?.workMinutes])];
       download(new TextEncoder().encode("\uFEFF" + rows.map((r) => r.map(quote).join(";")).join("\r\n")), `presenze-${report.month}.csv`, "text/csv");
     };
     $("rosterLoad").onclick = () => action(loadPlan);
@@ -658,6 +1420,7 @@
                     <td><div class="asset-telemetry"><span>ROS</span><strong>${antennaReading(specs.ROS, "")}</strong><span>Temp.</span><strong>${antennaReading(specs.Temperatura, "\xB0C")}</strong></div></td>
                     <td>
                         <div class="actions">
+                            <button class="mini-btn" data-dossier="${ctx.escapeHtml(a.id)}">Fascicolo</button>
                             <button class="mini-btn" data-qr="${ctx.escapeHtml(a.id)}">QR Code</button>
                             <button class="mini-btn" data-edit="${ctx.escapeHtml(a.id)}">Modifica</button>
                             <button class="mini-btn" data-focus="${ctx.escapeHtml(a.id)}">Mappa</button>
@@ -876,8 +1639,8 @@
       });
     }
     function populateTaskSelectors() {
-      const op = ctx.$("taskOperator");
-      if (op) op.innerHTML = '<option value="">Seleziona operatore</option>' + eligibleOperators().map((o) => `<option value="${ctx.escapeHtml(o.id)}">${ctx.escapeHtml(o.fullName || o.email || o.id)}</option>`).join("");
+      const op2 = ctx.$("taskOperator");
+      if (op2) op2.innerHTML = '<option value="">Seleziona operatore</option>' + eligibleOperators().map((o) => `<option value="${ctx.escapeHtml(o.id)}">${ctx.escapeHtml(o.fullName || o.email || o.id)}</option>`).join("");
       const an = ctx.$("taskAntenna");
       if (an) an.innerHTML = '<option value="">Seleziona antenna</option>' + ctx.state.antennas.map((a) => `<option value="${ctx.escapeHtml(a.id)}">${ctx.escapeHtml(a.name || a.id)}</option>`).join("");
     }
@@ -1579,10 +2342,10 @@
         ctx.$("recipientBox").innerHTML = `<div class="empty">Nessun dipendente disponibile dal backend.</div>`;
         return;
       }
-      ctx.$("recipientBox").innerHTML = recipients.map((op, i) => {
-        const id = op.id || op.uid || op.operatorId;
-        const name = op.name || op.fullName || op.displayName || op.email || `Operatore ${i + 1}`;
-        const role = op.role || op.ruolo || "Operatore";
+      ctx.$("recipientBox").innerHTML = recipients.map((op2, i) => {
+        const id = op2.id || op2.uid || op2.operatorId;
+        const name = op2.name || op2.fullName || op2.displayName || op2.email || `Operatore ${i + 1}`;
+        const role = op2.role || op2.ruolo || "Operatore";
         return `
                 <label class="recipient">
                     <input type="checkbox" value="${ctx.escapeHtml(id)}">
@@ -1892,12 +2655,12 @@
         body.innerHTML = '<tr><td colspan="6"><div class="empty">Nessun movimento registrato.</div></td></tr>';
         return;
       }
-      const labels = { RECEIPT: "CARICO", ISSUE: "SCARICO", ADJUSTMENT: "RETTIFICA", CONSUMPTION: "CONSUMO TASK" };
+      const labels2 = { RECEIPT: "CARICO", ISSUE: "SCARICO", ADJUSTMENT: "RETTIFICA", CONSUMPTION: "CONSUMO TASK" };
       body.innerHTML = ctx.state.inventoryMovements.map((movement) => {
         const quantity = Number(movement.quantity || 0);
         const signed = ["ISSUE", "CONSUMPTION"].includes(movement.type) ? -Math.abs(quantity) : quantity;
         const when = movement.createdAt ? new Date(movement.createdAt).toLocaleString("it-IT") : "\u2014";
-        return `<tr><td>${ctx.escapeHtml(when)}</td><td><strong>${ctx.escapeHtml(movement.name || "Articolo")}</strong><div class="subtle">${ctx.escapeHtml(movement.sku || "")}</div></td><td>${ctx.escapeHtml(labels[movement.type] || movement.type || "\u2014")}</td><td class="${signed < 0 ? "text-danger" : ""}">${signed > 0 ? "+" : ""}${ctx.number(signed, 0)}</td><td>${movement.previousQuantity == null ? "\u2014" : `${ctx.number(Number(movement.previousQuantity), 0)} \u2192 ${ctx.number(Number(movement.resultingQuantity), 0)}`}</td><td>${ctx.escapeHtml([movement.reference, movement.note, movement.lotCode ? "Lotto " + movement.lotCode : "", movement.warehouse, ...(movement.lotAllocations || []).map((l) => (l.lotCode || "Senza lotto") + ": " + l.quantity)].filter(Boolean).join(" \xB7 ") || "\u2014")}</td></tr>`;
+        return `<tr><td>${ctx.escapeHtml(when)}</td><td><strong>${ctx.escapeHtml(movement.name || "Articolo")}</strong><div class="subtle">${ctx.escapeHtml(movement.sku || "")}</div></td><td>${ctx.escapeHtml(labels2[movement.type] || movement.type || "\u2014")}</td><td class="${signed < 0 ? "text-danger" : ""}">${signed > 0 ? "+" : ""}${ctx.number(signed, 0)}</td><td>${movement.previousQuantity == null ? "\u2014" : `${ctx.number(Number(movement.previousQuantity), 0)} \u2192 ${ctx.number(Number(movement.resultingQuantity), 0)}`}</td><td>${ctx.escapeHtml([movement.reference, movement.note, movement.lotCode ? "Lotto " + movement.lotCode : "", movement.warehouse, ...(movement.lotAllocations || []).map((l) => (l.lotCode || "Senza lotto") + ": " + l.quantity)].filter(Boolean).join(" \xB7 ") || "\u2014")}</td></tr>`;
       }).join("");
     }
     async function archiveInventoryItem(id) {
@@ -2401,7 +3164,8 @@
     async function apiFetch(url, options = {}) {
       const { _retried = false, responseType, maxResponseBytes, timeoutMs = CONFIG.REQUEST_TIMEOUT, ...requestOptions } = options;
       const privatePackage = url.startsWith("/api/v1/distribution/");
-      const responseLimit = privatePackage && maxResponseBytes === 150 * 1024 * 1024 ? maxResponseBytes : 1e7;
+      const dossierFile = /^\/api\/v1\/antennas\/[A-Za-z0-9_-]+\/dossier\/files\/[a-f0-9]{64}$/.test(url);
+      const responseLimit = privatePackage && maxResponseBytes === 150 * 1024 * 1024 ? maxResponseBytes : dossierFile && maxResponseBytes === 15e6 ? 15e6 : 1e7;
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), Math.min(privatePackage ? 18e4 : 6e4, timeoutMs));
       const token = getSessionToken();
@@ -3152,6 +3916,7 @@
       enterprise = window.RadioTechEnterprise({ apiFetch, state, escapeHtml, toast, switchView });
       companyHub = window.RadioTechCompanyHub({ apiFetch, state, escapeHtml, toast, switchView });
       installWorkforce({ apiFetch, state, escapeHtml, toast, switchView });
+      installDossier({ apiFetch, state, escapeHtml, toast, formatStatus });
       proSuite = window.RadioTechPro({ apiFetch, state, escapeHtml, toast, switchView });
       proSecurity = window.RadioTechProSecurity({ apiFetch, toast, switchView });
       window.RadioTechTelcoTools();

@@ -147,6 +147,21 @@ public class LocalAttachmentService {
         for (var doc : docs) tx.update(doc.getReference(), "referencedBy", com.google.cloud.firestore.FieldValue.arrayUnion(reportId));
     }
 
+    /** Reserve a dossier original in the same transaction as its evidence record. */
+    public void bindToDossier(com.google.cloud.firestore.Firestore db, com.google.cloud.firestore.Transaction tx,
+            String id, String tenant, String uid, boolean manager, String dossierId) throws Exception {
+        validateId(id);
+        if (localMode) return;
+        var doc = tx.get(db.collection(FILE_COLLECTION).document(id)).get();
+        if (!doc.exists() || !tenant.equals(doc.getString("tenantId"))
+                || !manager && !uid.equals(doc.getString("uid")) || doc.getString("cleanupState") != null) {
+            throw new SecurityException("Originale non disponibile per il fascicolo.");
+        }
+        Long size=doc.getLong("size");
+        if(size==null||size<=0||size>MAX_BYTES)throw new IllegalArgumentException("Dimensione originale non valida.");
+        tx.update(doc.getReference(), "referencedBy", com.google.cloud.firestore.FieldValue.arrayUnion("dossier:"+dossierId));
+    }
+
     public void validateOwned(String reference, String tenant, String uid) {
         try {
             if (reference == null || !reference.startsWith("radiotech-file:")) {

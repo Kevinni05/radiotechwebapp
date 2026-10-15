@@ -52,6 +52,7 @@ export function createFeature(ctx){
                     <td><div class="asset-telemetry"><span>ROS</span><strong>${antennaReading(specs.ROS,'')}</strong><span>Temp.</span><strong>${antennaReading(specs.Temperatura,'°C')}</strong></div></td>
                     <td>
                         <div class="actions">
+                            <button class="mini-btn" data-dossier="${ctx.escapeHtml(a.id)}">Fascicolo</button>
                             <button class="mini-btn" data-qr="${ctx.escapeHtml(a.id)}">QR Code</button>
                             <button class="mini-btn" data-edit="${ctx.escapeHtml(a.id)}">Modifica</button>
                             <button class="mini-btn" data-focus="${ctx.escapeHtml(a.id)}">Mappa</button>

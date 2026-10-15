@@ -2,6 +2,7 @@ const path = require('node:path');
 const { spawn, spawnSync } = require('node:child_process');
 
 const tests = [
+  'com.radiotech.radiotech_backend.dossier.DossierEmulatorTest',
   '*EmulatorTest', // Include future emulator regressions automatically; keep nonstandard test names below.
   'com.radiotech.radiotech_backend.service.CriticalAuditEmulatorTest',
   'com.radiotech.radiotech_backend.service.IdentityAuditEmulatorTest',

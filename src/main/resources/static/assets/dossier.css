@@ -1,0 +1,431 @@
+/* Uses the Control Room theme. No global palette, font or component overrides. */
+.ds-dialog,
+.ds-editor {
+  color: var(--text, #ededed);
+  background: var(--panel, #16171b);
+  border: 1px solid var(--border, #303136);
+  border-radius: 18px;
+  box-shadow: 0 28px 90px #0008;
+  padding: 0;
+  max-height: 92dvh;
+  overflow: auto;
+  box-sizing: border-box;
+}
+.ds-dialog {
+  width: min(1260px, calc(100vw - 40px));
+  max-width: none;
+}
+.ds-dialog::backdrop,
+.ds-editor::backdrop {
+  background: #0009;
+  backdrop-filter: blur(6px);
+}
+.ds-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 26px 28px;
+  border-bottom: 1px solid var(--border, #303136);
+}
+.ds-header h2 {
+  margin: 7px 0;
+  font-size: 24px;
+}
+.ds-header p {
+  margin: 0;
+  color: var(--muted, #a1a1aa);
+  font-size: 13px;
+}
+.ds-eyebrow {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  color: var(--muted, #a1a1aa);
+}
+.ds-tabs {
+  display: flex;
+  gap: 6px;
+  padding: 12px 24px;
+  overflow-x: auto;
+  border-bottom: 1px solid var(--border, #303136);
+  scrollbar-width: thin;
+}
+.ds-tabs button {
+  flex-shrink: 0;
+  background: transparent;
+  color: var(--muted, #a1a1aa);
+  border: 1px solid transparent;
+  border-radius: 8px;
+  padding: 9px 12px;
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  min-height: 38px;
+}
+.ds-tabs button.active {
+  color: var(--text, #ededed);
+  background: var(--surface, #24252a);
+  border-color: var(--border, #38393d);
+}
+.ds-content {
+  padding: 24px;
+  min-width: 0;
+}
+.ds-content .panel {
+  min-width: 0;
+  margin-bottom: 18px;
+}
+.ds-content .panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.ds-content h3 {
+  margin: 0;
+  font-size: 16px;
+}
+.ds-content h4 {
+  margin: 5px 0 10px;
+}
+.ds-content p {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.ds-content .table-wrap {
+  overflow: auto;
+  max-width: 100%;
+}
+.ds-content table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.ds-content th,
+.ds-content td {
+  text-align: left;
+  padding: 12px;
+  border-bottom: 1px solid var(--border, #303136);
+  vertical-align: top;
+}
+.ds-content td {
+  overflow-wrap: anywhere;
+  max-width: 300px;
+}
+.ds-content select,
+.ds-editor input,
+.ds-editor select,
+.ds-editor textarea {
+  width: 100%;
+  box-sizing: border-box;
+  background: var(--input-bg, var(--surface, #202126));
+  color: inherit;
+  border: 1px solid var(--border, #38393d);
+  border-radius: 8px;
+  padding: 10px 12px;
+  min-height: 42px;
+  font: inherit;
+}
+.ds-content label {
+  display: grid;
+  gap: 7px;
+  font-size: 13px;
+}
+.ds-content button:focus-visible,
+.ds-tabs button:focus-visible,
+.ds-editor :focus-visible {
+  outline: 2px solid var(--accent, #918bff);
+  outline-offset: 3px;
+}
+.ds-kpis {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+.ds-kpis .panel {
+  padding: 18px;
+  display: grid;
+  gap: 8px;
+}
+.ds-kpis span {
+  font-size: 12px;
+  color: var(--muted, #a1a1aa);
+}
+.ds-kpis strong {
+  font-size: 27px;
+  font-variant-numeric: tabular-nums;
+}
+.ds-columns,
+.ds-compare {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+}
+.ds-compare {
+  margin-bottom: 18px;
+}
+.ds-stack {
+  display: grid;
+  gap: 12px;
+}
+.ds-record {
+  border: 1px solid var(--border, #303136);
+  border-radius: 10px;
+  padding: 16px;
+  min-width: 0;
+}
+.ds-record small {
+  display: block;
+  color: var(--muted, #a1a1aa);
+  margin-top: 10px;
+}
+.ds-record .actions {
+  margin-top: 12px;
+  flex-wrap: wrap;
+}
+.ds-facts {
+  margin: 0;
+  display: grid;
+  gap: 0;
+}
+.ds-facts > div {
+  display: grid;
+  grid-template-columns: minmax(90px, 35%) minmax(0, 1fr);
+  gap: 14px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border, #303136);
+}
+.ds-facts dt {
+  color: var(--muted, #a1a1aa);
+  font-size: 12px;
+}
+.ds-facts dd {
+  margin: 0;
+  font-size: 13px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.ds-notice {
+  padding: 12px;
+  border: 1px solid var(--border, #38393d);
+  border-left: 3px solid var(--accent, #918bff);
+  border-radius: 8px;
+}
+.ds-changed {
+  background: color-mix(in srgb, var(--accent, #918bff) 9%, transparent);
+}
+.ds-chart,
+.ds-graph {
+  display: block;
+  width: 100%;
+  max-height: 420px;
+}
+.ds-chart polyline {
+  fill: none;
+  stroke: var(--accent, #918bff);
+  stroke-width: 2;
+}
+.ds-chart circle {
+  fill: var(--accent, #918bff);
+}
+.ds-graph rect {
+  fill: var(--surface, #24252a);
+  stroke: var(--border, #38393d);
+}
+.ds-graph path {
+  fill: none;
+  stroke: var(--muted, #a1a1aa);
+  stroke-width: 1.5;
+}
+.ds-graph text {
+  fill: var(--text, #ededed);
+  font-size: 13px;
+}
+.ds-content figure {
+  margin: 18px 0;
+}
+.ds-content figcaption {
+  font-size: 12px;
+  color: var(--muted, #a1a1aa);
+}
+.ds-editor {
+  width: min(640px, calc(100vw - 32px));
+  padding: 24px;
+}
+.ds-editor h3 {
+  margin: 0 0 10px;
+}
+.ds-editor header p {
+  font-size: 13px;
+  color: var(--muted, #a1a1aa);
+}
+.ds-form {
+  display: grid;
+  gap: 16px;
+}
+.ds-form label {
+  display: grid;
+  gap: 7px;
+  font-size: 13px;
+}
+.ds-form textarea {
+  min-height: 90px;
+  resize: vertical;
+}
+.ds-form footer {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  padding-top: 8px;
+}
+.ds-form [role="alert"] {
+  color: var(--danger, #ff9c9c);
+  margin: 0;
+}
+.ds-check {
+  display: flex !important;
+  align-items: center;
+  gap: 9px !important;
+  padding: 7px 0;
+}
+.ds-check input {
+  width: 18px !important;
+  min-height: 18px !important;
+}
+.ds-form fieldset {
+  border: 1px solid var(--border, #303136);
+  border-radius: 10px;
+  padding: 12px 16px;
+}
+.ds-annotator {
+  position: relative;
+  line-height: 0;
+  max-width: 100%;
+  touch-action: none;
+  overflow: hidden;
+  border-radius: 10px;
+  margin: 12px 0;
+  background: #08090c;
+}
+.ds-annotator img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.ds-annotator img:not([src]) {
+  display: none;
+}
+.ds-annotator svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  color: #ffb454;
+}
+.ds-annotator svg rect,
+.ds-annotator svg line {
+  stroke: #ffb454;
+  stroke-width: 4;
+  fill: none;
+  vector-effect: non-scaling-stroke;
+}
+.ds-annotator svg text {
+  fill: #ffb454;
+  stroke: #151515;
+  stroke-width: 2;
+  paint-order: stroke;
+  font-size: 25px;
+  line-height: 1;
+}
+.ds-photo a {
+  display: inline-block;
+  line-height: 1.4;
+}
+@media (max-width: 760px) {
+  .ds-dialog {
+    width: calc(100vw - 16px);
+    max-height: 96dvh;
+  }
+  .ds-header {
+    padding: 18px;
+    gap: 12px;
+    flex-direction: column;
+  }
+  .ds-header h2 {
+    font-size: 21px;
+  }
+  .ds-tabs {
+    padding: 10px 14px;
+  }
+  .ds-content {
+    padding: 14px;
+  }
+  .ds-columns,
+  .ds-compare {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  .ds-kpis {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+  .ds-kpis .panel {
+    padding: 14px;
+  }
+  .ds-record {
+    padding: 13px;
+  }
+  .ds-editor {
+    padding: 18px;
+  }
+  .ds-header .actions {
+    flex-wrap: wrap;
+  }
+  .ds-graph {
+    min-height: 160px;
+  }
+  .ds-content .btn {
+    min-height: 42px;
+  }
+}
+.ds-dialog,
+.ds-editor {
+  font-family: Inter, system-ui, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+}
+.ds-content [data-diff] table {
+  table-layout: fixed;
+  min-width: 0 !important;
+}
+.ds-content [data-diff] th,
+.ds-content [data-diff] td {
+  display: table-cell !important;
+  width: 33.333%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.ds-content [data-diff] th {
+  font-size: 11px;
+}
+.ds-network {
+  display: grid;
+  gap: 12px;
+  margin-top: 14px;
+}
+.ds-dialog h2,
+.ds-editor h3 {
+  font-family: Inter, system-ui, sans-serif;
+}
+@media (min-width: 1000px) {
+  .ds-tabs {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    overflow: visible;
+  }
+  .ds-tabs button {
+    white-space: nowrap;
+    padding-inline: 6px;
+  }
+}
