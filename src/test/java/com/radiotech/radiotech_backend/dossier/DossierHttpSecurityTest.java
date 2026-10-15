@@ -66,6 +66,6 @@ class DossierHttpSecurityTest {
             post("/api/v1/dossier-shares/read")
                 .contentType("application/json")
                 .content("{\"token\":\"invalid\"}"))
-        .andExpect(status().isForbidden());
+        .andExpect(status().isUnauthorized());
   }
 }

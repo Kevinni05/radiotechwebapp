@@ -49,6 +49,8 @@ public class RateLimitFilter extends OncePerRequestFilter {
         private static final long WINDOW_MS = 60_000L;
         private static final int MAX_TRACKED_KEYS = 10_000;
 
+        @Value("${radiotech.security.dossier-share-rate-limit-per-minute:60}")
+        private int dossierShareMaxRequests = 60;
         private final int maxRequests;
         private final int maxTrackedKeys;
         private final ConcurrentHashMap<String, Window> windows = new ConcurrentHashMap<>();
@@ -106,7 +108,9 @@ public class RateLimitFilter extends OncePerRequestFilter {
                         writeRateLimitResponse(response, WINDOW_MS / 1000);
                         return;
                 }
-                if (count > maxRequests) {
+                int routeLimit = "/api/v1/dossier-shares/read".equals(request.getRequestURI())
+                        ? Math.max(1, Math.min(300, dossierShareMaxRequests)) : maxRequests;
+                if (count > routeLimit) {
                         long retryAfter = Math.max(1, (WINDOW_MS - (now - window.start)) / 1000);
                         writeRateLimitResponse(response, retryAfter);
                         return;

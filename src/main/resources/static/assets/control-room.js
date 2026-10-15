@@ -75,20 +75,25 @@
     const cards = (rows, fn) => rows.length ? `<div class="ds-stack">${rows.map(fn).join("")}</div>` : empty("Nessun elemento registrato.");
     const error = (e) => toast("Fascicolo", e.message || "Operazione non riuscita.", "error");
     async function run(fn) {
+      const ownEpoch = epoch;
       if (busy) return;
       busy = true;
       dialog?.setAttribute("aria-busy", "true");
       try {
         await fn();
       } catch (e) {
-        error(e);
+        if (epoch === ownEpoch) error(e);
       } finally {
-        busy = false;
-        dialog?.removeAttribute("aria-busy");
+        if (epoch === ownEpoch) {
+          busy = false;
+          dialog?.removeAttribute("aria-busy");
+        }
       }
     }
     function reset() {
       epoch++;
+      tab = "overview";
+      busy = false;
       clearInterval(poll);
       poll = null;
       activeSession = null;
@@ -228,6 +233,10 @@
             run(loadSessions);
         }, 1e4);
       }
+      if (data.canContribute === false)
+        dialog.querySelectorAll('[data-dossier-action^="add-"]').forEach((b) => {
+          b.hidden = true;
+        });
     }
     function compare() {
       const c = dialog.querySelector("[data-diff]");

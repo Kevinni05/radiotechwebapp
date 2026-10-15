@@ -210,3 +210,58 @@ test("mobile dossier tabs scroll without overflowing the page", async ({
     fullPage: true,
   });
 });
+
+test("public share removes the secret from the address and renders only the selected snapshot", async ({
+  page,
+}) => {
+  const requests = [];
+  await page.route("http://dossier.test/**", async (route) => {
+    const url = new URL(route.request().url());
+    if (url.pathname === "/api/v1/dossier-shares/read") {
+      requests.push(route.request().postDataJSON());
+      return route.fulfill({
+        contentType: "application/json",
+        body: JSON.stringify({
+          snapshot: {
+            name: "<img src=x onerror=alert(1)>",
+            snapshotAt: new Date().toISOString(),
+            identity: { model: "Radio X" },
+          },
+          expiresAt: new Date(Date.now() + 600000).toISOString(),
+        }),
+      });
+    }
+    const name = url.pathname.split("/").at(-1);
+    if (
+      [
+        "dossier-share.html",
+        "dossier-share.js",
+        "dossier.css",
+        "dossier-share.css",
+        "enterprise.css",
+        "design-system.css",
+        "radiotech-theme.css",
+      ].includes(name)
+    )
+      return route.fulfill({
+        contentType: name.endsWith(".html")
+          ? "text/html"
+          : name.endsWith(".js")
+            ? "text/javascript"
+            : "text/css",
+        body: fs.readFileSync("src/main/resources/static/assets/" + name),
+      });
+    return route.abort();
+  });
+  await page.goto(
+    "http://dossier.test/assets/dossier-share.html#" + "a".repeat(43),
+  );
+  await expect(page.locator("h1")).toHaveText("<img src=x onerror=alert(1)>");
+  await expect(page.locator("#shareContent")).toContainText("Radio X");
+  await expect(page.locator("img")).toHaveCount(0);
+  await expect(page.locator("#shareContent")).not.toContainText(
+    "Ritiro chiavi",
+  );
+  expect(page.url()).toBe("http://dossier.test/assets/dossier-share.html");
+  expect(requests).toEqual([{ token: "a".repeat(43) }]);
+});

@@ -115,10 +115,15 @@
           `<section class="panel"><div class="panel-head"><h2>${esc(labels[k])}</h2></div><div class="panel-body">${Array.isArray(v) ? v.map((row) => `<article class="ds-record">${facts(row)}${row.fileId ? `<button class="btn" data-file="${esc(row.fileId)}" data-kind="${k}">${k === "photos" ? "Visualizza fotografia" : "Scarica documento"}</button>${k === "photos" ? (row.annotations || []).map((a) => `<p>Annotazione ${esc(a.type)}: ${esc(a.text || "Segno grafico")} · posizione ${Math.round(a.x * 100)}%, ${Math.round(a.y * 100)}%</p>`).join("") : ""}` : ""}</article>`).join("") || "<p>Nessun elemento.</p>" : facts(v)}</div></section>`,
       )
       .join("");
-    expiryTimer = setTimeout(
-      clear,
-      Math.max(0, Math.min(until - Date.now(), 2147483647)),
-    );
+    const expire = () => {
+      const remaining = until - Date.now();
+      if (remaining <= 0) {
+        clear();
+        return;
+      }
+      expiryTimer = setTimeout(expire, Math.min(remaining, 2147483647));
+    };
+    expire();
   }
   document.addEventListener("click", async (e) => {
     const b = e.target.closest("[data-file]");

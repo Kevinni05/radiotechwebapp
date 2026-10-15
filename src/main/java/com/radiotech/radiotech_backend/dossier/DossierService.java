@@ -147,6 +147,11 @@ public class DossierService {
     return antennas.getById(id(id));
   }
 
+  static String excerpt(Object value, int max) {
+    String text = Objects.toString(value, "");
+    return text.length() > max ? text.substring(0, max) + "… [testo completo nell’archivio]" : text;
+  }
+
   public Map<String, Object> get(String id) throws Exception {
     Antenna a = asset(id);
     String t = tenant();
@@ -157,6 +162,7 @@ public class DossierService {
     out.put("antennaId", a.getId());
     out.put("name", Objects.toString(a.getName(), a.getId()));
     out.put("canManage", manager());
+    out.put("canContribute", manager() || SecurityContextAccessor.currentRole() == Role.OPERATOR);
     var identity = new LinkedHashMap<String, Object>();
     for (var e :
         Map.of(
@@ -202,7 +208,7 @@ public class DossierService {
                   "description",
                   "createdAt",
                   "submittedAt",
-                  "operatorName")) if (s.contains(k)) row.put(k, text(s.get(k), 4000));
+                  "operatorName")) if (s.contains(k)) row.put(k, excerpt(s.get(k), 4000));
           history.add(row);
         }
     }
@@ -229,7 +235,7 @@ public class DossierService {
                 "id",
                 s.getId(),
                 "title",
-                text(s.get("name"), 160),
+                excerpt(s.get("name"), 160),
                 "notes",
                 text(s.get("content"), 32000),
                 "createdAt",
@@ -317,7 +323,8 @@ public class DossierService {
     if (section.equals("dependencies")) {
       String peer = canonical.get("antennaId").toString();
       if (peer.equals(a.getId())) throw bad("Un impianto non può dipendere da sé stesso.");
-      antennas.getById(peer);
+      var peerAsset = antennas.getById(peer);
+      canonical.put("name", Objects.toString(peerAsset.getName(), peer));
     }
     if (section.equals("documents") || section.equals("photos")) {
       var attachment = readFile(canonical.get("fileId").toString(), t, actor, manager());
@@ -435,7 +442,9 @@ public class DossierService {
                                             "type",
                                             r.get("type"),
                                             "label",
-                                            r.get("label")))
+                                            r.get("label"),
+                                            "targetName",
+                                            r.getOrDefault("name", r.get("antennaId"))))
                                 .toList()));
                   tx.create(receipt, Map.of("hash", hash, "version", next));
                   tx.create(
@@ -746,6 +755,9 @@ public class DossierService {
       String source = d.getString("antennaId");
       names.put(source, d.getString("name"));
       for (var r : rows(d.getData(), "edges")) {
+        names.putIfAbsent(
+            r.get("target").toString(),
+            Objects.toString(r.getOrDefault("targetName", r.get("target")), ""));
         if (all.size() >= 5000) throw bad("La rete supera 5000 collegamenti documentati.");
         all.add(
             Map.of(
