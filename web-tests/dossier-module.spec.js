@@ -1,16 +1,212 @@
-import {test,expect} from '@playwright/test';
-import fs from 'node:fs';
-const source=fs.readFileSync('frontend/control-room/features/dossier.js','utf8').replace('export function installDossier','window.installDossier = function');
-const seed={name:'Ponte radio Lecce',antennaId:'a',uid:'uid-a',canManage:true,version:2,fetchedAt:'2026-10-15T00:00:00Z',identity:{model:'Radio X',status:'ATTIVA'},access:{address:'Via Roma',keyInstructions:'Ritiro in sede'},configuration:[{label:'Installazione',reason:'Collaudo iniziale',values:{potenza:'10',frequenza:'100'},createdAt:'2026-10-01T00:00:00Z'},{label:'Verifica',reason:'Regolazione verificata',values:{potenza:'12',frequenza:'100'},createdAt:'2026-10-02T00:00:00Z'}],measurements:[{metric:'ROS',unit:'',value:1.2,low:1,high:2,measuredAt:'2026-10-01T00:00:00Z',notes:'Controllo iniziale'},{metric:'ROS',unit:'',value:2.1,low:1,high:2,outsideThreshold:true,measuredAt:'2026-10-02T00:00:00Z',notes:'Da verificare'}],history:[],dependencies:[],photos:[],documents:[],components:[],issues:[],proposals:[]};
-async function setup(page){
- await page.setContent('<button data-dossier="a">Fascicolo</button>');
- for(const path of ['enterprise.css','design-system.css','radiotech-theme.css','dossier.css'])await page.addStyleTag({path:`src/main/resources/static/assets/${path}`});
- await page.addScriptTag({content:source});
- await page.evaluate(seed=>{window.calls=[];window.seed=seed;window.installDossier({state:{antennas:[{id:'a',name:'Ponte radio Lecce'},{id:'b',name:'Ponte remoto'}]},escapeHtml:v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])),toast:(...args)=>window.lastToast=args,apiFetch:async(url,opts={})=>{window.calls.push({url,opts});if(url.endsWith('/shares')&&opts.method==='POST')return {url:'https://example.test/assets/dossier-share.html#opaque',id:'share'};if(url.endsWith('/shares')||url.endsWith('/sessions'))return [];if(url.endsWith('/changes')){const c=JSON.parse(opts.body);window.seed[c.section].push({...c.data,id:'new',createdAt:'2026-10-15T00:00:00Z'});window.seed.version++;return {version:window.seed.version};}return structuredClone(window.seed);}});},seed);
- await page.getByRole('button',{name:'Fascicolo',exact:true}).click();await expect(page.locator('.ds-header h2')).toHaveText(seed.name);
+import { test, expect } from "@playwright/test";
+import fs from "node:fs";
+const source = fs
+  .readFileSync("frontend/control-room/features/dossier.js", "utf8")
+  .replace(
+    "export function installDossier",
+    "window.installDossier = function",
+  );
+const seed = {
+  name: "Ponte radio Lecce",
+  antennaId: "a",
+  uid: "uid-a",
+  canManage: true,
+  version: 2,
+  fetchedAt: "2026-10-15T00:00:00Z",
+  identity: { model: "Radio X", status: "ATTIVA" },
+  access: { address: "Via Roma", keyInstructions: "Ritiro in sede" },
+  configuration: [
+    {
+      label: "Installazione",
+      reason: "Collaudo iniziale",
+      values: { potenza: "10", frequenza: "100" },
+      createdAt: "2026-10-01T00:00:00Z",
+    },
+    {
+      label: "Verifica",
+      reason: "Regolazione verificata",
+      values: { potenza: "12", frequenza: "100" },
+      createdAt: "2026-10-02T00:00:00Z",
+    },
+  ],
+  measurements: [
+    {
+      metric: "ROS",
+      unit: "",
+      value: 1.2,
+      low: 1,
+      high: 2,
+      measuredAt: "2026-10-01T00:00:00Z",
+      notes: "Controllo iniziale",
+    },
+    {
+      metric: "ROS",
+      unit: "",
+      value: 2.1,
+      low: 1,
+      high: 2,
+      outsideThreshold: true,
+      measuredAt: "2026-10-02T00:00:00Z",
+      notes: "Da verificare",
+    },
+  ],
+  history: [],
+  dependencies: [],
+  photos: [],
+  documents: [],
+  components: [],
+  issues: [],
+  proposals: [],
+};
+async function setup(page) {
+  await page.setContent('<button data-dossier="a">Fascicolo</button>');
+  for (const path of [
+    "enterprise.css",
+    "design-system.css",
+    "radiotech-theme.css",
+    "report-attachments.css",
+    "operations-upgrade.css",
+    "environment-console.css",
+    "enterprise-layout.css",
+    "signature-workspace.css",
+    "preventive-planning.css",
+    "company-personalization.css",
+    "dossier.css",
+  ])
+    await page.addStyleTag({
+      path: `src/main/resources/static/assets/${path}`,
+    });
+  await page.addScriptTag({ content: source });
+  await page.evaluate((seed) => {
+    window.calls = [];
+    window.seed = seed;
+    window.installDossier({
+      state: {
+        antennas: [
+          { id: "a", name: "Ponte radio Lecce" },
+          { id: "b", name: "Ponte remoto" },
+        ],
+      },
+      escapeHtml: (v) =>
+        String(v ?? "").replace(
+          /[&<>"']/g,
+          (c) =>
+            ({
+              "&": "&amp;",
+              "<": "&lt;",
+              ">": "&gt;",
+              '"': "&quot;",
+              "'": "&#39;",
+            })[c],
+        ),
+      toast: (...args) => (window.lastToast = args),
+      apiFetch: async (url, opts = {}) => {
+        window.calls.push({ url, opts });
+        if (url.endsWith("/shares") && opts.method === "POST")
+          return {
+            url: "https://example.test/assets/dossier-share.html#opaque",
+            id: "share",
+          };
+        if (url.endsWith("/shares") || url.endsWith("/sessions")) return [];
+        if (url.endsWith("/changes")) {
+          const c = JSON.parse(opts.body);
+          window.seed[c.section].push({
+            ...c.data,
+            id: "new",
+            createdAt: "2026-10-15T00:00:00Z",
+          });
+          window.seed.version++;
+          return { version: window.seed.version };
+        }
+        return structuredClone(window.seed);
+      },
+    });
+  }, seed);
+  await page.getByRole("button", { name: "Fascicolo", exact: true }).click();
+  await expect(page.locator(".ds-header h2")).toHaveText(seed.name);
 }
-test('configuration comparison highlights only changed parameters and preserves revisions',async({page})=>{await setup(page);await page.locator('[data-tab=configuration]').click();await expect(page.locator('[data-diff] .ds-changed')).toHaveCount(1);await expect(page.locator('[data-diff] .ds-changed')).toContainText('potenza');await page.getByRole('button',{name:'Nuova revisione',exact:true}).click();await page.locator('[name=label]').fill('Terza revisione');await page.locator('[name=reason]').fill('Verifica sul sito');await page.locator('[name=values]').fill('potenza = 14\nfrequenza = 100');await page.locator('.ds-editor [type=submit]').click();await expect(page.locator('.ds-editor')).toHaveCount(0);await expect(page.locator('.ds-stack')).toContainText('Terza revisione');expect(await page.evaluate(()=>JSON.parse(window.calls.find(c=>c.url.endsWith('/changes')).opts.body).data.values)).toEqual({potenza:'14',frequenza:'100'});});
-test('measurements show actual values and outside-threshold warning',async({page})=>{await setup(page);await page.locator('[data-tab=measurements]').click();await expect(page.locator('.ds-chart circle')).toHaveCount(2);await expect(page.locator('.ds-content')).toContainText('Fuori soglia');await expect(page.locator('.ds-content')).toContainText('2.1');});
-test('scoped share creation keeps the one-time link visible',async({page})=>{await setup(page);await page.locator('[data-tab=shares]').click();await page.getByRole('button',{name:'Crea link',exact:true}).click();await page.locator('[name=sections][value=identity]').check();await page.locator('.ds-editor [type=submit]').click();await expect(page.locator('.ds-editor input[readonly]')).toHaveValue(/#opaque$/);const body=await page.evaluate(()=>JSON.parse(window.calls.find(c=>c.opts.method==='POST'&&c.url.endsWith('/shares')).opts.body));expect(body.sections).toEqual(['identity']);expect(body.sections).not.toContain('access');});
-test('identity change closes private dossier and editing dialogs',async({page})=>{await setup(page);await page.locator('[data-tab=access]').click();await page.getByRole('button',{name:'Modifica indicazioni'}).click();await page.evaluate(()=>window.dispatchEvent(new Event('radiotech:identity-changed')));await expect(page.locator('.ds-dialog,.ds-editor')).toHaveCount(0);});
-test('mobile dossier tabs scroll without overflowing the page',async({page})=>{await page.setViewportSize({width:390,height:844});await setup(page);await page.locator('[data-tab=configuration]').click();expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);await expect(page.locator('.ds-dialog')).toBeVisible();await page.screenshot({path:'/tmp/radiotech-dossier-mobile.png',fullPage:true});});
+test("configuration comparison highlights only changed parameters and preserves revisions", async ({
+  page,
+}) => {
+  await setup(page);
+  await page.locator("[data-tab=configuration]").click();
+  await expect(page.locator("[data-diff] .ds-changed")).toHaveCount(1);
+  await expect(page.locator("[data-diff] .ds-changed")).toContainText(
+    "potenza",
+  );
+  await page
+    .getByRole("button", { name: "Nuova revisione", exact: true })
+    .click();
+  await page.locator("[name=label]").fill("Terza revisione");
+  await page.locator("[name=reason]").fill("Verifica sul sito");
+  await page.locator("[name=values]").fill("potenza = 14\nfrequenza = 100");
+  await page.locator(".ds-editor [type=submit]").click();
+  await expect(page.locator(".ds-editor")).toHaveCount(0);
+  await expect(page.locator(".ds-stack")).toContainText("Terza revisione");
+  expect(
+    await page.evaluate(
+      () =>
+        JSON.parse(
+          window.calls.find((c) => c.url.endsWith("/changes")).opts.body,
+        ).data.values,
+    ),
+  ).toEqual({ potenza: "14", frequenza: "100" });
+});
+test("measurements show actual values and outside-threshold warning", async ({
+  page,
+}) => {
+  await setup(page);
+  await page.locator("[data-tab=measurements]").click();
+  await expect(page.locator(".ds-chart circle")).toHaveCount(2);
+  await expect(page.locator(".ds-content")).toContainText("Fuori soglia");
+  await expect(page.locator(".ds-content")).toContainText("2.1");
+});
+test("scoped share creation keeps the one-time link visible", async ({
+  page,
+}) => {
+  await setup(page);
+  await page.locator("[data-tab=shares]").click();
+  await page.getByRole("button", { name: "Crea link", exact: true }).click();
+  await page.locator("[name=sections][value=identity]").check();
+  await page.locator(".ds-editor [type=submit]").click();
+  await expect(page.locator(".ds-editor input[readonly]")).toHaveValue(
+    /#opaque$/,
+  );
+  const body = await page.evaluate(() =>
+    JSON.parse(
+      window.calls.find(
+        (c) => c.opts.method === "POST" && c.url.endsWith("/shares"),
+      ).opts.body,
+    ),
+  );
+  expect(body.sections).toEqual(["identity"]);
+  expect(body.sections).not.toContain("access");
+});
+test("identity change closes private dossier and editing dialogs", async ({
+  page,
+}) => {
+  await setup(page);
+  await page.locator("[data-tab=access]").click();
+  await page.getByRole("button", { name: "Modifica indicazioni" }).click();
+  await page.evaluate(() =>
+    window.dispatchEvent(new Event("radiotech:identity-changed")),
+  );
+  await expect(page.locator(".ds-dialog,.ds-editor")).toHaveCount(0);
+});
+test("mobile dossier tabs scroll without overflowing the page", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await setup(page);
+  await page.locator("[data-tab=configuration]").click();
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  ).toBe(true);
+  await expect(page.locator(".ds-dialog")).toBeVisible();
+  await page.screenshot({
+    path: "/tmp/radiotech-dossier-mobile.png",
+    fullPage: true,
+  });
+});
