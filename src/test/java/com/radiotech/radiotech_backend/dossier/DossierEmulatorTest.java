@@ -240,7 +240,7 @@ class DossierEmulatorTest {
       s.trial(
           key,
           new DossierService.Trial(
-              2, "result-b", "RESULT", "trial-one", "B", null, null, "RSSI", "dBm", -49d, ""));
+              1, "result-b", "RESULT", "trial-one", "B", null, null, "RSSI", "dBm", -49d, ""));
       var done =
           s.trial(
               key,

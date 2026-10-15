@@ -918,7 +918,13 @@ public class DossierService {
                     return sessionView(d.getData());
                   }
                   var state = new LinkedHashMap<>(d.getData());
-                  if (version(state.get("version")) != request.expectedVersion()) throw conflict();
+                  long currentVersion = version(state.get("version"));
+                  // A/B results are independent, immutable slots. Merge concurrent sides;
+                  // preparing/closing trials still requires the exact version.
+                  if (currentVersion != request.expectedVersion()
+                      && (!"RESULT".equals(request.action())
+                          || request.expectedVersion() < 0
+                          || request.expectedVersion() > currentVersion)) throw conflict();
                   if (!"OPEN".equals(state.get("state"))) throw bad("Sessione già conclusa.");
                   var trials = rows(state, "trials");
                   String now = Instant.now().toString();
@@ -984,12 +990,11 @@ public class DossierService {
                     default -> throw bad("Azione non valida.");
                   }
                   state.put("trials", trials);
-                  state.put("version", request.expectedVersion() + 1);
+                  state.put("version", currentVersion + 1);
                   state.put("updatedAt", now);
                   bounded(state);
                   tx.set(ref, state);
-                  tx.create(
-                      receipt, Map.of("hash", hash, "version", request.expectedVersion() + 1));
+                  tx.create(receipt, Map.of("hash", hash, "version", currentVersion + 1));
                   return sessionView(state);
                 }));
   }
