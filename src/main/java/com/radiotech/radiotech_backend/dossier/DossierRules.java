@@ -221,7 +221,8 @@ public final class DossierRules {
       for (var item : items) {
         var c = new LinkedHashMap<>(item);
         for (String f :
-            List.of("actor", "uid", "tenantId", "createdBy", "operatorUid", "operatorId"))
+            List.of(
+                "actor", "uid", "tenantId", "createdBy", "operatorUid", "operatorId", "resolvedBy"))
           c.remove(f);
         clean.add(c);
       }

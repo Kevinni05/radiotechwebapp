@@ -67,6 +67,36 @@ class DossierRulesTest {
   }
 
   @Test
+  void sharedResolvedItemsKeepDecisionDetailsWithoutInternalReviewerIdentity() {
+    for (String section : List.of("issues", "dependencies")) {
+      var item =
+          Map.<String, Object>of(
+              "id",
+              "entry",
+              "title",
+              "Verifica impianto",
+              "actor",
+              "operator-private",
+              "resolvedBy",
+              "manager-private",
+              "resolvedAt",
+              "2026-10-15T08:00:00Z",
+              "resolutionReason",
+              "Verifica completata",
+              "status",
+              "RESOLVED");
+      var source = Map.<String, Object>of("name", "Antenna A", section, List.of(item));
+      var shared = DossierRules.publicSnapshot(source, List.of(section));
+      var published = DossierRules.rows(shared, section).getFirst();
+      assertFalse(published.containsKey("actor"));
+      assertFalse(published.containsKey("resolvedBy"));
+      assertEquals("Verifica completata", published.get("resolutionReason"));
+      assertEquals("2026-10-15T08:00:00Z", published.get("resolvedAt"));
+      assertEquals("manager-private", item.get("resolvedBy"));
+    }
+  }
+
+  @Test
   void unknownAndOversizedInputsAreRejected() {
     assertThrows(IllegalArgumentException.class, () -> DossierRules.id("../other"));
     assertThrows(
