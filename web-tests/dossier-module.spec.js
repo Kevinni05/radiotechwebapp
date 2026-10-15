@@ -107,6 +107,14 @@ async function setup(page) {
             url: "https://example.test/assets/dossier-share.html#opaque",
             id: "share",
           };
+        if (
+          url.endsWith("/shares") &&
+          window.failShareReload &&
+          window.calls.some(
+            (c) => c.opts.method === "POST" && c.url.endsWith("/shares"),
+          )
+        )
+          throw Error("Aggiornamento elenco non riuscito");
         if (url.endsWith("/shares") || url.endsWith("/sessions")) return [];
         if (url.endsWith("/changes")) {
           const c = JSON.parse(opts.body);
@@ -264,4 +272,24 @@ test("public share removes the secret from the address and renders only the sele
   );
   expect(page.url()).toBe("http://dossier.test/assets/dossier-share.html");
   expect(requests).toEqual([{ token: "a".repeat(43) }]);
+});
+
+test("a created share remains copyable when refreshing its list fails", async ({
+  page,
+}) => {
+  await setup(page);
+  const errors = [];
+  page.on("pageerror", (e) => errors.push(e.message));
+  await page.locator("[data-tab=shares]").click();
+  await page.getByRole("button", { name: "Crea link", exact: true }).click();
+  await page.locator("[name=sections][value=identity]").check();
+  await page.evaluate(() => (window.failShareReload = true));
+  await page.locator(".ds-editor [type=submit]").click();
+  await expect(page.locator(".ds-editor input[readonly]")).toHaveValue(
+    /#opaque$/,
+  );
+  await expect
+    .poll(() => page.evaluate(() => window.lastToast?.[1]))
+    .toBe("Aggiornamento elenco non riuscito");
+  expect(errors).toEqual([]);
 });

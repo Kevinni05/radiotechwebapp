@@ -292,7 +292,9 @@
           const close = await onSave(new FormData(event.target), d);
           if (epoch === e && close !== false) d.close();
         } catch (x) {
-          d.querySelector("[data-error]").textContent = x.message;
+          const message = d.querySelector("[data-error]");
+          if (message) message.textContent = x.message;
+          else if (epoch === e) error(x);
         } finally {
           submit.disabled = false;
         }
