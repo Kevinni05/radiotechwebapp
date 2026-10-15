@@ -63,9 +63,13 @@ class WorkforceIndexesTest(unittest.TestCase):
     def test_paginated_listing(self):
         client = object.__new__(module.Client)
         client.root = "projects/test-project/databases/(default)/collectionGroups/"
-        client.request = Mock(side_effect=[{"indexes": [self.desired[0]], "nextPageToken": "a+/="},
-                                           {"indexes": [self.desired[1]]}])
-        self.assertEqual(client.list("workforceAttendance"), self.desired[:2])
+        own = copy.deepcopy(self.desired[:2])
+        for position, index in enumerate(own):
+            index["name"] = client.root + "workforceAttendance/indexes/" + str(position)
+        foreign = {**own[0], "name": client.root + "otherCollection/indexes/foreign"}
+        client.request = Mock(side_effect=[{"indexes": [foreign, own[0]], "nextPageToken": "a+/="},
+                                           {"indexes": [own[1]]}])
+        self.assertEqual(client.list("workforceAttendance"), own)
         for call in client.request.call_args_list:
             self.assertNotIn("pageSize", call.args[0])
         self.assertNotIn("?", client.request.call_args_list[0].args[0])

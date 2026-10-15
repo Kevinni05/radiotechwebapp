@@ -60,7 +60,11 @@ class Client:
             # and preserve any continuation token returned by the service.
             query = urllib.parse.urlencode({"pageToken": page}) if page else ""
             result = self.request(self.root + collection + "/indexes" + ("?" + query if query else ""))
-            indexes.extend(result.get("indexes", []))
+            # The live API can return indexes from other collection groups.
+            # A matching field signature there does not satisfy this query.
+            prefix = self.root + collection + "/indexes/"
+            indexes.extend(i for i in result.get("indexes", [])
+                           if i.get("name", "").startswith(prefix))
             page = result.get("nextPageToken", "")
             if not page:
                 return indexes
