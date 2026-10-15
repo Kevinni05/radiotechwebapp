@@ -414,4 +414,18 @@
   gap: 12px;
   margin-top: 14px;
 }
-.ds-dialog h2,.ds-editor h3{font-family:Inter,system-ui,sans-serif}
+.ds-dialog h2,
+.ds-editor h3 {
+  font-family: Inter, system-ui, sans-serif;
+}
+@media (min-width: 1000px) {
+  .ds-tabs {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    overflow: visible;
+  }
+  .ds-tabs button {
+    white-space: nowrap;
+    padding-inline: 6px;
+  }
+}
