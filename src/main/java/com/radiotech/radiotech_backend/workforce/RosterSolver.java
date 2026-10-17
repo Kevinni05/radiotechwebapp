@@ -51,8 +51,11 @@ public class RosterSolver {
                     if(locks.contains(key(a))) model.addEquality(variable,1);
                     else if(validateOnly) model.addEquality(variable,0);
                 }
-                model.addEquality(coverage,t.coverage());
-                if(candidates<t.coverage()) warnings.add(date+" / "+t.label()+": servono "+t.coverage()+" operatori, disponibili "+candidates+".");
+                // Company hours require every eligible member on the same shift. Absences
+                // reduce the daily headcount instead of turning colleagues into substitutes.
+                int required=t.allMembers()?candidates:t.coverage();
+                model.addEquality(coverage,required);
+                if(candidates<required) warnings.add(date+" / "+t.label()+": servono "+required+" operatori, disponibili "+candidates+".");
             }
         }
         Set<String> available=new HashSet<>(); choices.forEach(x->available.add(key(x.assignment())));

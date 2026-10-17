@@ -107,11 +107,12 @@
     const field = (key, label, value, type = "number", extra = "") => `<label>${label}<input data-field="${key}" type="${type}" value="${esc(value)}" ${extra}></label>`;
     const days = (values, key) => `<div class="wf-days" data-days="${key}">${["Lun", "Mar", "Mer", "Gio", "Ven", "Sab", "Dom"].map((d, i) => `<label><input type="checkbox" value="${i + 1}" ${values.includes(i + 1) ? "checked" : ""}>${d}</label>`).join("")}</div>`;
     const defaultMember = (id) => ({ operatorId: id, minMonthlyMinutes: 0, maxMonthlyMinutes: 11040, targetMonthlyMinutes: 9600, maxWeeklyMinutes: 2400, maxConsecutiveDays: 5, allowNight: true, days: [1, 2, 3, 4, 5, 6, 7], unavailableDates: [], allowedTemplates: [], skills: [], preferredDays: [] });
+    const companyTemplate = (id) => ({ id, label: "Orario aziendale", start: "09:00", end: "16:00", breakMinutes: 0, coverage: 1, allMembers: true, days: [1, 2, 3, 4, 5], site: "", skill: "", night: false });
     function renderPlan() {
-      cfg = structuredClone(plan.config || { rules: { zone: "Europe/Rome", minRestMinutes: 660, maxConsecutiveDays: 5, maxWeeklyMinutes: 2400, toleranceMinutes: 10, solveSeconds: 10 }, templates: [{ id: "DAY", label: "Diurno", start: "08:00", end: "16:30", breakMinutes: 30, coverage: 1, days: [1, 2, 3, 4, 5], site: "", skill: "", night: false }], members: people.map((p) => defaultMember(p.operatorId)), assignments: [], notes: "" });
+      cfg = structuredClone(plan.config || { rules: { zone: "Europe/Rome", minRestMinutes: 660, maxConsecutiveDays: 5, maxWeeklyMinutes: 2400, toleranceMinutes: 10, solveSeconds: 10 }, templates: [companyTemplate("DAY")], members: people.map((p) => defaultMember(p.operatorId)), assignments: [], notes: "" });
       $("rosterNotice").textContent = `${loadedMonth} \xB7 ${plan.status === "EMPTY" ? "Nuova bozza" : plan.status === "PUBLISHED" ? "Pubblicato" : "Bozza"} \xB7 Revisione bozza ${plan.version || 0} \xB7 Versione pubblicata ${plan.publishedRevision || "\u2014"}`;
       $("rosterRules").innerHTML = field("zone", "Fuso orario IANA", cfg.rules.zone, "text") + field("minRestMinutes", "Riposo minimo (min)", cfg.rules.minRestMinutes) + field("maxConsecutiveDays", "Giorni consecutivi massimi", cfg.rules.maxConsecutiveDays) + field("maxWeeklyMinutes", "Ore settimanali massime (min)", cfg.rules.maxWeeklyMinutes) + field("toleranceMinutes", "Tolleranza timbrature (min)", cfg.rules.toleranceMinutes) + field("solveSeconds", "Tempo ricerca (1\u201320 secondi)", cfg.rules.solveSeconds) + field("notes", "Note responsabile", cfg.notes || "", "text");
-      $("rosterTemplates").innerHTML = cfg.templates.map((t, i) => `<fieldset data-template="${i}"><legend>${esc(t.label || `Modello ${i + 1}`)}</legend><div class="wf-fields">${field("label", "Nome", t.label, "text")}${field("start", "Entrata", t.start, "time")}${field("end", "Uscita", t.end, "time")}${field("breakMinutes", "Pausa (min)", t.breakMinutes)}${field("coverage", "Operatori necessari", t.coverage)}${field("site", "Sede / squadra", t.site || "", "text")}${field("skill", "Competenza richiesta", t.skill || "", "text")}<label><input data-field="night" type="checkbox" ${t.night ? "checked" : ""}>Turno notturno</label></div>${days(t.days, "days")}<button class="btn" data-remove-template="${i}">Rimuovi modello</button></fieldset>`).join("");
+      $("rosterTemplates").innerHTML = cfg.templates.map((t, i) => `<fieldset data-template="${i}"><legend>${esc(t.label || `Modello ${i + 1}`)}</legend><p>Seleziona Assegna a tutti per far lavorare insieme gli operatori inclusi e disponibili. Entrata, uscita, pausa e giorni sono modificabili.</p><div class="wf-fields">${field("label", "Nome", t.label, "text")}${field("start", "Entrata", t.start, "time")}${field("end", "Uscita", t.end, "time")}${field("breakMinutes", "Pausa (min)", t.breakMinutes)}<label><input data-field="allMembers" type="checkbox" ${t.allMembers ? "checked" : ""}>Assegna a tutti gli operatori inclusi e disponibili</label>${field("coverage", "Operatori necessari (se non assegni a tutti)", t.coverage, "number", `min="1" max="100" ${t.allMembers ? "disabled" : ""}`)}${field("site", "Sede / squadra", t.site || "", "text")}${field("skill", "Competenza richiesta", t.skill || "", "text")}<label><input data-field="night" type="checkbox" ${t.night ? "checked" : ""}>Turno notturno</label></div>${days(t.days, "days")}<div class="actions"><button class="btn" data-company-hours="${i}">Imposta 09:00\u201316:00 per tutti</button><button class="btn" data-remove-template="${i}">Rimuovi modello</button></div></fieldset>`).join("");
       $("rosterMembers").innerHTML = people.map((p) => {
         const active = cfg.members.find((m2) => m2.operatorId === p.operatorId), m = active || defaultMember(p.operatorId);
         return `<details data-member="${esc(p.operatorId)}"><summary>${esc(p.name)} ${active ? "\xB7 Incluso" : "\xB7 Escluso"}</summary><label><input data-field="included" type="checkbox" ${active ? "checked" : ""}>Includi nella pianificazione</label><div class="wf-fields">${field("minMonthlyMinutes", "Minimo mensile (min)", m.minMonthlyMinutes)}${field("targetMonthlyMinutes", "Obiettivo mensile (min)", m.targetMonthlyMinutes)}${field("maxMonthlyMinutes", "Massimo mensile (min)", m.maxMonthlyMinutes)}${field("maxWeeklyMinutes", "Massimo settimanale (min)", m.maxWeeklyMinutes)}${field("maxConsecutiveDays", "Giorni consecutivi massimi", m.maxConsecutiveDays)}<label><input data-field="allowNight" type="checkbox" ${m.allowNight ? "checked" : ""}>Disponibile per notti</label>${field("skills", "Competenze (separate da virgola)", m.skills.join(", "), "text")}<div><span>Modelli ammessi (nessuna selezione = tutti)</span><div class="wf-days" data-list="allowedTemplates">${cfg.templates.map((t) => `<label><input type="checkbox" value="${esc(t.id)}" ${m.allowedTemplates.includes(t.id) ? "checked" : ""}>${esc(t.label)}</label>`).join("")}</div></div>${field("unavailableDates", "Ferie / indisponibilit\xE0 (AAAA-MM-GG, separate da virgola)", m.unavailableDates.join(", "), "text")}</div><p>Giorni disponibili</p>${days(m.days, "days")}<p>Giorni preferiti (facoltativi)</p>${days(m.preferredDays, "preferredDays")}</details>`;
@@ -219,22 +220,30 @@
         toast("Limite modelli", "Sono ammessi fino a 8 modelli.", "error");
         return;
       }
-      cfg.templates.push({ id: `TURN_${crypto.randomUUID().slice(0, 8)}`, label: "Nuovo turno", start: "08:00", end: "16:00", breakMinutes: 0, coverage: 1, days: [1, 2, 3, 4, 5], site: "", skill: "", night: false });
+      cfg.templates.push(companyTemplate(`TURN_${crypto.randomUUID().slice(0, 8)}`));
       plan.config = cfg;
       renderPlan();
       dirty = true;
     };
     $("rosterTemplates").onclick = (e) => {
-      const b = e.target.closest("[data-remove-template]");
-      if (!b) return;
+      const preset = e.target.closest("[data-company-hours]"), b = e.target.closest("[data-remove-template]");
+      if (!preset && !b) return;
       collect();
-      const id = cfg.templates[Number(b.dataset.removeTemplate)].id;
-      cfg.templates = cfg.templates.filter((t) => t.id !== id);
-      cfg.assignments = cfg.assignments.filter((a) => a.templateId !== id);
+      if (preset) {
+        const t = cfg.templates[Number(preset.dataset.companyHours)];
+        Object.assign(t, { start: "09:00", end: "16:00", breakMinutes: 0, allMembers: true, night: false });
+      } else {
+        const id = cfg.templates[Number(b.dataset.removeTemplate)].id;
+        cfg.templates = cfg.templates.filter((t) => t.id !== id);
+        cfg.assignments = cfg.assignments.filter((a) => a.templateId !== id);
+      }
       plan.config = cfg;
       renderPlan();
       dirty = true;
     };
+    $("rosterTemplates").addEventListener("change", (e) => {
+      if (e.target.dataset.field === "allMembers") e.target.closest("[data-template]").querySelector('[data-field="coverage"]').disabled = e.target.checked;
+    });
     $("rosterMembers").addEventListener("change", (e) => {
       if (e.target.dataset.field === "included") {
         collect();

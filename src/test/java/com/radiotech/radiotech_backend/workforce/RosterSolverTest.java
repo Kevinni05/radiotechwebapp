@@ -12,6 +12,58 @@ class RosterSolverTest {
     private Roster.Rules rules(int rest) {return new Roster.Rules("Europe/Rome",rest,5,2400,10,5);}
     private Roster.Member member(String id,boolean nights,List<String> unavailable) {return new Roster.Member(id,0,12000,0,2400,5,nights,List.of(1,2,3,4,5,6,7),unavailable,List.of(),List.of(),List.of());}
     private Roster.Template day(int coverage) {return new Roster.Template("DAY","Diurno","08:00","16:30",30,coverage,List.of(1,2,3,4,5),"Sede Lecce","",false);}
+    private Roster.Template companyHours(String start,String end) {
+        return new Roster.Template("DAY","Orario aziendale",start,end,0,1,List.of(1,2,3,4,5),"Sede Lecce","",false,true);
+    }
+    @Test void companyHoursAssignEveryWorkerTheSameShiftEveryWeekday() {
+        var month=YearMonth.of(2026,10);var template=companyHours("09:00","16:00");
+        var people=List.of(member("a",false,List.of()),member("b",false,List.of()),member("c",false,List.of()));
+        var c=new Roster.Config(rules(660),List.of(template),people,List.of(),0,"");
+        var result=new RosterSolver().solve(month,c,List.of(),false);
+        assertTrue(Set.of("OPTIMAL","FEASIBLE").contains(result.status()));
+        assertEquals(66,result.assignments().size());
+        for(var person:people) {
+            var assignments=result.assignments().stream().filter(a->a.operatorId().equals(person.operatorId())).toList();
+            assertEquals(22,assignments.size());
+            for(var a:assignments) {
+                assertTrue(LocalDate.parse(a.date()).getDayOfWeek().getValue()<=5);
+                var slot=Roster.slot(a,template,c.rules(),"uid","Nome");
+                assertEquals(LocalTime.of(9,0),Instant.parse(slot.startAt()).atZone(ZoneId.of(c.rules().zone())).toLocalTime());
+                assertEquals(LocalTime.of(16,0),Instant.parse(slot.endAt()).atZone(ZoneId.of(c.rules().zone())).toLocalTime());
+                assertEquals(420,slot.workMinutes());
+            }
+        }
+        var partial=new Roster.Config(c.rules(),c.templates(),people,result.assignments().subList(1,66),0,"");
+        assertEquals("INFEASIBLE",new RosterSolver().solve(month,partial,List.of(),true).status());
+        var complete=new Roster.Config(c.rules(),c.templates(),people,result.assignments(),0,"");
+        assertTrue(Set.of("OPTIMAL","FEASIBLE").contains(new RosterSolver().solve(month,complete,List.of(),true).status()));
+    }
+    @Test void companyHoursRemainEditableAndAbsencesOnlyRemoveTheUnavailableWorker() {
+        var template=companyHours("08:30","15:30");
+        var c=new Roster.Config(rules(660),List.of(template),List.of(member("a",false,List.of()),member("b",false,List.of("2026-10-15"))),List.of(),0,"");
+        var result=new RosterSolver().solve(YearMonth.of(2026,10),c,List.of(),false);
+        assertTrue(Set.of("OPTIMAL","FEASIBLE").contains(result.status()));
+        assertEquals(43,result.assignments().size());
+        assertFalse(result.assignments().stream().anyMatch(a->a.operatorId().equals("b")&&a.date().equals("2026-10-15")));
+        assertTrue(result.assignments().stream().anyMatch(a->a.operatorId().equals("a")&&a.date().equals("2026-10-15")));
+        for(var a:result.assignments()) {
+            var slot=Roster.slot(a,template,c.rules(),"uid","Nome");
+            assertEquals(LocalTime.of(8,30),Instant.parse(slot.startAt()).atZone(ZoneId.of(c.rules().zone())).toLocalTime());
+            assertEquals(LocalTime.of(15,30),Instant.parse(slot.endAt()).atZone(ZoneId.of(c.rules().zone())).toLocalTime());
+        }
+    }
+    @Test void companyHoursReportConflictingLimitsInsteadOfRotatingWorkers() {
+        var restricted=new Roster.Member("b",0,12000,0,1000,5,false,List.of(1,2,3,4,5),List.of(),List.of(),List.of(),List.of());
+        var c=new Roster.Config(rules(660),List.of(companyHours("09:00","16:00")),List.of(member("a",false,List.of()),restricted),List.of(),0,"");
+        assertEquals("INFEASIBLE",new RosterSolver().solve(YearMonth.of(2026,10),c,List.of(),false).status());
+    }
+    @Test void olderTemplatesKeepFixedCoverageAndNewModeSurvivesSerialization() {
+        var json=tools.jackson.databind.json.JsonMapper.builder().build();
+        var legacy=json.readValue("{\"id\":\"DAY\",\"label\":\"Diurno\",\"start\":\"09:00\",\"end\":\"16:00\",\"breakMinutes\":0,\"coverage\":1,\"days\":[1,2,3,4,5],\"site\":\"\",\"skill\":\"\",\"night\":false}",Roster.Template.class);
+        assertFalse(legacy.allMembers());
+        var company=companyHours("09:00","16:00");
+        assertEquals(company,json.readValue(json.writeValueAsString(company),Roster.Template.class));
+    }
     @Test void generationMeetsCoverageAndNeverAssignsUnavailableOperator() {
         var month=YearMonth.of(2026,10);var c=new Roster.Config(rules(660),List.of(day(1)),List.of(member("a",false,List.of("2026-10-01")),member("b",false,List.of())),List.of(),0,"");
         var result=new RosterSolver().solve(month,c,List.of(),false);
