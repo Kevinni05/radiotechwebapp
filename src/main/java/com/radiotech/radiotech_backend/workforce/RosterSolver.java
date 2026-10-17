@@ -51,14 +51,17 @@ public class RosterSolver {
                     if(locks.contains(key(a))) model.addEquality(variable,1);
                     else if(validateOnly) model.addEquality(variable,0);
                 }
-                model.addEquality(coverage,t.coverage());
-                if(candidates<t.coverage()) warnings.add(date+" / "+t.label()+": servono "+t.coverage()+" operatori, disponibili "+candidates+".");
+                // Company hours require every eligible member on the same shift. Absences
+                // reduce the daily headcount instead of turning colleagues into substitutes.
+                int required=t.allMembers()?candidates:t.coverage();
+                model.addEquality(coverage,required);
+                if(candidates<required) warnings.add(date+" / "+t.label()+": servono "+required+" operatori, disponibili "+candidates+".");
             }
         }
         Set<String> available=new HashSet<>(); choices.forEach(x->available.add(key(x.assignment())));
         for(String lock:locks) if(!available.contains(lock)) warnings.add("Turno bloccato incompatibile con disponibilità o vincoli: "+lock);
         if(!warnings.isEmpty()) return new Roster.Result("INFEASIBLE",List.of(),warnings,0);
-        var objective=LinearExpr.newBuilder(); var workloads=new ArrayList<IntVar>();
+        var objective=LinearExpr.newBuilder();
         for(var m:c.members()) {
             var personal=choices.stream().filter(x->x.assignment().operatorId().equals(m.operatorId())).toList();
             var fixed=boundary.stream().filter(x->x.operatorId().equals(m.operatorId())).toList();
@@ -78,13 +81,6 @@ public class RosterSolver {
             }
             var total=LinearExpr.newBuilder(); personal.forEach(x->total.addTerm(x.variable(),x.slot().workMinutes()));
             model.addLinearConstraint(total,m.minMonthlyMinutes(),m.maxMonthlyMinutes());
-            // Absolute target deviations have the same sum while everyone is below target.
-            // Balance the fraction of each target covered (capacity when no target is set)
-            // so that equally good solutions do not concentrate shifts on one employee.
-            int reference=m.targetMonthlyMinutes()>0?m.targetMonthlyMinutes():m.maxMonthlyMinutes();
-            var workload=model.newIntVar(0,44640000,"workload-"+m.operatorId());
-            model.addDivisionEquality(workload,LinearExpr.term(total,1000),LinearExpr.constant(reference));
-            workloads.add(workload);
             if(m.targetMonthlyMinutes()>0) {
                 IntVar deviation=model.newIntVar(0,44640,"target-"+m.operatorId());
                 model.addAbsEquality(deviation,LinearExpr.newBuilder().add(total).add(-m.targetMonthlyMinutes()));
@@ -112,10 +108,6 @@ public class RosterSolver {
                 if(c.assignments().stream().anyMatch(a->key(a).equals(key(x.assignment())))) objective.addTerm(x.variable(),-5);
             }
         }
-        var highestWorkload=model.newIntVar(0,44640000,"highest-workload");
-        var lowestWorkload=model.newIntVar(0,44640000,"lowest-workload");
-        model.addMaxEquality(highestWorkload,workloads); model.addMinEquality(lowestWorkload,workloads);
-        objective.addTerm(highestWorkload,120).addTerm(lowestWorkload,-120);
         // Minimise spread of nights and weekends across participating employees.
         for(boolean night:List.of(true,false)) {
             var counts=new ArrayList<IntVar>();

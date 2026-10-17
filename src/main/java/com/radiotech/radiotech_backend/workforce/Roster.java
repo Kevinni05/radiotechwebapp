@@ -17,8 +17,12 @@ public final class Roster {
             @NotBlank @Size(max=80) String label, @NotBlank String start, @NotBlank String end,
             @Min(0) @Max(720) int breakMinutes, @Min(1) @Max(100) int coverage,
             @NotEmpty List<@Min(1) @Max(7) Integer> days, @Size(max=100) String site,
-            @Size(max=80) String skill, boolean night) {
-        public Template { LocalTime.parse(start); LocalTime.parse(end); days = List.copyOf(days); }
+            @Size(max=80) String skill, boolean night, Boolean allMembers) {
+        public Template { LocalTime.parse(start); LocalTime.parse(end); days = List.copyOf(days); allMembers = Boolean.TRUE.equals(allMembers); }
+        public Template(String id,String label,String start,String end,int breakMinutes,int coverage,
+                List<Integer> days,String site,String skill,boolean night) {
+            this(id,label,start,end,breakMinutes,coverage,days,site,skill,night,false);
+        }
     }
     public record Member(@NotBlank @Size(max=128) String operatorId,
             @Min(0) @Max(44640) int minMonthlyMinutes, @Min(1) @Max(44640) int maxMonthlyMinutes,
